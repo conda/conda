@@ -5,18 +5,28 @@ from __future__ import annotations
 import os
 from errno import ENOENT
 from os.path import isdir, isfile, join, lexists
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.common.compat import on_win
 from conda.gateways.disk.create import TemporaryDirectory, create_link, mkdir_p
-from conda.gateways.disk.delete import backoff_rmdir, rm_rf
+from conda.gateways.disk.delete import (
+    backoff_rmdir,
+    rm_rf,
+    rmtree,
+    unlink_or_rename_to_trash,
+)
 from conda.gateways.disk.link import islink, symlink
+from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.test import softlink_supported
 from conda.gateways.disk.update import touch
 from conda.models.enums import LinkType
 
-from .test_permissions import _make_read_only, _try_open, tempdir
+from .test_permissions import _try_open, tempdir
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 def _write_file(path, content):
@@ -31,19 +41,7 @@ def test_remove_file():
         touch(test_path)
         assert isfile(test_path)
         _try_open(test_path)
-        _make_read_only(test_path)
-        pytest.raises((IOError, OSError), _try_open, test_path)
-        assert rm_rf(test_path)
-        assert not isfile(test_path)
-
-
-def test_remove_file_to_trash():
-    with tempdir() as td:
-        test_path = join(td, "test_path")
-        touch(test_path)
-        assert isfile(test_path)
-        _try_open(test_path)
-        _make_read_only(test_path)
+        make_read_only(test_path)
         pytest.raises((IOError, OSError), _try_open, test_path)
         assert rm_rf(test_path)
         assert not isfile(test_path)
@@ -178,3 +176,75 @@ def test_try_rmdir_all_empty_doesnt_exist():
         assert isdir(td)
         rm_rf(td)
         assert not isdir(td)
+
+
+def test_unlink_to_rename_to_trash_win_fallback(
+    mocker: MockerFixture,
+):
+    """
+    Test fix for bug: https://github.com/conda/conda/issues/15760
+    """
+    test_path = "idontexist"
+    mocker.patch(
+        "conda.gateways.disk.delete.os.unlink",
+        side_effect=OSError(),
+    )
+    mocker.patch(
+        "conda.gateways.disk.delete.os.rename",
+        side_effect=OSError(),
+    )
+    mocker.patch("conda.gateways.disk.delete.on_win", True)
+    mocker.patch("conda.gateways.disk.delete.exists", return_value=True)
+
+    # Return True on the first isfile check so the while-loop body executes,
+    # then False to exit the loop.
+    mocker.patch(
+        "conda.gateways.disk.delete.isfile",
+        side_effect=[True, False],
+    )
+    mock_check_output = mocker.patch(
+        "conda.gateways.disk.delete.check_output",
+        return_value=b"",
+    )
+
+    unlink_or_rename_to_trash(test_path)
+
+    # The counter suffix must have been applied; dest filename should end with .conda_trash_1
+    call_args = mock_check_output.call_args[0][0]
+    assert call_args[-1].endswith(".conda_trash_1")
+
+
+def test_rmtree_skips_shutil_when_windows_rd_already_removed(
+    mocker: MockerFixture,
+):
+    """Windows RD /S /Q removes the path; do not call shutil.rmtree on a missing dir (#16539)."""
+    mocker.patch("conda.gateways.disk.delete.on_win", True)
+    mocker.patch("conda.gateways.disk.delete.normpath", side_effect=lambda p: p)
+    mocker.patch(
+        "conda.gateways.disk.delete.check_output",
+        return_value=b"",
+    )
+    mocker.patch("conda.gateways.disk.delete.isdir", return_value=False)
+    mock_shutil_rmtree = mocker.patch("conda.gateways.disk.delete.shutil.rmtree")
+
+    rmtree(r"C:\temp\already-gone")
+
+    mock_shutil_rmtree.assert_not_called()
+
+
+def test_rmtree_falls_back_to_shutil_when_windows_path_remains(
+    mocker: MockerFixture,
+):
+    """If the Windows fast path leaves the directory, shutil.rmtree still runs."""
+    mocker.patch("conda.gateways.disk.delete.on_win", True)
+    mocker.patch("conda.gateways.disk.delete.normpath", side_effect=lambda p: p)
+    mocker.patch(
+        "conda.gateways.disk.delete.check_output",
+        return_value=b"",
+    )
+    mocker.patch("conda.gateways.disk.delete.isdir", return_value=True)
+    mock_shutil_rmtree = mocker.patch("conda.gateways.disk.delete.shutil.rmtree")
+
+    rmtree(r"C:\temp\still-there")
+
+    mock_shutil_rmtree.assert_called_once_with(r"C:\temp\still-there")

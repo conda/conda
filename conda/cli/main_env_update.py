@@ -12,7 +12,6 @@ from argparse import (
     _SubParsersAction,
 )
 
-from .. import CondaError
 from ..notices import notices
 
 
@@ -30,7 +29,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     description = summary
     epilog = dals(
         """
-        Examples::
+        Examples:
 
             conda env update
             conda env update -n=foo
@@ -82,7 +81,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..env.env import print_result
     from ..env.installers.base import get_installer
-    from ..exceptions import CondaEnvException, InvalidInstaller
+    from ..exceptions import (
+        CondaEnvException,
+        PlatformMismatchError,
+    )
     from .common import validate_file_exists
 
     # validate incoming arguments
@@ -94,7 +96,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         name=context.environment_specifier,
     )
     spec = spec_hook.environment_spec(args.file)
-    env = spec.env
+    if context.subdir not in spec.available_platforms:
+        raise PlatformMismatchError(
+            [(args.file, spec.available_platforms)], context.subdir
+        )
+    env = spec.env_for(context.subdir)
 
     if not (args.name or args.prefix):
         if not env.name:
@@ -140,35 +146,19 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     # e.g. due to conda_env being upgraded or Python version switched.
     installers = {}
 
-    if env.requested_packages:
-        installers["conda"] = get_installer("conda")
-
+    # Ensure we have all the right external package installers before starting
+    # to install anything.
     for installer_type in env.external_packages:
-        try:
-            installers[installer_type] = get_installer(installer_type)
-        except InvalidInstaller:
-            raise CondaError(
-                dals(
-                    f"""
-                    Unable to install package for {0}.
-
-                    Please double check and ensure you dependencies file has
-                    the correct spelling.  You might also try installing the
-                    conda-env-{0} package to see if provides the required
-                    installer.
-                    """
-                )
-            )
-
-            return -1
+        installers[installer_type] = get_installer(installer_type, file=args.file)
 
     result = {"conda": None, "pip": None}
     # install conda packages
-    installer_type = "conda"
-    installer = installers[installer_type]
-    result[installer_type] = installer.install(
-        prefix, env.requested_packages, args, env
-    )
+    if env.requested_packages:
+        installer_type = "conda"
+        installer = get_installer(installer_type)
+        result[installer_type] = installer.install(
+            prefix, env.requested_packages, args, env
+        )
     # install all other external packages
     for installer_type, specs in env.external_packages.items():
         installer = installers[installer_type]

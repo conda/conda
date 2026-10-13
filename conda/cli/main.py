@@ -6,17 +6,11 @@ import sys
 
 
 def init_loggers():
-    import logging
 
     from ..base.context import context
     from ..gateways.logging import initialize_logging, set_log_level
 
     initialize_logging()
-
-    # silence logging info to avoid interfering with JSON output
-    if context.json:
-        for logger in ("conda.stdout.verbose", "conda.stdoutlog", "conda.stderrlog"):
-            logging.getLogger(logger).setLevel(logging.CRITICAL + 10)
 
     # set log_level
     set_log_level(context.log_level)
@@ -24,15 +18,25 @@ def init_loggers():
 
 def main_subshell(*args, post_parse_hook=None, **kwargs):
     """Entrypoint for the "subshell" invocation of CLI interface. E.g. `conda create`."""
+    from argparse import REMAINDER
+
     # defer import here so it doesn't hit the 'conda shell.*' subcommands paths
     from ..base.context import context
     from .conda_argparse import do_call, generate_parser, generate_pre_parser
 
     args = args or ["--help"]
+    separator = args.index("--") if "--" in args else len(args)
 
     pre_parser = generate_pre_parser(add_help=False)
-    args_subset = args[: args.index("--")] if "--" in args else args
+    # Plugin selection is global. Do not interpret child arguments in `conda run`.
+    pre_parser.add_argument("_command_args", nargs=REMAINDER)
+    args_subset = args[:separator]
     pre_args, _ = pre_parser.parse_known_args(args_subset)
+    del pre_args._command_args
+    # Preserve logging and JSON options supplied after the subcommand.
+    logging_parser = generate_pre_parser(add_help=False, with_plugins=False)
+    logging_args, _ = logging_parser.parse_known_args(args_subset)
+    vars(pre_args).update(vars(logging_args))
 
     # the arguments that we want to pass to the main parser later on
     override_args = {
@@ -44,14 +48,23 @@ def main_subshell(*args, post_parse_hook=None, **kwargs):
 
     context.__init__(argparse_args=pre_args)
     if context.no_plugins:
-        context.plugin_manager.disable_external_plugins()
-
-    # reinitialize in case any of the entrypoints modified the context
-    context.__init__(argparse_args=pre_args)
+        context.plugin_manager.disable_external_plugins(
+            except_plugins=pre_args.enabled_plugins,
+        )
+    elif pre_args.disabled_plugins or pre_args.enabled_plugins:
+        context.plugin_manager.disable_plugins(
+            pre_args.disabled_plugins,
+            except_plugins=pre_args.enabled_plugins,
+        )
 
     parser = generate_parser(add_help=True)
+    # Accumulating actions must not append to the selections from pre-parsing.
+    del pre_args.enabled_plugins
+    del pre_args.disabled_plugins
     args = parser.parse_args(args, override_args=override_args, namespace=pre_args)
 
+    # Plugin imports may reset context, so load them before applying parsed arguments.
+    context.plugin_manager
     context.__init__(argparse_args=args)
     init_loggers()
 
@@ -105,6 +118,13 @@ def main(*args, **kwargs):
     # cleanup argv
     args = args or sys.argv[1:]  # drop executable/script
     args = tuple(ensure_text_type(s) for s in args)
+
+    # Fast path: print version without loading the parser or plugin system.
+    if args and args[0] in ("-V", "--version"):
+        from .. import __version__
+
+        print(f"conda {__version__}")
+        return 0
 
     if args and args[0].strip().startswith("shell."):
         main = main_sourced

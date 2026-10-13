@@ -95,12 +95,14 @@ class PluginConfig(Configuration):
                     continue
 
                 for param_name, raw_param in plugin_data_value.items():
+                    raw_param.key = param_name
                     new_data[source][param_name] = raw_param
 
             elif source == EnvRawParameter.source:
                 for env_var, raw_param in config.items():
                     if env_var.startswith("plugins_"):
                         _, param_name = env_var.split("plugins_")
+                        raw_param.key = param_name
                         new_data[source][param_name] = raw_param
 
         return new_data

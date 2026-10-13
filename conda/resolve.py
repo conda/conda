@@ -7,7 +7,6 @@ See conda.core.solver.Solver for the high-level API.
 
 from __future__ import annotations
 
-import copy
 import itertools
 from collections import defaultdict, deque
 from functools import cache
@@ -32,6 +31,7 @@ from .common.logic import (
     minimal_unsatisfiable_subset,
 )
 from .common.toposort import toposort
+from .deprecations import deprecated
 from .exceptions import (
     CondaDependencyError,
     InvalidSpec,
@@ -47,8 +47,16 @@ from .models.version import VersionOrder
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from .exceptions import UnsatisfiableConflictMap
+
 log = getLogger(__name__)
-stdoutlog = getLogger("conda.stdoutlog")
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "stdoutlog",
+    getLogger("conda.stdoutlog"),
+    addendum="Use `conda.gateways.streams.stdoutlog` instead.",
+)
 
 # used in conda build
 Unsatisfiable = UnsatisfiableError
@@ -335,9 +343,13 @@ class Resolve:
         return tuple(non_tf_specs), feature_names
 
     def _classify_bad_deps(
-        self, bad_deps, specs_to_add, history_specs, strict_channel_priority
-    ):
-        classes = {
+        self,
+        bad_deps: list[list[MatchSpec]],
+        specs_to_add,
+        history_specs,
+        strict_channel_priority,
+    ) -> UnsatisfiableConflictMap:
+        classes: UnsatisfiableConflictMap = {
             "python": set(),
             "request_conflict_with_history": set(),
             "direct": set(),
@@ -395,11 +407,11 @@ class Resolve:
 
         if classes["python"]:
             # filter out plain single-entry python conflicts.  The python section explains these.
-            classes["direct"] = [
+            classes["direct"] = {
                 _
                 for _ in classes["direct"]
                 if _[1].startswith("python ") or len(_[0]) > 1
-            ]
+            }
         return classes
 
     def find_matches_with_strict(self, ms, strict_channel_priority):
@@ -486,7 +498,12 @@ class Resolve:
                             queue.append(new_path)
         return dep_graph, all_deps
 
-    def build_conflict_map(self, specs, specs_to_add=None, history_specs=None):
+    def build_conflict_map(
+        self,
+        specs: Iterable[MatchSpec],
+        specs_to_add=None,
+        history_specs=None,
+    ) -> UnsatisfiableConflictMap:
         """Perform a deeper analysis on conflicting specifications, by attempting
         to find the common dependencies that might be the cause of conflicts.
 
@@ -495,7 +512,7 @@ class Resolve:
             It is assumed that the specs conflict.
 
         Returns:
-            bad_deps: A list of lists of bad deps
+            Classified conflict map for :class:`~conda.exceptions.UnsatisfiableError`.
 
         Strategy:
             If we're here, we know that the specs conflict. This could be because:
@@ -613,10 +630,12 @@ class Resolve:
                         )
                         chains.extend(c)
 
-        bad_deps = self._classify_bad_deps(
-            chains, specs_to_add, history_specs, strict_channel_priority
+        return self._classify_bad_deps(
+            chains,
+            specs_to_add,
+            history_specs,
+            strict_channel_priority,
         )
-        return bad_deps
 
     def _get_strict_channel(self, package_name):
         channel_name = None
@@ -743,7 +762,7 @@ class Resolve:
 
             reduced = nnew < nold
             if reduced:
-                log.debug("%s: pruned from %d -> %d" % (name, nold, nnew))
+                log.debug("%s: pruned from %d -> %d", name, nold, nnew)
             if any(ms.optional for ms in _specs):
                 return reduced
             elif nnew == 0:
@@ -832,7 +851,7 @@ class Resolve:
                 #    broadening check to apply across packages at the explicit level; only
                 #    at the level of deps below that explicit package.
                 seen_specs = set()
-                specs_by_name = copy.deepcopy(specs_by_name_seed)
+                specs_by_name = {k: v[:] for k, v in specs_by_name_seed.items()}
 
                 dep_specs = set(self.ms_depends(pkg))
                 for dep in dep_specs:
@@ -1218,8 +1237,8 @@ class Resolve:
         #       package tries to import it to create/remove a shortcut
         # 3. On windows, python noarch packages need an implicit dependency on conda added, if
         #    conda is in the list of packages for the environment.  Python noarch packages
-        #    that have entry points use conda's own conda.exe python entry point binary. If conda
-        #    is going to be updated during an operation, the unlink / link order matters.
+        #    with entry points used to use conda's own conda.exe python entry point binary.
+        #    If conda is going to be updated during an operation, the unlink / link order matters.
         #    See issue #6057.
 
         if on_win and "conda" in digraph:
@@ -1447,7 +1466,7 @@ class Resolve:
             log.debug("Solving for: %s", dlist)
 
         if not specs:
-            return ()
+            return []
 
         # Find the compliant packages
         log.debug("Solve: Getting reduced index of compliant packages")
@@ -1468,11 +1487,9 @@ class Resolve:
                     else:
                         not_found_packages.add(s)
             if not_found_packages:
-                raise ResolvePackageNotFound(not_found_packages)
+                raise ResolvePackageNotFound([(spec,) for spec in not_found_packages])
             elif wrong_version_packages:
-                raise UnsatisfiableError(
-                    [[d] for d in wrong_version_packages], chains=False
-                )
+                self.find_conflicts(wrong_version_packages, specs_to_add, history_specs)
             if should_retry_solve:
                 # We don't want to call find_conflicts until our last try.
                 # This jumps back out to conda/cli/install.py, where the
@@ -1649,7 +1666,9 @@ class Resolve:
             common = set.intersection(*psols2)
             diffs = [sorted(set(sol) - common) for sol in psols2]
             if not context.json:
-                stdoutlog.info(
+                from .gateways.streams import stdoutlog
+
+                stdoutlog(
                     "\nWarning: {} possible package resolutions "
                     "(only showing differing packages):{}{}".format(
                         ">10" if nsol > 10 else nsol,

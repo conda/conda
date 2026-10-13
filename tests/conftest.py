@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import logging
+import os
 import shutil
+import sys
+import sysconfig
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -12,7 +15,7 @@ import pytest
 
 import conda
 from conda import plugins
-from conda.base.constants import APP_NAME
+from conda.base.constants import APP_NAME, KNOWN_SUBDIRS
 from conda.base.context import context, reset_context
 from conda.common.configuration import (
     Configuration,
@@ -20,6 +23,7 @@ from conda.common.configuration import (
     PrimitiveParameter,
 )
 from conda.core.package_cache_data import PackageCacheData
+from conda.core.prefix_data import PrefixData
 from conda.gateways.connection.session import CondaSession, get_session
 from conda.plugins import environment_exporters, solvers
 from conda.plugins.config import PluginConfig
@@ -29,7 +33,7 @@ from conda.plugins.reporter_backends import plugins as reporter_backend_plugins
 from conda.plugins.types import CondaEnvironmentExporter
 from conda.testing import http_test_server
 
-from . import TEST_RECIPES_CHANNEL
+from . import PYTHON_SPEC, TEST_RECIPES_CHANNEL
 
 if TYPE_CHECKING:
     import http.server
@@ -38,42 +42,72 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
     from conda.models.environment import Environment
+    from conda.testing.fixtures import PipCLIFixture, TmpEnvFixture
 
 pytest_plugins = (
     # Add testing fixtures and internal pytest plugins here
     "conda.testing.gateways.fixtures",
     "conda.testing.notices.fixtures",
     "conda.testing.fixtures",
-    "tests.fixtures_jlap",
+    "tests.fixtures_package_server",
 )
 
 
 @pytest.hookimpl
 def pytest_report_header(config: pytest.Config):
     # ensuring the expected development conda is being run
-    expected = Path(__file__).parent.parent / "conda" / "__init__.py"
+    source_root = Path(__file__).parent.parent
+    expected = source_root / "conda" / "__init__.py"
     assert expected.samefile(conda.__file__)
-    return f"conda.__file__: {conda.__file__}"
+
+    # shell.X hook and wrap_subprocess_call read these from CONDA_PACKAGE_ROOT
+    from conda.activate import PosixActivator
+
+    conda_sh = PosixActivator.hook_source_path
+    expected_sh = source_root / "conda" / "shell" / "etc" / "profile.d" / "conda.sh"
+    assert expected_sh.samefile(conda_sh)
+
+    conda_bat = Path(conda.CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
+    expected_bat = source_root / "conda" / "shell" / "condabin" / "conda.bat"
+    assert expected_bat.samefile(conda_bat)
+
+    if expected_subdir := os.environ.get("CONDA_TEST_SUBDIR"):
+        assert context.subdir == expected_subdir, context.subdir
+        assert context._native_subdir() == expected_subdir, sysconfig.get_platform()
+        prefix_data = PrefixData(sys.prefix)
+        assert prefix_data.get("python").subdir == expected_subdir
+        assert {record.subdir for record in prefix_data.iter_records()} <= {
+            "noarch",
+            expected_subdir,
+        }
+
+    lines = [
+        f"Python platform: {sysconfig.get_platform()}",
+        f"conda.__file__: {conda.__file__}",
+        f"conda.sh: {conda_sh}",
+        f"conda.bat: {conda_bat}",
+        f"CONDA_EXE: {os.environ.get('CONDA_EXE')}",
+        f"CONDA_BAT: {os.environ.get('CONDA_BAT')}",
+    ]
+    return lines
 
 
 @pytest.fixture
-def tmp_env_python_spec() -> str:
-    """
-    Used to create a temporary enviroment with a bounded Python version.
-    """
-    return "python=3.13"
-
-
-@pytest.fixture
-def test_recipes_channel(mocker: MockerFixture) -> Path:
+def mock_channels(mocker: MockerFixture) -> list[str]:
+    channels: list[str] = []
     mocker.patch(
         "conda.base.context.Context.channels",
         new_callable=mocker.PropertyMock,
-        return_value=(channel_str := str(TEST_RECIPES_CHANNEL),),
+        return_value=channels,
     )
     reset_context()
-    assert context.channels == (channel_str,)
+    assert context.channels is channels
+    return channels
 
+
+@pytest.fixture
+def test_recipes_channel(mock_channels: list[str]) -> Path:
+    mock_channels.append(str(TEST_RECIPES_CHANNEL))
     return TEST_RECIPES_CHANNEL
 
 
@@ -208,12 +242,14 @@ class Exporters:
             aliases=(),
             default_filenames=(),
             export=self.single_platform_export,
+            description="Test single-platform exporter",
         )
         yield CondaEnvironmentExporter(
             name="test-multi-platform",
             aliases=(),
             default_filenames=(),
             multiplatform_export=self.multi_platform_export,
+            description="Test multi-platform exporter",
         )
 
 
@@ -294,6 +330,8 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             self.plugin_manager = mocker.MagicMock()
             self.repodata_fns = ["repodata.json", "current_repodata.json"]
             self.subdir = mocker.MagicMock()
+            self.known_subdirs = frozenset(KNOWN_SUBDIRS)
+            self.preview = ()
 
         @property
         def plugins(self) -> PluginConfig:
@@ -306,3 +344,27 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             }
 
     return MockContext, app_name
+
+
+@pytest.fixture
+def env_with_small_pip_package(
+    tmp_env: TmpEnvFixture,
+    wheelhouse: Path,
+    pip_cli: PipCLIFixture,
+) -> Path:
+    """Create a temporary environment with a small pip package installed.
+
+    Uses our small-python-package as a reliable test package that's proven to work in conda's test suite.
+    """
+    with tmp_env(PYTHON_SPEC, "pip") as prefix:
+        # Install small-python-package wheel built in test data directory
+        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+
+        # Install using pip_cli fixture for better error handling
+        pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
+        assert pip_code == 0, f"pip install failed: {pip_stderr}"
+
+        # Clear prefix data cache to ensure fresh data
+        PrefixData._cache_.clear()
+
+        return prefix

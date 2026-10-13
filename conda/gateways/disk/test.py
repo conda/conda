@@ -4,14 +4,12 @@
 
 from functools import cache
 from logging import getLogger
-from os import W_OK, access
+from os import W_OK, PathLike, access, stat
 from os.path import basename, dirname, isdir, isfile, join
 from uuid import uuid4
 
-from ...base.constants import PREFIX_MAGIC_FILE
 from ...common.constants import TRACE
 from ...common.path import expand
-from ...deprecations import deprecated
 from ...models.enums import LinkType
 from .create import create_link
 from .delete import rm_rf
@@ -38,6 +36,15 @@ def file_path_is_writable(path) -> bool:
     else:
         # TODO: probably won't work well on Windows
         return access(path, W_OK)
+
+
+@cache
+def paths_on_same_device(left: str | PathLike[str], right: str | PathLike[str]) -> bool:
+    """Return whether two paths reside on the same filesystem device."""
+    try:
+        return stat(left).st_dev == stat(right).st_dev
+    except OSError:
+        return False
 
 
 @cache
@@ -89,8 +96,3 @@ def softlink_supported(source_file, dest_dir):
         return False
     finally:
         rm_rf(test_path)
-
-
-@deprecated("25.9", "26.3", addendum="Use PrefixData.is_environment()")
-def is_conda_environment(prefix):
-    return isfile(join(prefix, PREFIX_MAGIC_FILE))

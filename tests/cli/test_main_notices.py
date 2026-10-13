@@ -17,7 +17,8 @@ from conda.cli import conda_argparse
 from conda.cli import main_notices as notices
 from conda.common.url import path_to_url
 from conda.exceptions import CondaError, PackagesNotFoundError
-from conda.notices import fetch
+from conda.notices import fetch, views
+from conda.notices.types import ChannelNoticeResponse
 from conda.testing.notices.helpers import (
     add_resp_to_mock,
     create_notice_cache_files,
@@ -27,6 +28,8 @@ from conda.testing.notices.helpers import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
@@ -114,6 +117,8 @@ def test_main_notices_json(
 
     captured = capsys.readouterr()
     json_data = json.loads(captured.out)
+    for item in messages_json["notices"]:
+        item["expired_at"] = item.pop("expires_at")
     assert messages_json.get("notices") == json_data
 
 
@@ -165,9 +170,7 @@ def test_main_notices_reads_from_expired_cache(
 
     messages = ("Test One", "Test Two")
     messages_different = ("With different value one", "With different value two")
-    created_at = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
-        days=14
-    )
+    created_at = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=14)
     cache_files = get_notice_cache_filenames(context)
 
     # Cache first version of notices, with a cache date we know is expired
@@ -387,18 +390,20 @@ def test_notices_does_not_interrupt_command_on_failure(
 
     prefix = path_factory()
 
-    _, _, exit_code = conda_cli(
+    stdout, stderr, rc = conda_cli(
         "create",
         f"--prefix={prefix}",
         "--yes",
         f"--channel={test_recipes_channel}",
     )
 
-    assert exit_code == 0
+    assert rc == 0, f"conda create failed ({rc}): {stderr}"
 
-    assert mock_logger.call_args == mocker.call(
-        f"Unable to open cache file: {error_message}"
-    )
+    mock_logger.assert_called_once()
+    fmt, exc = mock_logger.call_args.args
+    assert fmt == "Unable to open cache file: %s"
+    assert isinstance(exc, PermissionError)
+    assert str(exc) == error_message
 
 
 def test_notices_cannot_read_cache_files(
@@ -425,7 +430,8 @@ def test_notices_shown_after_previous_command_error(
     notices_cache_dir,
     notices_mock_fetch_get_session,
     conda_cli: CondaCLIFixture,
-    test_recipes_channel,
+    test_recipes_channel: Path,
+    path_factory: PathFactoryFixture,
 ):
     """
     As a user, when I run a command that generates an error (e.g. trying to install a package that
@@ -434,32 +440,103 @@ def test_notices_shown_after_previous_command_error(
 
     Regression test for: https://github.com/conda/conda/issues/14072
     """
-    env_one = "notices-test"
+    message = "Test One"
+    messages_json = get_test_notices([message])
 
-    messages = ("Test One",)
-    messages_json = get_test_notices(messages)
-    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
+    # configure server notices
+    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json, count=2)
 
-    with pytest.raises(PackagesNotFoundError):
-        conda_cli(
-            "create",
-            f"--name={env_one}",
-            f"--channel={test_recipes_channel}",
-            "--override-channels",
-            "--yes",
-            "package-does-not-exist",
-        )
-
-    messages = ("Test One",)
-    messages_json = get_test_notices(messages)
-    add_resp_to_mock(notices_mock_fetch_get_session, 200, messages_json)
-
-    out, err, exc = conda_cli(
+    # notices are not shown
+    out, err, _ = conda_cli(
         "create",
-        f"--name={env_one}",
-        f"--channel={test_recipes_channel}",
-        "--override-channels",
+        f"--prefix={path_factory()}",
         "--yes",
+        "package-does-not-exist",
+        raises=PackagesNotFoundError,
     )
+    assert message not in out
+    assert message not in err
 
-    assert "Test One" in out
+    # notices are shown
+    out, err, _ = conda_cli("create", f"--prefix={path_factory()}", "--yes")
+    assert message in out
+    assert message not in err
+
+
+@pytest.mark.parametrize(
+    ("terminal_width", "notice_json", "expected"),
+    (
+        pytest.param(
+            24,
+            {
+                "message": "A channel notice message should remain complete after wrapping."
+            },
+            (
+                "  [info] -- \n"
+                "  A channel notice\n"
+                "  message should remain\n"
+                "  complete after\n"
+                "  wrapping.\n"
+            ),
+            id="wraps-message",
+        ),
+        pytest.param(
+            0,
+            {"message": "This notice is still shown."},
+            "  [info] -- \n  This notice is still shown.\n",
+            id="zero-width-terminal",
+        ),
+        pytest.param(
+            30,
+            {
+                "message": (
+                    "Read the documentation before continuing:\n"
+                    "\n"
+                    "https://example.com/documentation/channel-notices?source=conda"
+                )
+            },
+            (
+                "  [info] -- \n"
+                "  Read the documentation\n"
+                "  before continuing:\n"
+                "\n"
+                "  https://example.com/document\n"
+                "  ation/channel-notices?source\n"
+                "  =conda\n"
+            ),
+            id="preserves-newlines-and-wraps-url",
+        ),
+        pytest.param(
+            80,
+            {},
+            "  [info] -- \n  None\n",
+            id="missing-message",
+        ),
+        pytest.param(
+            80,
+            {"message": 42},
+            "  [info] -- \n  42\n",
+            id="non-string-message",
+        ),
+    ),
+)
+def test_print_notice_message(
+    terminal_width,
+    notice_json,
+    expected,
+    capsys,
+    mocker: MockerFixture,
+):
+    mocker.patch(
+        "conda.notices.views.shutil.get_terminal_size",
+        return_value=os.terminal_size((terminal_width, 24)),
+    )
+    notice = ChannelNoticeResponse(
+        "https://example.com/notices.json",
+        "example",
+        {"notices": [notice_json]},
+    ).notices[0]
+
+    views.print_notice_message(notice)
+
+    assert capsys.readouterr().out == expected

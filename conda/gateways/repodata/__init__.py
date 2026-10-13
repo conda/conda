@@ -21,11 +21,12 @@ from typing import TYPE_CHECKING
 
 from ... import CondaError
 from ...auxlib.logz import stringify
-from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN
+from ...base.constants import CONDA_HOMEPAGE_URL, REPODATA_FN, REPODATA_SHARDS_FN
 from ...base.context import context
 from ...common.serialize import json
 from ...common.url import join_url, maybe_unquote
 from ...core.package_cache_data import PackageCacheData
+from ...deprecations import deprecated
 from ...exceptions import (
     CondaDependencyError,
     CondaHTTPError,
@@ -55,10 +56,16 @@ if TYPE_CHECKING:
     from ..connection import Response
 
 log = logging.getLogger(__name__)
-stderrlog = logging.getLogger("conda.stderrlog")
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "stderrlog",
+    logging.getLogger("conda.stderrlog"),
+    addendum="Use `conda.gateways.streams.stderrlog` instead.",
+)
 
 
-# if repodata_shards.msgpack.zst, repodata.json.zst or repodata.jlap were unavailable, check again later.
+# if alternate formats were unavailable, check again later.
 CHECK_ALTERNATE_FORMAT_INTERVAL = datetime.timedelta(days=7)
 
 # repodata.info/state.json keys to keep up with the CEP
@@ -67,6 +74,11 @@ ETAG_KEY = "etag"
 CACHE_CONTROL_KEY = "cache_control"
 URL_KEY = "url"
 CACHE_STATE_SUFFIX = ".info.json"
+
+# used in cache state files *.info.json
+FORMAT_JSON = "json"
+FORMAT_SHARDS = "shards"
+FORMAT_ZST = "zst"
 
 # show some unparseable json in error
 ERROR_SNIPPET_LENGTH = 32
@@ -101,24 +113,11 @@ class Response304ContentUnchanged(Exception):
 
 
 def get_repo_interface() -> type[RepoInterface]:
-    if "jlap" in context.experimental:
-        try:
-            from .jlap.interface import JlapRepoInterface
-
-            return JlapRepoInterface
-        except ImportError as e:  # pragma: no cover
-            warnings.warn(
-                "Could not load the configured jlap repo interface. "
-                f"Is the required jsonpatch package installed?  {e}"
-            )
-
     if context.repodata_use_zst:
-        try:
-            from .jlap.interface import ZstdRepoInterface
+        # We need lazy import to avoid circular imports.
+        from .zstd import ZstdRepoInterface
 
-            return ZstdRepoInterface
-        except ImportError:  # pragma: no cover
-            pass
+        return ZstdRepoInterface
 
     return CondaRepoInterface
 
@@ -194,6 +193,20 @@ def _add_http_value_to_dict(resp, http_key, d, dict_key):
         d[dict_key] = value
 
 
+def _shard_index_exists(subdir_url: str) -> bool:
+    try:
+        session = get_session(subdir_url)
+        url = join_url(subdir_url, REPODATA_SHARDS_FN)
+        timeout = (
+            context.remote_connect_timeout_secs,
+            context.remote_read_timeout_secs,
+        )
+        response = session.head(url, timeout=timeout, proxies=session.proxies)
+        return 200 <= response.status_code < 300
+    except Exception:
+        return False
+
+
 @contextmanager
 def conda_http_errors(url, repodata_fn):
     """Use in a with: statement to translate requests exceptions to conda ones."""
@@ -238,7 +251,7 @@ Exception: {e}
 
     except (ConnectionError, HTTPError, ChunkedEncodingError) as e:
         status_code = getattr(e.response, "status_code", None)
-        if status_code in (403, 404):
+        if status_code == 404:
             if not url.endswith("/noarch"):
                 log.info(
                     "Unable to retrieve repodata (response: %d) for %s",
@@ -252,10 +265,10 @@ Exception: {e}
                 )
             else:
                 if context.allow_non_channel_urls:
-                    stderrlog.warning(
-                        "Unable to retrieve repodata (response: %d) for %s",
-                        status_code,
-                        url + "/" + repodata_fn,
+                    from ...gateways.streams import stderrlog
+
+                    stderrlog(
+                        f"Unable to retrieve repodata (response: {status_code}) for {url}/{repodata_fn}"
                     )
                     raise RepodataIsEmpty(
                         Channel(dirname(url)),
@@ -263,42 +276,76 @@ Exception: {e}
                         response=e.response,
                     )
                 else:
+                    shards_only_hint = (
+                        repodata_fn == REPODATA_FN
+                        and not context.repodata_use_shards
+                        and _shard_index_exists(url)
+                    )
                     raise UnavailableInvalidChannel(
                         Channel(dirname(url)),
                         status_code,
                         response=e.response,
+                        shards_only_hint=shards_only_hint,
                     )
+
+        elif status_code == 403:
+            channel = Channel(url)
+            if channel.token:
+                help_message = """\
+The token given for the URL has insufficient permissions to access this resource.
+
+You may not have the required permissions to access this channel or package.
+Consider requesting access from the channel owner.
+
+Use `conda config --show` to view your configuration's current state.
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
+
+            elif context.channel_alias.location in url:
+                help_message = """\
+The remote server has indicated you do not have permission to access this resource.
+
+This may mean:
+  (a) You are not authenticated. Check if authentication is required for this channel
+      and verify your credentials are correctly configured.
+  (b) You do not have access to this private channel or package. Contact the
+      channel owner to request access.
+
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
+
+            else:
+                help_message = """\
+You do not have permission to access this resource.
+
+This may indicate:
+  - The channel requires authentication. Check your credentials.
+  - You do not have access to this private channel or package.
+
+You will need to modify your conda configuration to proceed.
+Use `conda config --show` to view your configuration's current state.
+Further configuration help can be found at <{}>.
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
         elif status_code == 401:
             channel = Channel(url)
             if channel.token:
                 help_message = """\
-The token '{}' given for the URL is invalid.
+The token given for the URL is invalid.
 
-If this token was pulled from anaconda-client, you will need to use
-anaconda-client to reauthenticate.
-
-If you supplied this token to conda directly, you will need to adjust your
-conda configuration to proceed.
+You will need to adjust your conda configuration to proceed.
 
 Use `conda config --show` to view your configuration's current state.
 Further configuration help can be found at <{}>.
-""".format(
-                    channel.token,
-                    join_url(CONDA_HOMEPAGE_URL, "docs/config.html"),
-                )
+""".format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
 
             elif context.channel_alias.location in url:
-                # Note, this will not trigger if the binstar configured url does
-                # not match the conda configured one.
                 help_message = """\
 The remote server has indicated you are using invalid credentials for this channel.
 
-If the remote site is anaconda.org or follows the Anaconda Server API, you
-will need to
-    (a) remove the invalid token from your system with `anaconda logout`, optionally
-        followed by collecting a new token with `anaconda login`, or
-    (b) provide conda with a valid token directly.
+You may need to:
+  (a) Remove or update the invalid token from your configuration, or
+  (b) Provide conda with a valid token directly.
 
 Further configuration help can be found at <{}>.
 """.format(join_url(CONDA_HOMEPAGE_URL, "docs/config.html"))
@@ -437,17 +484,18 @@ class RepodataState(UserDict):
             return (value, last_checked)
         except (KeyError, ValueError, TypeError) as e:
             log.warning(
-                f"error parsing `has_` object from `<cache key>{CACHE_STATE_SUFFIX}`",
+                "error parsing `has_` object from `<cache key>%s`",
+                CACHE_STATE_SUFFIX,
                 exc_info=e,
             )
             self.pop(key)
 
-        return False, datetime.datetime.now(tz=datetime.timezone.utc)
+        return False, datetime.datetime.now(tz=datetime.UTC)
 
     def set_has_format(self, format: str, value: bool):
         key = f"has_{format}"
         self[key] = {
-            "last_checked": datetime.datetime.now(tz=datetime.timezone.utc).isoformat()[
+            "last_checked": datetime.datetime.now(tz=datetime.UTC).isoformat()[
                 : -len("+00:00")
             ]
             + "Z",
@@ -462,12 +510,16 @@ class RepodataState(UserDict):
     def should_check_format(self, format: str) -> bool:
         """Return True if named format should be attempted."""
         has, when = self.has_format(format)
-        return (
+        should_check = (
             has is True
             or isinstance(when, datetime.datetime)
-            and datetime.datetime.now(tz=datetime.timezone.utc) - when
+            and datetime.datetime.now(tz=datetime.UTC) - when
             > CHECK_ALTERNATE_FORMAT_INTERVAL
         )
+        # Always check for shards if json has not been cached:
+        if format == FORMAT_SHARDS and not should_check:
+            should_check = not self.cache_path_json.exists()
+        return should_check
 
     def __contains__(self, key: str) -> bool:
         key = self._aliased.get(key, key)
@@ -547,6 +599,10 @@ class RepodataCache:
             # stat (if json_data is to be trusted)
             if state_only:
                 json_data = b"" if binary else ""
+                if not cache_path.exists():
+                    self.state.clear()
+                    self.state.update(state)
+                    return json_data
             else:
                 if binary:
                     json_data = cache_path.read_bytes()
@@ -583,7 +639,9 @@ class RepodataCache:
             self.load(state_only=True, binary=binary)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             if isinstance(e, json.JSONDecodeError):
-                log.warning(f"{e.__class__.__name__} loading {self.cache_path_state}")
+                log.warning(
+                    "%s loading %s", e.__class__.__name__, self.cache_path_state
+                )
             self.state.clear()
         return self.state
 
@@ -689,7 +747,11 @@ class RepodataCache:
         max_age *= 10**9  # nanoseconds
         now = time.time_ns()
         refresh = self.state.get("refresh_ns", 0)
-        return ((now - refresh) + max_age) / 1e9
+        return (max_age - (now - refresh)) / 1e9
+
+    def _shards_known(self) -> bool:
+        has_shards, checked = self.state.has_format(FORMAT_SHARDS)
+        return (checked is not None and has_shards) or self.cache_path_shards.exists()
 
 
 class RepodataFetch:
@@ -731,7 +793,8 @@ class RepodataFetch:
         Retrieve parsed latest or latest-cached repodata as a dict; update
         cache.
 
-        :return: (repodata contents, state including cache headers)
+        Returns:
+            Repodata contents, state including cache headers
         """
         parsed, state = self.fetch_latest()
         if isinstance(parsed, str):
@@ -750,7 +813,8 @@ class RepodataFetch:
         """
         Retrieve latest or latest-cached repodata; update cache.
 
-        :return: (pathlib.Path to uncompressed repodata contents, RepodataState)
+        Returns:
+            Path to uncompressed repodata contents, RepodataState
         """
         _, state = self.fetch_latest()
         return self.cache_path_json, state
@@ -846,6 +910,14 @@ class RepodataFetch:
                 self.cache_path_json,
             )
 
+        # avoid network calls if repodata_json is set to False and return "{}"
+        if (
+            self.repodata_fn == REPODATA_FN
+            and not cache.state.should_check_format(FORMAT_JSON)
+            and cache.cache_path_shards.exists()
+        ):
+            return "{}", cache.state
+
         try:
             try:
                 repo = self._repo
@@ -856,8 +928,20 @@ class RepodataFetch:
             except RepodataIsEmpty:
                 if self.repodata_fn != REPODATA_FN:
                     raise  # is UnavailableInvalidChannel subclass
+
+                # when self.repodata_fn==repodata.json, and RepodataIsEmpty error is raised:
+                # if shards are available, we can assume that repodata.json is not supported
+                if cache._shards_known():
+                    cache.state.set_has_format(FORMAT_JSON, False)
+
                 # the surrounding try/except/else will cache "{}"
                 raw_repodata = None
+            except UnavailableInvalidChannel:  # for noarch case
+                if self.repodata_fn == REPODATA_FN:
+                    if cache._shards_known():
+                        cache.state.set_has_format(FORMAT_JSON, False)
+                        cache.refresh()
+                raise
             except RepodataOnDisk:
                 # used as a sentinel, not the raised exception object
                 raw_repodata = RepodataOnDisk
@@ -875,7 +959,6 @@ class RepodataFetch:
                 if raw_repodata is RepodataOnDisk:
                     # this is handled very similar to a 304. Can the cases be merged?
                     # we may need to read_bytes() and compare a hash to the state, instead.
-                    # XXX use self._repo_cache.load() or replace after passing temp path to jlap
                     raw_repodata = self.cache_path_json.read_text()
                     stat = self.cache_path_json.stat()
                     cache.state["size"] = stat.st_size  # type: ignore

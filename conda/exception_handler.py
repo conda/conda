@@ -11,20 +11,26 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from .common.compat import ensure_text_type, on_win
+from .deprecations import deprecated
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from types import TracebackType
-    from typing import Any, TypeVar
+    from typing import Any, ParamSpec, TypeVar
 
     T = TypeVar("T")
+    P = ParamSpec("P")
 
 log = getLogger(__name__)
 
 
 class ExceptionHandler:
-    # FUTURE: Python 3.10+, use typing.ParamSpec
-    def __call__(self, func: Callable[..., T], *args, **kwargs) -> T | int:
+    def __call__(
+        self,
+        func: Callable[P, T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T | int:
         try:
             return func(*args, **kwargs)
         except:
@@ -32,12 +38,11 @@ class ExceptionHandler:
             return self.handle_exception(exc_val, exc_tb)
 
     def write_out(self, *content: str) -> None:
-        from logging import getLogger
-
         from .cli.main import init_loggers
+        from .gateways.streams import stderr
 
         init_loggers()
-        getLogger("conda.stderr").info("\n".join(content))
+        stderr("\n".join(content))
 
     @property
     def http_timeout(self):
@@ -52,6 +57,10 @@ class ExceptionHandler:
         return context.user_agent
 
     @property
+    @deprecated(
+        "26.9",
+        "27.3",
+    )
     def error_upload_url(self):
         from .base.context import context
 
@@ -65,6 +74,13 @@ class ExceptionHandler:
             CondaMemoryError,
             NoSpaceLeftError,
         )
+
+        try:
+            from .base.context import context
+
+            context.plugin_manager.invoke_exception_observers(exc_val, exc_tb)
+        except BaseException:
+            log.debug("Failed to invoke exception observer plugins", exc_info=True)
 
         if isinstance(exc_val, CondaError):
             if exc_val.reportable:
@@ -105,7 +121,6 @@ class ExceptionHandler:
     ) -> int:
         error_report = self.get_error_report(exc_val, exc_tb)
         self.print_unexpected_error_report(error_report)
-        self._upload(error_report)
         rc = getattr(exc_val, "return_code", None)
         return rc if rc is not None else 1
 
@@ -118,7 +133,6 @@ class ExceptionHandler:
         if context.json:
             error_report.update(exc_val.dump_map())
         self.print_expected_error_report(error_report)
-        self._upload(error_report)
         return exc_val.return_code
 
     def get_error_report(
@@ -196,17 +210,21 @@ class ExceptionHandler:
             message_builder.extend(
                 [
                     "",
-                    "An unexpected error has occurred. Conda has prepared the above report."
+                    "An unexpected error has occurred. Conda has prepared the above report.",
                     "",
                     "If you suspect this error is being caused by a malfunctioning plugin,",
                     "consider using the --no-plugins option to turn off plugins.",
                     "",
-                    "Example: conda --no-plugins install <package>",
+                    "Example: conda --no-plugins info",
                     "",
                     "Alternatively, you can set the CONDA_NO_PLUGINS environment variable on",
                     "the command line to run the command without plugins enabled.",
                     "",
-                    "Example: CONDA_NO_PLUGINS=true conda install <package>",
+                    "Example: CONDA_NO_PLUGINS=true conda info",
+                    "",
+                    "For commands that need a solver, keep an installed solver plugin enabled:",
+                    "",
+                    "Example: conda --no-plugins --enable-plugins conda-libmamba-solver install --solver=libmamba <package>",
                     "",
                 ]
             )
@@ -264,6 +282,10 @@ class ExceptionHandler:
             log.debug("%r", e)
             return True
 
+    @deprecated(
+        "26.9",
+        "27.3",
+    )
     def _upload(self, error_report: dict[str, str]) -> None:
         """Determine whether or not to upload the error report."""
         from .base.context import context
@@ -296,6 +318,10 @@ class ExceptionHandler:
             # post submission text
             self._post_upload(do_upload)
 
+    @deprecated(
+        "26.9",
+        "27.3",
+    )
     def _ask_upload(self) -> bool:
         from .auxlib.type_coercion import boolify
         from .common.io import timeout
@@ -316,6 +342,10 @@ class ExceptionHandler:
             log.debug("%r", e)
             return False
 
+    @deprecated(
+        "26.9",
+        "27.3",
+    )
     def _execute_upload(self, error_report: dict[str, Any]) -> None:
         import getpass
 
@@ -373,8 +403,12 @@ class ExceptionHandler:
                 if response and response.status_code:
                     self.write_out(f" HTTP {response.status_code}")
         except Exception as e:
-            log.debug(f"{e!r}")
+            log.debug("%r", e)
 
+    @deprecated(
+        "26.9",
+        "27.3",
+    )
     def _post_upload(self, do_upload: bool) -> None:
         if do_upload is True:
             # report was submitted

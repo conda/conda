@@ -19,6 +19,7 @@ from os.path import (
     join,
     normpath,
     split,
+    splitext,
 )
 from subprocess import STDOUT, CalledProcessError, check_output
 
@@ -92,12 +93,15 @@ def rmtree(path):
             except CalledProcessError as e:
                 if e.returncode != 5:
                     log.error(
-                        f"Removing folder {name} the fast way failed.  Output was: {out}"
+                        "Removing folder %s the fast way failed.  Output was: %s",
+                        name,
+                        out,
                     )
                     raise
                 else:
                     log.debug(
-                        f"removing dir contents the fast way failed.  Output was: {out}"
+                        "removing dir contents the fast way failed.  Output was: %s",
+                        out,
                     )
     else:
         try:
@@ -126,11 +130,15 @@ def rmtree(path):
                     )
                 except CalledProcessError:
                     log.debug(
-                        f"removing dir contents the fast way failed.  Output was: {out}"
+                        "removing dir contents the fast way failed.  Output was: %s",
+                        out,
                     )
 
             shutil.rmtree(".empty")
-    shutil.rmtree(path)
+    # On Windows, RD /S /Q (or the bat fallback) already removes the directory.
+    # Calling shutil.rmtree unconditionally then raises FileNotFoundError (#16539).
+    if isdir(path):
+        shutil.rmtree(path)
 
 
 def unlink_or_rename_to_trash(path):
@@ -156,7 +164,7 @@ def unlink_or_rename_to_trash(path):
                     dest_fn = path + ".conda_trash"
                     counter = 1
                     while isfile(dest_fn):
-                        dest_fn = dest_fn.splitext[0] + f".conda_trash_{counter}"
+                        dest_fn = splitext(dest_fn)[0] + f".conda_trash_{counter}"
                         counter += 1
                     out = "< empty >"
                     try:
@@ -173,17 +181,21 @@ def unlink_or_rename_to_trash(path):
                         )
                     except CalledProcessError:
                         log.debug(
-                            f"renaming file path {path} to trash failed.  Output was: {out}"
+                            "renaming file path %s to trash failed.  Output was: %s",
+                            path,
+                            out,
                         )
 
                 else:
                     log.debug(
-                        f"{trash_script} is missing.  Conda was not installed correctly or has been "
-                        "corrupted.  Please file an issue on the conda github repo."
+                        "%s is missing.  Conda was not installed correctly or has been "
+                        "corrupted.  Please file an issue on the conda github repo.",
+                        trash_script,
                     )
             log.warning(
-                f"Could not remove or rename {path}.  Please remove this file manually (you "
-                "may need to reboot to free file handles)"
+                "Could not remove or rename %s.  Please remove this file manually (you "
+                "may need to reboot to free file handles)",
+                path,
             )
 
 

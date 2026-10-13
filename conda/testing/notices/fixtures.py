@@ -2,7 +2,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """Collection of pytest fixtures used in conda.notices tests."""
 
+from __future__ import annotations
+
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import pytest
@@ -10,6 +13,11 @@ import pytest
 from ...base.constants import DEFAULTS_CHANNEL_NAME, NOTICES_CACHE_SUBDIR
 from ...base.context import reset_context
 from ...cli.conda_argparse import generate_parser
+
+if TYPE_CHECKING:
+    from unittest.mock import MagicMock
+
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture(scope="function")
@@ -27,10 +35,8 @@ def notices_cache_dir(tmpdir):
 
 
 @pytest.fixture(scope="function")
-def notices_mock_fetch_get_session():
-    with mock.patch("conda.notices.fetch.get_session") as mock_get_session:
-        mock_get_session.return_value = mock.MagicMock()
-        yield mock_get_session
+def notices_mock_fetch_get_session(mocker: MockerFixture) -> MagicMock:
+    return mocker.patch("conda.notices.fetch.get_session")
 
 
 @pytest.fixture(scope="function")

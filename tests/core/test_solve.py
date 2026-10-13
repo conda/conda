@@ -3,19 +3,24 @@
 from __future__ import annotations
 
 import copy
+import json
 import re
 import sys
+from contextlib import ExitStack
 from importlib.metadata import version
 from pprint import pprint
 from typing import TYPE_CHECKING
 from unittest.mock import Mock, patch
 
+import archspec.cpu
 import pytest
 
 from conda.auxlib.ish import dals
 from conda.base.constants import PREFIX_PINNED_FILE
 from conda.base.context import context, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
+from conda.core.index import Index, ReducedIndex
+from conda.core.prefix_data import PrefixData
 from conda.core.solve import DepsModifier, Solver, UpdateModifier, get_pinned_specs
 from conda.exceptions import (
     NoChannelsConfiguredError,
@@ -27,7 +32,7 @@ from conda.exceptions import (
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
-from conda.models.records import PrefixRecord
+from conda.models.records import PackageRecord, PrefixRecord
 from conda.models.version import VersionOrder
 from conda.testing.helpers import (
     CHANNEL_DIR_V1,
@@ -43,19 +48,22 @@ from conda.testing.helpers import (
     get_solver_cuda,
     get_solver_must_unfreeze,
 )
+from conda.testing.integration import package_is_installed
 
 if TYPE_CHECKING:
-    from pytest import MonkeyPatch
+    from pathlib import Path
+
+    from pytest import CaptureFixture, MonkeyPatch
+    from pytest_benchmark.fixture import BenchmarkFixture
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpChannelFixture, TmpEnvFixture
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
 
-@pytest.mark.benchmark
 @pytest.mark.flaky(reruns=5)
-def test_solve_1(tmpdir, request):
+def test_solve_1(tmpdir):
     """
     This test is flaky with libmamba. Sometimes it gets a different Python 2.x in the solution:
 
@@ -81,11 +89,11 @@ def test_solve_1(tmpdir, request):
           )
     ```
     """
+
     specs = (MatchSpec("numpy"),)
 
     with get_solver(tmpdir, specs) as solver:
         final_state = solver.solve_final_state()
-        # print(convert_to_dist_str(final_state))
         order = add_subdir_to_iter(
             (
                 "channel-1::openssl-1.0.1c-0",
@@ -108,7 +116,6 @@ def test_solve_1(tmpdir, request):
         history_specs=specs,
     ) as solver:
         final_state = solver.solve_final_state()
-        # print(convert_to_dist_str(final_state))
         order = add_subdir_to_iter(
             (
                 "channel-1::openssl-1.0.1c-0",
@@ -124,10 +131,49 @@ def test_solve_1(tmpdir, request):
         assert convert_to_dist_str(final_state) == order
 
 
+@pytest.mark.benchmark
+@pytest.mark.parametrize("operation", ("create", "update"))
+def test_solve_benchmark(benchmark: BenchmarkFixture, tmpdir, operation: str):
+    """Measure solving with a fresh solver and untimed repodata setup."""
+    specs = (MatchSpec("numpy"),)
+    specs_to_add = specs
+    prefix_records = ()
+    history_specs = ()
+    if operation == "update":
+        with get_solver(tmpdir, specs) as solver:
+            prefix_records = solver.solve_final_state()
+        specs_to_add = (MatchSpec("python=2"),)
+        history_specs = specs
+
+    def solve(solver):
+        return solver.solve_final_state()
+
+    with ExitStack() as solver_context:
+
+        def setup():
+            solver_context.close()
+            solver = solver_context.enter_context(
+                get_solver(
+                    tmpdir,
+                    specs_to_add=specs_to_add,
+                    prefix_records=prefix_records,
+                    history_specs=history_specs,
+                )
+            )
+            return (solver,), {}
+
+        final_state = benchmark.pedantic(
+            solve, setup=setup, rounds=5, iterations=1, warmup_rounds=1
+        )
+
+    for spec in (*specs, *specs_to_add):
+        assert any(spec.match(record) for record in final_state)
+
+
 def test_solve_2(tmpdir):
-    if context.solver == "libmamba":
+    if context.solver in ("libmamba", "rattler"):
         pytest.skip(
-            "conda-libmamba-solver does not use Solver.ssc (SolverStateContainer)"
+            f"conda-{context.solver}-solver does not use Solver.ssc (SolverStateContainer)"
         )
 
     specs = (MatchSpec("numpy"),)
@@ -203,10 +249,10 @@ def test_solve_2(tmpdir):
         assert len(prec_names) == len(set(prec_names))
 
 
-def test_virtual_package_solver(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
-    if context.solver == "libmamba":
+def test_virtual_package_solver(tmpdir, clear_cuda_version, monkeypatch):
+    if context.solver in ("libmamba", "rattler"):
         pytest.skip(
-            "conda-libmamba-solver does not use Solver.ssc (SolverStateContainer)"
+            f"conda-{context.solver}-solver does not use Solver.ssc (SolverStateContainer)"
         )
 
     specs = (MatchSpec("cudatoolkit"),)
@@ -280,6 +326,7 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
+    exc_msg = str(exc.value).strip()
     if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT
         # We have a different (yet equivalent) error message
@@ -293,10 +340,15 @@ def test_cuda_fail_1(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
   - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""
             ),
         ]
-        exc_msg = str(exc.value).strip()
         assert any(msg in exc_msg for msg in possible_messages)
+    elif context.solver == "rattler":
+        possible_messages = [
+            "__cuda >=9.0, for which no candidates were found.",
+            "cudatoolkit * cannot be installed because there are no viable options:",
+        ]
+        assert all(msg in exc_msg for msg in possible_messages)
     else:
-        assert str(exc.value).strip() == dals(
+        assert exc_msg == dals(
             f"""The following specifications were found to be incompatible with your system:
 
   - feature:/{context._native_subdir()}::__cuda==8.0=0
@@ -316,6 +368,8 @@ def test_cuda_fail_2(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
         with pytest.raises(UnsatisfiableError) as exc:
             solver.solve_final_state()
 
+    exc_msg = str(exc.value).strip()
+
     if context.solver == "libmamba":
         # LIBMAMBA ADJUSTMENT
         # We have a different (yet equivalent) error message
@@ -329,10 +383,15 @@ def test_cuda_fail_2(tmpdir, clear_cuda_version, monkeypatch: MonkeyPatch):
   - nothing provides __cuda >=10.0 needed by cudatoolkit-10.0-0"""
             ),
         ]
-        exc_msg = str(exc.value).strip()
         assert any(msg in exc_msg for msg in possible_messages)
+    elif context.solver == "rattler":
+        expected_messages = [
+            "cudatoolkit * cannot be installed because there are no viable options:",
+            "__cuda >=9.0, for which no candidates were found.",
+        ]
+        assert all(msg in exc_msg for msg in expected_messages)
     else:
-        assert str(exc.value).strip() == dals(
+        assert exc_msg == dals(
             """The following specifications were found to be incompatible with your system:
 
   - cudatoolkit -> __cuda[version='>=10.0|>=9.0']
@@ -451,18 +510,19 @@ def test_archspec_call(
     # Remove CONDA_OVERRIDE_ARCHSPEC if it exists.
     monkeypatch.delenv("CONDA_OVERRIDE_ARCHSPEC", raising=False)
     reset_context()
-
-    with patch("archspec.cpu.host") as archspec:
+    archspec_value = archspec.cpu.host()
+    with patch("archspec.cpu.host") as patched_archspec:
+        patched_archspec.return_value = archspec_value
         with get_solver_cuda(tmpdir, specs) as solver:
             solver.solve_final_state()
-            archspec.assert_called()
+            patched_archspec.assert_called()
 
 
 def test_prune_1(tmpdir, request):
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler"),
+            reason=f"Features not supported in conda-{context.solver}-solver",
             strict=True,
         )
     )
@@ -599,8 +659,8 @@ def test_update_prune_2(tmpdir, request):
     """
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler"),
+            reason=f"Features not supported in conda-{context.solver}-solver",
             strict=True,
         )
     )
@@ -677,8 +737,8 @@ def test_update_prune_3(tmpdir, request):
     """
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler"),
+            reason=f"Features not supported in conda-{context.solver}-solver",
             strict=True,
         )
     )
@@ -819,8 +879,8 @@ def test_update_prune_5(tmpdir, prune, capsys, request):
     # "Create" a conda env with specs that "pin" dependencies.
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba" and not prune,
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler") and not prune,
+            reason=f"Features not supported conda-{context.solver}-solver",
             strict=True,
         )
     )
@@ -922,7 +982,12 @@ def test_force_remove_1(tmpdir, request):
                 "channel-1::zlib-1.2.7-0",
             )
         )
-        assert convert_to_dist_str(final_state_2) == order
+        if context.solver == "rattler":
+            # rattler puts numpy last; but without python in the mix, its position
+            # is not topologically relevant, so it's ok
+            assert sorted(convert_to_dist_str(final_state_2)) == sorted(order)
+        else:
+            assert convert_to_dist_str(final_state_2) == order
 
     # re-solving restores order
     with get_solver(tmpdir, prefix_records=final_state_2) as solver:
@@ -1204,8 +1269,10 @@ def test_update_all_1(tmpdir):
 
 
 def test_broken_install(tmpdir):
-    if context.solver == "libmamba":
-        pytest.skip("conda-libmamba-solver does not use a Solver._r (Resolve) object")
+    if context.solver in ("libmamba", "rattler"):
+        pytest.skip(
+            f"conda-{context.solver}-solver does not use a Solver._r (Resolve) object"
+        )
 
     specs = MatchSpec("pandas=0.11.0=np16py27_1"), MatchSpec("python=2.7")
     with get_solver(tmpdir, specs) as solver:
@@ -1376,7 +1443,10 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
                 "channel-4::conda-build-3.12.1-py37_0",
             )
         )
-        assert convert_to_dist_str(final_state_1) == order
+        if (
+            context.solver != "rattler"
+        ):  # skip this part for rattler, it's slightly different
+            assert convert_to_dist_str(final_state_1) == order
 
     monkeypatch.delenv("CONDA_CHANNEL_PRIORITY")
     reset_context()
@@ -1508,7 +1578,7 @@ def test_conda_downgrade(tmpdir, request, monkeypatch: MonkeyPatch):
                     "channel-4::conda-build-3.12.1-py36_0",
                 )
             )
-            if context.solver == "libmamba":
+            if context.solver in ("libmamba", "rattler"):
                 # LIBMAMBA ADJUSTMENT
                 # We only check for conda itself and the explicit specs
                 # The other packages are slightly different;
@@ -2023,9 +2093,9 @@ def test_python2_update(tmpdir):
             )
         )
         full_solution = convert_to_dist_str(final_state_2)
-        if context.solver == "libmamba":
-            # LIBMAMBA ADJUSTMENT
-            # libmamba has a different solution here (cryptography 2.3 instead of 2.2.2)
+        if context.solver in ("libmamba", "rattler"):
+            # LIBMAMBA/RATTLER ADJUSTMENT
+            # they give a different solution here (cryptography 2.3 instead of 2.2.2)
             # and cryptography-vectors (not present in regular conda)
             # they are essentially the same functional solution; the important part here
             # is that the env migrated to Python 3.7, so we only check some packages
@@ -2283,8 +2353,8 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
                 "channel-4::python-3.6.4-hc3d631a_1",  # python is upgraded
             )
         )
-        if context.solver == "libmamba":
-            # LIBMAMBA ADJUSTMENT
+        if context.solver in ("libmamba", "rattler"):
+            # LIBMAMBA/RATTLER ADJUSTMENT
             # We only check python was upgraded as expected, not the full solution
             assert add_subdir(
                 "channel-4::python-2.7.14-h89e7a4a_22"
@@ -2321,8 +2391,8 @@ def test_fast_update_with_update_modifier_not_set(tmpdir):
                 "channel-4::python-2.7.15-h1571d57_0",  # python is not upgraded
             )
         )
-        if context.solver == "libmamba":
-            # LIBMAMBA ADJUSTMENT
+        if context.solver in ("libmamba", "rattler"):
+            # LIBMAMBA/RATTLER ADJUSTMENT
             # We only check sqlite was upgraded as expected and python stays the same
             assert add_subdir(
                 "channel-4::sqlite-3.21.0-h1bed415_2"
@@ -2450,6 +2520,13 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
             error = str(exc_info.value)
             assert "package scikit-learn-0.13" in error
             assert "requires python 2.7*" in error
+        elif context.solver == "rattler":
+            # The error message is slightly different in rattler, but same meaning
+            with pytest.raises(UnsatisfiableError) as exc_info:
+                solver.solve_final_state(ignore_pinned=False)
+            error = str(exc_info.value)
+            assert "scikit-learn ==0.13 can be installed" in error
+            assert "constraint python 2.6.* cannot be fulfilled" in error
         else:
             with pytest.raises(SpecsConfigurationConflictError) as exc:
                 solver.solve_final_state(ignore_pinned=False)
@@ -2563,9 +2640,9 @@ def test_pinned_1(tmpdir, monkeypatch: MonkeyPatch):
     reset_context()
 
     # now update without pinning
-    if context.solver == "libmamba":
-        # LIBMAMBA ADJUSTMENT:
-        # libmamba decides to stay in python=2.6 unless explicit
+    if context.solver in ("libmamba", "rattler"):
+        # LIBMAMBA/RATTLER ADJUSTMENT:
+        # libmamba and rattler decide to stay in python=2.6 unless explicit
         specs_to_add = (MatchSpec("python=3"),)
     else:
         specs_to_add = (MatchSpec("python"),)
@@ -2780,8 +2857,8 @@ def test_channel_priority_churn_minimized(tmpdir):
 
     pprint(convert_to_dist_str(final_state))
 
-    if context.solver == "libmamba":
-        # With libmamba v2, we need this extra flag to make this test pass
+    if context.solver in ("libmamba", "rattler"):
+        # With libmamba v2 / rattler, we need this extra flag to make this test pass
         # Otherwise, the solver considers the current state as satisfying.
         solver_kwargs = {"force_reinstall": True}
     else:
@@ -2792,7 +2869,7 @@ def test_channel_priority_churn_minimized(tmpdir):
         prefix_records=final_state,
         history_specs=specs,
     ) as solver:
-        solver.channels.reverse()
+        solver.channels = tuple(reversed(solver.channels))
         unlink_dists, link_dists = solver.solve_for_diff(
             update_modifier=UpdateModifier.FREEZE_INSTALLED,
             **solver_kwargs,
@@ -2801,6 +2878,41 @@ def test_channel_priority_churn_minimized(tmpdir):
         pprint(convert_to_dist_str(link_dists))
         assert len(unlink_dists) == 1
         assert len(link_dists) == 1
+
+
+def test_strict_custom_multichannel_allows_fallback_to_later_subchannel(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    tmp_channel: TmpChannelFixture,
+):
+    """
+    Regression test for #15750.
+
+    Under strict priority, a custom multichannel should still be able to pick a
+    satisfiable version from a later subchannel when an earlier subchannel has
+    the same package name but no compatible version.
+
+    In this test, the package "holidays" is not available in our local test channel.
+    It is available at pkgs/main though. We verify that this package can still be
+    found in the latter channel in the custom multichannel.
+    """
+    if context.solver == "classic":
+        pytest.skip(
+            "classic solver does not support flexible priority within custom_multichannels"
+        )
+    with tmp_channel() as (channel_path, channel_path_str):
+        multichannel = (channel_path_str, "https://repo.anaconda.com/pkgs/main")
+        with context._override("_custom_multichannels", {"custom": multichannel}):
+            assert context.custom_multichannels["custom"] == multichannel
+
+            with tmp_env(
+                "--override-channels",
+                "--channel=custom",
+                "--strict-channel-priority",
+                "holidays",
+            ) as prefix:
+                assert package_is_installed(prefix, "pkgs/main::holidays")
 
 
 def test_remove_with_constrained_dependencies(tmpdir):
@@ -2885,12 +2997,12 @@ def test_remove_with_constrained_dependencies(tmpdir):
 
 
 def test_priority_1(tmpdir, request, monkeypatch: MonkeyPatch):
-    if context.solver == "libmamba":
+    if context.solver in ("libmamba", "rattler"):
         request.applymarker(
             pytest.mark.xfail(
-                context.solver == "libmamba",
-                reason="libmamba is 'lazier' to change channels if the installed one already "
-                "satisfies the request.",
+                context.solver in ("libmamba", "rattler"),
+                reason=f"conda-{context.solver}-solver is 'lazier' to change channels "
+                "if the installed one already satisfies the request.",
                 strict=True,
                 run=False,
             )
@@ -2992,8 +3104,8 @@ def test_priority_1(tmpdir, request, monkeypatch: MonkeyPatch):
 def test_features_solve_1(tmpdir, request, monkeypatch: MonkeyPatch):
     request.applymarker(
         pytest.mark.xfail(
-            context.solver == "libmamba",
-            reason="Features not supported in libmamba",
+            context.solver in ("libmamba", "rattler"),
+            reason=f"Features not supported in conda-{context.solver}-solver",
             strict=True,
         )
     )
@@ -3163,13 +3275,17 @@ def test_freeze_deps_1(tmpdir):
             (
                 "channel-2::six-1.7.3-py34_0",
                 "channel-2::python-3.4.5-0",
-                # LIBMAMBA ADJUSTMENT
-                # libmamba v1 doesn't remove xz in this solve
+                # LIBMAMBA/RATTLER ADJUSTMENT
+                # libmamba v1 / rattler don't remove xz in this solve
                 *(
                     ()
                     if (
-                        context.solver == "libmamba"
-                        and VersionOrder(version("libmambapy")) < VersionOrder("2.0a0")
+                        context.solver == "rattler"
+                        or (
+                            context.solver == "libmamba"
+                            and VersionOrder(version("libmambapy"))
+                            < VersionOrder("2.0a0")
+                        )
                     )
                     else ("channel-2::xz-5.2.3-0",)
                 ),
@@ -3333,6 +3449,26 @@ def test_current_repodata_fallback(tmpdir):
         raise ValueError("Didn't have expected state in solve (needed zlib record)")
 
 
+def test_current_repodata_retry_message(tmpdir, capsys: CaptureFixture):
+    if context.solver != "classic":
+        pytest.skip("retry message is specific to the classic Solver")
+
+    solver = Solver(
+        tmpdir.strpath,
+        (Channel(CHANNEL_DIR_V1),),
+        ("win-64",),
+        specs_to_add=[MatchSpec("zlib=1.2.8")],
+        repodata_fn="current_repodata.json",
+    )
+
+    with pytest.raises(ResolvePackageNotFound):
+        solver.solve_final_state()
+
+    captured = capsys.readouterr()
+    assert "retrying with next repodata source." in captured.out
+    assert "unsuccessful attempt using repodata" not in captured.out
+
+
 def test_downgrade_python_prevented_with_sane_message(tmpdir):
     specs = (MatchSpec("python=2.6"),)
     with get_solver(tmpdir, specs) as solver:
@@ -3378,6 +3514,13 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
                 r"python.*2\.6",
                 r"scikit-learn.*0\.13",
             ]
+        elif context.solver == "rattler":
+            error_snippets = [
+                "Cannot solve the request because of",
+                r"the constraint .* cannot be fulfilled",
+                r"python.*2\.6",
+                r"scikit-learn.*0\.13",
+            ]
 
         for snippet in error_snippets:
             assert re.search(snippet, error_msg)
@@ -3406,6 +3549,13 @@ def test_downgrade_python_prevented_with_sane_message(tmpdir):
                 r"python.*2\.6",
                 "unsatisfiable-with-py26",
             ]
+        elif context.solver == "rattler":
+            error_snippets = [
+                "Cannot solve the request because of",
+                r"the constraint .* cannot be fulfilled",
+                r"python.*2\.6",
+                r"unsatisfiable-with-py26",
+            ]
 
         for snippet in error_snippets:
             assert re.search(snippet, error_msg)
@@ -3420,7 +3570,7 @@ fake_index = [
         subdir="conda-test",
         fn="mypkg-0.1.1",
         build="pypi_0",
-        build_number=1,
+        build_number=0,
         paths_data=None,
         files=None,
         depends=[],
@@ -3432,9 +3582,9 @@ fake_index = [
         version="0.1.0",
         channel="test",
         subdir="conda-test",
-        fn="mypkg-0.1.1",
+        fn="mypkg-0.1.0",
         build="pypi_0",
-        build_number=1,
+        build_number=0,
         paths_data=None,
         files=None,
         depends=[],
@@ -3448,7 +3598,7 @@ fake_index = [
         subdir="conda-test",
         fn="mypkgnot-1.1.1",
         build="pypi_0",
-        build_number=1,
+        build_number=0,
         paths_data=None,
         files=None,
         depends=["mypkg 0.1.0"],
@@ -3504,9 +3654,9 @@ def test_determine_constricting_specs_conflicts(tmpdir):
             version="0.1.0",
             channel="test",
             subdir="conda-test",
-            fn="mypkg-0.1.1",
+            fn="mypkg-0.1.0",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3520,7 +3670,7 @@ def test_determine_constricting_specs_conflicts(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg 0.1.0"],
@@ -3545,7 +3695,7 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3559,7 +3709,7 @@ def test_determine_constricting_specs_conflicts_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg <=0.1.1"],
@@ -3584,7 +3734,7 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3598,7 +3748,7 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg <=0.1.1"],
@@ -3610,9 +3760,9 @@ def test_determine_constricting_specs_multi_conflicts(tmpdir):
             version="1.1.1",
             channel="test",
             subdir="conda-test",
-            fn="mypkgnot-1.1.1",
+            fn="notmypkg-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg 0.1.1"],
@@ -3638,7 +3788,7 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3652,7 +3802,7 @@ def test_determine_constricting_specs_no_conflicts_upperbound_compound_depends(t
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg >=0.1.1,<0.2.1"],
@@ -3677,7 +3827,7 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3691,7 +3841,7 @@ def test_determine_constricting_specs_no_conflicts_version_star(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg 0.1.*"],
@@ -3716,7 +3866,7 @@ def test_determine_constricting_specs_no_conflicts_free(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3741,7 +3891,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkg-0.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=[],
@@ -3755,7 +3905,7 @@ def test_determine_constricting_specs_no_conflicts_no_upperbound(tmpdir):
             subdir="conda-test",
             fn="mypkgnot-1.1.1",
             build="pypi_0",
-            build_number=1,
+            build_number=0,
             paths_data=None,
             files=None,
             depends=["mypkg >=0.0.5"],
@@ -3848,13 +3998,17 @@ def test_globstr_matchspec_non_compatible(tmpdir):
     # context manager is now in the inner block!
     specs = (MatchSpec("accelerate=*=np17*"), MatchSpec("accelerate=*=*np16*"))
     with get_solver(tmpdir, specs) as solver:
-        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
+        with pytest.raises(
+            (UnsatisfiableError, PackagesNotFoundError, ResolvePackageNotFound)
+        ):
             solver.solve_final_state()
 
     # Same here; the index has no accelerate pkg with BOTH np15 and py33
     specs = (MatchSpec("accelerate=*=*np15*"), MatchSpec("accelerate=*=*py33*"))
     with get_solver(tmpdir, specs) as solver:
-        with pytest.raises((PackagesNotFoundError, ResolvePackageNotFound)):
+        with pytest.raises(
+            (UnsatisfiableError, PackagesNotFoundError, ResolvePackageNotFound)
+        ):
             solver.solve_final_state()
 
 
@@ -3961,3 +4115,332 @@ def test_no_channels_error(tmpdir, mocker: MockerFixture):
     assert "No channels are configured" in error_message
     assert "numpy" in error_message
     assert "conda config --append channels" in error_message
+
+
+def _make_conda_prefix_rec(name, version, channel="test"):
+    return PrefixRecord(
+        package_type=PackageType.NOARCH_GENERIC,
+        name=name,
+        version=version,
+        channel=channel,
+        subdir="noarch",
+        fn=f"{name}-{version}",
+        build="0",
+        build_number=0,
+        paths_data=None,
+        files=None,
+        depends=[],
+        constrains=[],
+    )
+
+
+@pytest.fixture
+def provided_index_channel(tmp_path: Path) -> tuple[str, dict[str, PackageRecord]]:
+    channel = tmp_path / "channel"
+    subdir = channel / "noarch"
+    subdir.mkdir(parents=True)
+    records = {
+        name: PackageRecord(
+            name=name,
+            version="1.0",
+            build="0",
+            build_number=0,
+            depends=depends,
+            channel=channel.as_uri(),
+            subdir="noarch",
+            fn=f"{name}-1.0-0.tar.bz2",
+            url=f"{subdir.as_uri()}/{name}-1.0-0.tar.bz2",
+            md5="0" * 32,
+        )
+        for name, depends in (
+            ("cached-app", ["dependency >=1"]),
+            ("requesting-app", ["cached-app >=1"]),
+            ("installed-app", ["dependency >=1"]),
+            ("dependency", ["leaf >=1"]),
+            ("leaf", []),
+            ("requested", []),
+            ("unrelated", []),
+        )
+    }
+    (subdir / "repodata.json").write_text(
+        json.dumps(
+            {
+                "info": {"subdir": "noarch"},
+                "packages": {
+                    record.fn: record.dump()
+                    for name, record in records.items()
+                    if name != "cached-app"
+                },
+                "packages.conda": {},
+            }
+        )
+    )
+    return channel.as_uri(), records
+
+
+@pytest.mark.parametrize("realized", [False, True], ids=["lazy", "realized"])
+@pytest.mark.parametrize("requested", ["cached-app", "requesting-app"])
+def test_solve_with_cached_package_in_provided_index(
+    provided_index_channel: tuple[str, dict[str, PackageRecord]],
+    tmp_path: Path,
+    tmp_pkgs_dir: Path,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    realized: bool,
+    requested: str,
+) -> None:
+    if context.solver != "classic":
+        pytest.skip("The classic solver reduces a provided index")
+
+    monkeypatch.setenv("CONDA_OFFLINE", "true")
+    reset_context()
+    channel, records = provided_index_channel
+    info = tmp_pkgs_dir / "cached-app-1.0-0" / "info"
+    info.mkdir(parents=True)
+    for filename in ("index.json", "repodata_record.json"):
+        (info / filename).write_text(json.dumps(records["cached-app"].dump()))
+
+    provided_index = Index(
+        channels=(channel,), prepend=False, subdirs=("noarch",), use_system=True
+    )
+    assert provided_index.use_cache
+    if realized:
+        provided_index.data
+    else:
+        mocker.patch.object(
+            Index, "_realize", side_effect=AssertionError("Eager index")
+        )
+    solver = Solver(
+        prefix=tmp_path / "prefix",
+        channels=(channel,),
+        subdirs=("noarch",),
+        specs_to_add=(requested,),
+    )
+    solver._index = provided_index
+
+    solution = solver.solve_final_state()
+
+    assert {record.name for record in solution} == {
+        requested,
+        "cached-app",
+        "dependency",
+        "leaf",
+    }
+    assert ("_data" in provided_index.__dict__) is realized
+    if not realized:
+        assert records["unrelated"] not in solver._index
+
+
+def test_reduced_index_preserves_channel_metadata_for_cached_track_features(
+    provided_index_channel: tuple[str, dict[str, PackageRecord]],
+    tmp_pkgs_dir: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    if context.solver != "classic":
+        pytest.skip("The classic solver reduces a provided index")
+
+    monkeypatch.setenv("CONDA_OFFLINE", "true")
+    reset_context()
+    channel, records = provided_index_channel
+    record = records["requested"]
+    cached_record = PackageRecord.from_objects(
+        record, depends=["dependency"], track_features=["obsolete"]
+    )
+    assert cached_record == record
+    info = tmp_pkgs_dir / "requested-1.0-0" / "info"
+    info.mkdir(parents=True)
+    for filename in ("index.json", "repodata_record.json"):
+        (info / filename).write_text(json.dumps(cached_record.dump()))
+    provided_index = Index(channels=(channel,), prepend=False, subdirs=("noarch",))
+
+    reduced_index = provided_index.get_reduced_index(
+        (MatchSpec(track_features="obsolete"),)
+    )
+
+    assert reduced_index[record].depends == record.depends
+    assert reduced_index[record].track_features == record.track_features
+    assert "_data" not in provided_index.__dict__
+
+
+@pytest.mark.parametrize("realized", [False, True], ids=["lazy", "realized"])
+@pytest.mark.parametrize("index_prefix", [None, "target", "other"])
+def test_solve_with_installed_packages_in_provided_index(
+    provided_index_channel: tuple[str, dict[str, PackageRecord]],
+    tmp_path: Path,
+    tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
+    realized: bool,
+    index_prefix: str | None,
+) -> None:
+    if context.solver != "classic":
+        pytest.skip("The classic solver reduces a provided index")
+
+    channel, records = provided_index_channel
+    prefix = tmp_path / "prefix"
+    (prefix / "conda-meta").mkdir(parents=True)
+    (prefix / "conda-meta" / "history").touch()
+    for name in ("installed-app", "dependency", "leaf"):
+        PrefixData(prefix).insert(PrefixRecord.from_objects(records[name]))
+    source_prefix = (
+        PrefixData(prefix if index_prefix == "target" else tmp_path / "other-prefix")
+        if index_prefix is not None
+        else None
+    )
+    provided_index = Index(
+        channels=(channel,),
+        prepend=False,
+        subdirs=("noarch",),
+        use_cache=False,
+        use_system=True,
+        prefix=source_prefix,
+    )
+    if realized:
+        provided_index.data
+    elif index_prefix != "other":
+        mocker.patch.object(
+            Index, "_realize", side_effect=AssertionError("Eager index")
+        )
+    solver = Solver(
+        prefix=prefix,
+        channels=(channel,),
+        subdirs=("noarch",),
+        specs_to_add=("requested",),
+    )
+    solver._index = provided_index
+
+    solution = solver.solve_final_state()
+
+    assert {record.name for record in solution} == {
+        "installed-app",
+        "dependency",
+        "leaf",
+        "requested",
+    }
+    assert provided_index.prefix_data is source_prefix
+    assert ("_data" in provided_index.__dict__) is (realized or index_prefix == "other")
+    if not realized and index_prefix != "other":
+        assert records["unrelated"] not in solver._index
+
+
+def test_prepare_reduces_provided_lazy_index_without_realizing(
+    mocker, tmp_path
+) -> None:
+    solver = Solver(prefix=tmp_path, channels=())
+    provided_index = Index(prepend=False)
+    first_reduced_index = mocker.Mock(spec=ReducedIndex)
+    second_reduced_index = mocker.Mock(spec=ReducedIndex)
+    get_reduced_index = mocker.patch.object(
+        Index,
+        "get_reduced_index",
+        autospec=True,
+        side_effect=(first_reduced_index, second_reduced_index),
+    )
+    resolve = mocker.patch("conda.resolve.Resolve")
+    first_specs = {MatchSpec("first")}
+    second_specs = {MatchSpec("second")}
+    solver._index = provided_index
+
+    first_index, _ = solver._prepare(first_specs)
+    second_index, _ = solver._prepare(second_specs)
+
+    assert first_index is first_reduced_index
+    assert second_index is second_reduced_index
+    assert "_data" not in provided_index.__dict__
+    assert provided_index.prefix_data is None
+    assert get_reduced_index.call_count == 2
+    for call, specs in zip(
+        get_reduced_index.call_args_list, (first_specs, second_specs), strict=True
+    ):
+        source_index, passed_specs = call.args
+        assert source_index is not provided_index
+        assert source_index.prefix_data.prefix_path == tmp_path
+        assert "_data" not in source_index.__dict__
+        assert passed_specs == specs
+    assert resolve.call_args_list == [
+        mocker.call(first_reduced_index, channels=solver.channels),
+        mocker.call(second_reduced_index, channels=solver.channels),
+    ]
+
+
+def test_prepare_preserves_records_in_provided_realized_index(mocker) -> None:
+    solver = Solver(prefix="idontexist", channels=())
+    provided_index = Index(prepend=False)
+    record = _make_conda_prefix_rec("custom", "1.0")
+    provided_index._data = {record: record}
+    get_reduced_index = mocker.spy(provided_index, "get_reduced_index")
+    resolve = mocker.patch("conda.resolve.Resolve")
+    solver._index = provided_index
+
+    prepared_index, _ = solver._prepare({MatchSpec("custom")})
+
+    assert prepared_index is provided_index
+    assert prepared_index[record] is record
+    get_reduced_index.assert_not_called()
+    resolve.assert_called_once_with(provided_index, channels=solver.channels)
+
+
+@pytest.mark.parametrize(
+    "has_conda_self,is_frozen,expected,unexpected",
+    [
+        pytest.param(
+            True,
+            False,
+            "conda self update",
+            "conda update -n base",
+            id="has_conda_self",
+        ),
+        pytest.param(
+            True,
+            True,
+            "conda self update",
+            "--override-frozen",
+            id="has_conda_self, override-frozen",
+        ),
+        pytest.param(
+            False,
+            False,
+            "conda update -n base -c test conda",
+            "--override-frozen",
+            id="no_conda_self",
+        ),
+        pytest.param(
+            False, True, "--override-frozen", "conda self update", id="frozen"
+        ),
+    ],
+)
+def test_notify_conda_outdated_update_message(
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+    has_conda_self: bool,
+    is_frozen: bool,
+    expected: str,
+    unexpected: str,
+):
+    monkeypatch.setenv("CONDA_NOTIFY_OUTDATED_CONDA", "true")
+    monkeypatch.setenv("CONDA_QUIET", "false")
+    reset_context()
+
+    # Setup prefix data to return the current conda and conda-self records, and to indicate whether the environment is frozen
+    current_conda = _make_conda_prefix_rec("conda", "0.0.1")
+    newer_conda = _make_conda_prefix_rec("conda", "99.0.0")
+    conda_self = (
+        _make_conda_prefix_rec("conda-self", "1.0.0") if has_conda_self else None
+    )
+    mock_prefix_data = mocker.Mock()
+    mock_prefix_data.get.side_effect = lambda name, default=None: {
+        "conda": current_conda,
+        "conda-self": conda_self,
+    }.get(name, default)
+    mock_prefix_data.is_frozen.return_value = is_frozen
+    mocker.patch("conda.core.solve.PrefixData", return_value=mock_prefix_data)
+
+    # Setup SubdirData query to return a always newer version of conda
+    mocker.patch("conda.core.solve.SubdirData.query_all", return_value=[newer_conda])
+
+    solver = Solver(prefix="idontexist", channels=("test",))
+    solver._notify_conda_outdated(link_precs=())
+
+    err = capsys.readouterr().err
+    assert expected in err
+    assert unexpected not in err

@@ -2,5 +2,8 @@ Metadata-Version: 2.1
 Name: conda-test-plugin
 Version: 1.0
 Summary: A test plugin
+Home-page: https://example.com/legacy-home
+Project-URL: Home, https://example.com/home
+Project-URL: Documentation, https://example.com/docs
 Author-email: "Anaconda, Inc."
 Requires-Python: >=3.8

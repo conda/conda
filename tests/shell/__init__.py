@@ -6,35 +6,33 @@ import os
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
-from os.path import dirname
+from os.path import dirname, join
 from shutil import which
 from signal import SIGINT
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 from uuid import uuid4
 
+import pexpect
 from pexpect.popen_spawn import PopenSpawn
 
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.activate import activator_map
 from conda.common.compat import on_win
-from conda.common.path import unix_path_to_win, win_path_to_unix
+from conda.common.path import BIN_DIRECTORY, unix_path_to_win, win_path_to_unix
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    import re
+    from collections.abc import Iterable, Iterator
+    from typing import Annotated, Any, Literal, Self, TypeVar
+
+    Regex = Annotated[str, lambda x: re.compile(x)]
+    T = TypeVar("T")
 
 
-# Here, by removing --dev you can try weird situations that you may want to test, upgrade paths
-# and the like? What will happen is that the conda being run and the shell scripts it's being run
-# against will be essentially random and will vary over the course of activating and deactivating
-# environments. You will have absolutely no idea what's going on as you change code or scripts and
-# encounter some different code that ends up being run (some of the time). You will go slowly mad.
-# No, you are best off keeping --dev on the end of these. For sure, if conda bundled its own tests
-# module then we could remove --dev if we detect we are being run in that way.
-dev_arg = "--dev"
-activate = f" activate {dev_arg} "
-deactivate = f" deactivate {dev_arg} "
-install = f" install {dev_arg} "
+activate = " activate "
+deactivate = " deactivate "
+install = " install "
 
 
 @dataclass
@@ -56,7 +54,7 @@ class Shell:
             )
 
     @classmethod
-    def resolve(cls, value: str | tuple[str, ...] | Shell) -> Shell | None:
+    def resolve(cls, value: str | tuple[str, ...] | Shell) -> Shell:
         shell = value if isinstance(value, Shell) else cls(value)
 
         # if shell.exe is already set, use it
@@ -71,9 +69,9 @@ class Shell:
         raise FileNotFoundError(f"{shell} not found")
 
     @contextmanager
-    def interactive(self, *args, **kwargs) -> InteractiveShell:
-        with InteractiveShell(self, *args, **kwargs) as interactive:
-            yield interactive
+    def interactive(self, *args, **kwargs) -> Iterator[InteractiveShell]:
+        with InteractiveShell(self, *args, **kwargs) as sh:
+            yield sh
 
 
 class InteractiveShellType(type):
@@ -82,7 +80,7 @@ class InteractiveShellType(type):
     SHELLS: dict[str, dict] = {
         "posix": {
             "activator": "posix",
-            "init_command": f'eval "$({EXE_UNIX} -m conda shell.posix hook {dev_arg})"',
+            "init_command": f'eval "$({EXE_UNIX} -m conda shell.posix hook)"',
             "print_env_var": 'echo "$%s"',
         },
         "bash": {
@@ -93,39 +91,33 @@ class InteractiveShellType(type):
         "ash": {"base_shell": "posix"},
         "dash": {"base_shell": "posix"},
         "zsh": {"base_shell": "posix"},
-        # It should be noted here that we use the latest hook with whatever conda.exe is installed
-        # in sys.prefix (and we will activate all of those PATH entries).  We will set PYTHONPATH
-        # though, so there is that.  What I'm getting at is that this is a huge mixup and a mess.
+        # Hook from the checkout; CONDA_EXE is the conda launcher in sys.prefix.
+        # PYTHONPATH (set in InteractiveShell) makes that launcher import the checkout,
+        # matching dev/start.bat.
         "cmd.exe": {
             "activator": "cmd.exe",
-            # For non-dev-mode you'd have:
-            #            'init_command': 'set "CONDA_SHLVL=" '
-            #                            '&& @CALL {}\\shell\\condabin\\conda_hook.bat {} '
-            #                            '&& set CONDA_EXE={}'
-            #                            '&& set _CE_M='
-            #                            '&& set _CE_CONDA='
-            #                            .format(CONDA_PACKAGE_ROOT, dev_arg,
-            #                                    join(sys.prefix, "Scripts", "conda.exe")),
             "init_command": (
                 '@SET "CONDA_SHLVL=" '
-                f"&& @CALL {CONDA_PACKAGE_ROOT}\\shell\\condabin\\conda_hook.bat {dev_arg} "
-                f'&& @SET "CONDA_EXE={sys.executable}" '
-                '&& @SET "_CE_M=-m" '
-                '&& @SET "_CE_CONDA=conda"'
+                f"&& @CALL {CONDA_PACKAGE_ROOT}\\shell\\condabin\\conda_hook.bat "
+                f'&& @SET "CONDA_EXE={join(sys.prefix, BIN_DIRECTORY, "conda.exe")}" '
+                '&& @SET "_CE_M=" '
+                '&& @SET "_CE_CONDA="'
             ),
-            "print_env_var": "@ECHO %%%s%%",
+            "print_env_var": '@ECHO "%%%s%%"',
+            "assert_env_var": r'"%s"\r?\n',
+            "get_env_var": r'@ECHO "%%%s%%"\r?\n"([^\r\n]*)"\r?\n',
         },
         "csh": {
             "activator": "csh",
             # "args": ("-v", "-x"),  # for debugging
             # unset conda alias before calling conda shell hook
-            "init_command": f'unalias conda;\neval "`{EXE_UNIX} -m conda shell.csh hook {dev_arg}`"',
+            "init_command": f'unalias conda;\neval "`{EXE_UNIX} -m conda shell.csh hook`"',
             "print_env_var": 'echo "$%s"',
         },
         "tcsh": {"base_shell": "csh"},
         "fish": {
             "activator": "fish",
-            "init_command": f"eval ({EXE_UNIX} -m conda shell.fish hook {dev_arg})",
+            "init_command": f"eval ({EXE_UNIX} -m conda shell.fish hook)",
             "print_env_var": "echo $%s",
         },
         # We don't know if the PowerShell executable is called
@@ -133,15 +125,21 @@ class InteractiveShellType(type):
         "powershell": {
             "activator": "powershell",
             "args": ("-NoProfile", "-NoLogo"),
-            "init_command": f"{EXE_WIN} -m conda shell.powershell hook --dev | Out-String | Invoke-Expression",
+            "init_command": f"{EXE_WIN} -m conda shell.powershell hook | Out-String | Invoke-Expression",
             "print_env_var": "$Env:%s",
+            "get_env_var": r"\$Env:%s\r?\n([^\r\n]*)\r?\n",
             "exit_cmd": "exit",
         },
         "pwsh": {"base_shell": "powershell"},
         "pwsh-preview": {"base_shell": "powershell"},
         "xonsh": {
             "activator": "xonsh",
-            "args": ("--interactive",),
+            "args": (
+                "--interactive",
+                # Workaround for some issues with prompt_toolkit
+                # https://github.com/conda/conda/issues/15611
+                "--shell-type=readline",
+            ),
             "init_command": f'__xonsh__.execer.exec($("{EXE_UNIX}" -m conda shell.xonsh hook))',
             "print_env_var": "print($%s)",
         },
@@ -168,6 +166,8 @@ class InteractiveShell(metaclass=InteractiveShellType):
         args: Iterable[str] = (),
         init_command: str,
         print_env_var: str,
+        assert_env_var: str | None = None,
+        get_env_var: str | None = None,
         exit_cmd: str | None = None,
         base_shell: str | None = None,  # ignored
         env: dict[str, str] | None = None,
@@ -181,11 +181,18 @@ class InteractiveShell(metaclass=InteractiveShellType):
         self.args = args
         self.init_command = init_command
         self.print_env_var = print_env_var
+        self._assert_env_var = assert_env_var
+        self._get_env_var = get_env_var
         self.exit_cmd = exit_cmd
         self.env = env or {}
 
-    def __enter__(self):
-        self.p = PopenSpawn(
+    def __enter__(self) -> Self:
+        # Fish shell needs a PTY to work properly with pexpect
+        # Use pexpect.spawn (PTY) for Fish instead of PopenSpawn (pipes)
+        use_pty = self.shell_name == "fish"
+        spawn_class = pexpect.spawn if use_pty else PopenSpawn
+
+        self.p = spawn_class(
             self.shell_exe,
             timeout=30,
             maxread=5000,
@@ -239,10 +246,10 @@ class InteractiveShell(metaclass=InteractiveShellType):
 
             self.p.kill(SIGINT)
 
-    def sendline(self, *args, **kwargs):
+    def sendline(self, *args, **kwargs) -> int:
         return self.p.sendline(*args, **kwargs)
 
-    def expect(self, *args, **kwargs):
+    def expect(self, *args, **kwargs) -> int:
         try:
             return self.p.expect(*args, **kwargs)
         except Exception:
@@ -250,7 +257,7 @@ class InteractiveShell(metaclass=InteractiveShellType):
             print(f"{self.p.after=}", file=sys.stderr)
             raise
 
-    def expect_exact(self, *args, **kwargs):
+    def expect_exact(self, *args, **kwargs) -> int:
         try:
             return self.p.expect_exact(*args, **kwargs)
         except Exception:
@@ -258,21 +265,37 @@ class InteractiveShell(metaclass=InteractiveShellType):
             print(f"{self.p.after=}", file=sys.stderr)
             raise
 
-    def assert_env_var(self, env_var, value, use_exact=False):
+    @overload
+    def assert_env_var(
+        self, env_var: str, value: Regex, use_exact: Literal[False] = False
+    ) -> None: ...
+
+    @overload
+    def assert_env_var(
+        self, env_var: str, value: str, use_exact: Literal[True]
+    ) -> None: ...
+
+    def assert_env_var(self, env_var: str, value: str, use_exact: bool = False) -> None:
         # value is actually a regex
         self.sendline(self.print_env_var % env_var)
         if use_exact:
             self.expect_exact(value)
             self.clear()
+        elif self._assert_env_var:
+            self.expect(self._assert_env_var % value)
         else:
             self.expect(rf"{value}\r?\n")
 
+    @overload
+    def get_env_var(self, env_var: str, default: None = None) -> Any | None: ...
+
+    @overload
+    def get_env_var(self, env_var: str, default: T) -> Any | T: ...
+
     def get_env_var(self, env_var, default=None):
         self.sendline(self.print_env_var % env_var)
-        if self.shell_name == "cmd.exe":
-            self.expect(rf"@ECHO %{env_var}%\r?\n([^\r\n]*)\r?\n")
-        elif self.shell_name in ("powershell", "pwsh"):
-            self.expect(rf"\$Env:{env_var}\r?\n([^\r\n]*)\r?\n")
+        if self._get_env_var:
+            self.expect(self._get_env_var % env_var)
         else:
             marker = f"get_env_var-{uuid4().hex}"
             self.sendline(f"echo {marker}")
@@ -286,5 +309,5 @@ class InteractiveShell(metaclass=InteractiveShellType):
         self.sendline(f"echo {marker}")
         self.expect(rf"{marker}\r?\n")
 
-    def path_conversion(self, *args, **kwargs):
+    def path_conversion(self, *args, **kwargs) -> str | tuple[str, ...] | None:
         return self.activator.path_conversion(*args, **kwargs)

@@ -487,7 +487,7 @@ def test_basepydist_load_requires_provides_file():
 
 
 def test_dist_get_paths():
-    content = 'foo/bar,sha256=1,"45"\nfoo/spam,,\n'
+    content = 'foo/bar,sha256=AVTFPZpEKzuHr7OvQZmhaU3LvwKz06AJw8mT\\_pNh2yI,"45"\nfoo/spam,,\n'
     temp_path, fpaths = _create_test_files((("", "SOURCES.txt", content),))
 
     sp_dir = get_python_site_packages_short_path("2.7")
@@ -495,7 +495,11 @@ def test_dist_get_paths():
     dist = PythonEggInfoDistribution(temp_path, "2.7", None)
     output = dist.get_paths()
     expected_output = [
-        (join_url(sp_dir, "foo", "bar"), "1", 45),
+        (
+            join_url(sp_dir, "foo", "bar"),
+            "0154c53d9a442b3b87afb3af4199a1694dcbbf02b3d3a009c3c993fe9361db22",
+            45,
+        ),
         (join_url(sp_dir, "foo", "spam"), None, None),
     ]
     _print_output(output, expected_output)
@@ -572,7 +576,11 @@ def test_pydist_check_files():
 def test_python_dist_info():
     test_files = (
         ("", "METADATA", "Name: zoom\nRequires-Python: ==2.7\nRequires-External: C\n"),
-        ("", "RECORD", 'foo/bar,sha256=1,"45"\nfoo/spam,,\n'),
+        (
+            "",
+            "RECORD",
+            'foo/bar,sha256=AVTFPZpEKzuHr7OvQZmhaU3LvwKz06AJw8mT\\_pNh2yI,"45"\nfoo/spam,,\n',
+        ),
         ("", "INSTALLER", ""),
     )
     # Test mandatory files found

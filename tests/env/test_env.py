@@ -10,8 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from conda.common.serialize import yaml_round_trip_load
-from conda.core.prefix_data import PrefixData
+from conda.common.serialize import yaml
 from conda.env.env import (
     VALID_KEYS,
     EnvironmentYaml,
@@ -32,7 +31,7 @@ from . import support_file
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from pytest import MonkeyPatch
+    from pytest import CaptureFixture, MonkeyPatch
 
     from conda.testing.fixtures import CondaCLIFixture, PathFactoryFixture
 
@@ -79,13 +78,32 @@ def test_with_pip():
 
 
 @pytest.mark.timeout(20)
-def test_add_pip():
+def test_add_pip(
+    capsys: CaptureFixture,
+):
+    """
+    Test that pip is added to the list of conda deps if not supplied
+    in the `dependencies` list. And ensure that the user is warned.
+    """
     e = from_file(support_file("add-pip.yml"))
     expected = {
         "conda": ["pip", "car"],
         "pip": ["foo", "baz"],
     }
+    _, stderr = capsys.readouterr()
     assert e.dependencies == expected
+    assert "Warning: you have pip-installed dependencies" in stderr
+
+
+def test_invalid_section_warning(
+    capsys: CaptureFixture,
+):
+    """
+    Test that environment validation warnings are output to stdout
+    """
+    from_file(support_file("invalid_keys.yml"))
+    _, stderr = capsys.readouterr()
+    assert "EnvironmentSectionNotValid" in stderr
 
 
 @pytest.mark.integration
@@ -236,7 +254,7 @@ def test_to_yaml_returns_yaml_parseable_string():
         "dependencies": ["nodejs"],
     }
 
-    actual = yaml_round_trip_load(StringIO(e.to_yaml()))
+    actual = yaml.loads(StringIO(e.to_yaml()))
     assert expected == actual
 
 
@@ -309,22 +327,14 @@ def test_valid_keys():
 
 
 def test_invalid_keys():
-    with pytest.warns(
-        PendingDeprecationWarning,
-        match="The environment file is not fully CEP 24 compliant",
-    ):
-        e = get_invalid_keys_environment()
-        e_dict = e.to_dict()
-        assert "name" in e_dict
-        assert len(e_dict) == 1
+    e = get_invalid_keys_environment()
+    e_dict = e.to_dict()
+    assert "name" in e_dict
+    assert len(e_dict) == 1
 
 
 def test_empty_deps():
-    with pytest.warns(
-        PendingDeprecationWarning,
-        match="The environment file is not fully CEP 24 compliant",
-    ):
-        e = get_environment("empty_deps.yml")
+    e = get_environment("empty_deps.yml")
     e_dict = e.to_dict()
     assert "name" in e_dict
     assert "channels" in e_dict
@@ -363,8 +373,38 @@ def test_env_advanced_pip(
         *("--file", str(pip_argh)),
     )
     assert prefix.exists()
-    PrefixData._cache_.clear()
     assert package_is_installed(prefix, "argh==0.26.2")
+
+
+@pytest.mark.integration
+def test_create_and_update_env_with_just_vars(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    support_file_isolated,
+):
+    """
+    Ensures that files with empty dependency sections work.
+
+    Regression fix for: https://github.com/conda/conda/issues/15569
+    """
+    prefix = path_factory()
+    assert not prefix.exists()
+
+    env_file = support_file_isolated("just_vars.yml")
+
+    conda_cli(
+        *("env", "create"),
+        *("--prefix", prefix),
+        *("--file", str(env_file)),
+    )
+    assert prefix.exists()
+
+    conda_cli(
+        *("env", "update"),
+        *("--prefix", prefix),
+        *("--file", str(env_file)),
+    )
+    assert prefix.exists()
 
 
 def test_from_history():

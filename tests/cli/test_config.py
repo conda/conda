@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-import sys
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -21,7 +20,7 @@ from conda.common.configuration import (
     ConfigurationLoadError,
     CustomValidationError,
 )
-from conda.common.serialize import yaml_round_trip_dump, yaml_round_trip_load
+from conda.common.serialize import yaml
 from conda.exceptions import CondaKeyError, CondaValueError
 from conda.gateways.disk.delete import rm_rf
 
@@ -259,11 +258,13 @@ def test_create_condarc_on_set(conda_cli: CondaCLIFixture):
 def test_show_sorts_keys(conda_cli: CondaCLIFixture):
     # test alphabetical yaml output
     with make_temp_condarc() as rc:
-        stdout, stderr, _ = conda_cli("config", "--file", rc, "--show")
-        output_keys = yaml_round_trip_load(stdout).keys()
+        # TODO: a deprecation warning is emitted for `error_upload_url`.
+        with pytest.deprecated_call():
+            stdout, stderr, _ = conda_cli("config", "--file", rc, "--show")
+            output_keys = yaml.loads(stdout).keys()
 
-        assert stderr == ""
-        assert sorted(output_keys) == [item for item in output_keys]
+            assert stderr == ""
+            assert sorted(output_keys) == [item for item in output_keys]
 
 
 def test_get_all(conda_cli: CondaCLIFixture):
@@ -494,6 +495,58 @@ def test_add_invalid_key(conda_cli: CondaCLIFixture):
         assert _read_test_condarc(rc) == CONDARC_BASE
 
 
+def test_clear_key(conda_cli: CondaCLIFixture):
+    condarc = """\
+aggressive_update_packages:
+  - ca-certificates
+  - certifi
+"""
+    with make_temp_condarc(condarc) as rc:
+        stdout, stderr, _ = conda_cli(
+            "config",
+            "--file",
+            rc,
+            "--clear",
+            "aggressive_update_packages",
+        )
+
+        assert stdout == stderr == ""
+        assert _read_test_condarc(rc) == "aggressive_update_packages: []\n"
+
+
+def test_clear_unconfigured_key(conda_cli: CondaCLIFixture):
+    with make_temp_condarc("changeps1: true\n") as rc:
+        stdout, stderr, _ = conda_cli(
+            "config",
+            "--file",
+            rc,
+            "--clear",
+            "create_default_packages",
+        )
+
+        assert stdout == stderr == ""
+        assert _read_test_condarc(rc) == (
+            "changeps1: true\ncreate_default_packages: []\n"
+        )
+
+
+def test_clear_key_invalid_parameter(conda_cli: CondaCLIFixture):
+    with make_temp_condarc("changeps1: true\n") as rc:
+        with pytest.raises(
+            CondaKeyError,
+            match=r"'changeps1': invalid parameter",
+        ):
+            conda_cli(
+                "config",
+                "--file",
+                rc,
+                "--clear",
+                "changeps1",
+            )
+
+        assert _read_test_condarc(rc) == "changeps1: true\n"
+
+
 def test_remove_key(conda_cli: CondaCLIFixture):
     key, value = "changeps1", "false"
     with make_temp_condarc(CONDARC_BASE) as rc:
@@ -541,7 +594,7 @@ def test_set_check_types(key, str_value, py_value, conda_cli: CondaCLIFixture):
         stdout, stderr, _ = conda_cli("config", "--file", rc, "--set", key, str_value)
         assert stdout == stderr == ""
         with open(rc) as fh:
-            content = yaml_round_trip_load(fh.read())
+            content = yaml.loads(fh.read())
             if "." in key:
                 key = key.split(".", 1)[0]
             assert content[key] == py_value
@@ -595,7 +648,7 @@ def test_set_rc_without_user_rc(
     user_rc_path = tmp_path / DEFAULT_CONDARC_FILENAME
 
     with sys_rc_path.open("w") as fh:
-        yaml_round_trip_dump({"channels": ["conda-forge"]}, fh)
+        yaml.dump({"channels": ["conda-forge"]}, fh)
 
     monkeypatch.setattr(context_module, "sys_rc_path", str(sys_rc_path))
     monkeypatch.setattr(context_module, "user_rc_path", str(user_rc_path))
@@ -605,9 +658,7 @@ def test_set_rc_without_user_rc(
     assert not stdout
     assert not stderr
     assert not error
-    assert yaml_round_trip_load(user_rc_path.read_text()) == {
-        "channels": ["test", "conda-forge"]
-    }
+    assert yaml.loads(user_rc_path.read_text()) == {"channels": ["test", "conda-forge"]}
 
 
 def test_custom_multichannels_append(conda_cli: CondaCLIFixture):
@@ -618,7 +669,7 @@ def test_custom_multichannels_append(conda_cli: CondaCLIFixture):
             *("--append", "custom_multichannels.foo", "bar"),
         )
         assert stdout == stderr == ""
-        assert _read_test_condarc(rc) == yaml_round_trip_dump(
+        assert _read_test_condarc(rc) == yaml.dumps(
             {"custom_multichannels": {"foo": ["bar"]}}
         )
 
@@ -631,7 +682,7 @@ def test_custom_multichannels_add(conda_cli: CondaCLIFixture):
             *("--add", "custom_multichannels.foo", "bar"),
         )
         assert stdout == stderr == ""
-        assert _read_test_condarc(rc) == yaml_round_trip_dump(
+        assert _read_test_condarc(rc) == yaml.dumps(
             {"custom_multichannels": {"foo": ["bar"]}}
         )
 
@@ -644,13 +695,13 @@ def test_custom_multichannels_prepend(conda_cli: CondaCLIFixture):
             *("--prepend", "custom_multichannels.foo", "bar"),
         )
         assert stdout == stderr == ""
-        assert _read_test_condarc(rc) == yaml_round_trip_dump(
+        assert _read_test_condarc(rc) == yaml.dumps(
             {"custom_multichannels": {"foo": ["bar"]}}
         )
 
 
 def test_custom_multichannels_append_duplicate(conda_cli: CondaCLIFixture):
-    custom_multichannels_expected = yaml_round_trip_dump(
+    custom_multichannels_expected = yaml.dumps(
         {"custom_multichannels": {"foo": ["bar"]}}
     )
     with make_temp_condarc(custom_multichannels_expected) as rc:
@@ -668,7 +719,7 @@ def test_custom_multichannels_append_duplicate(conda_cli: CondaCLIFixture):
 
 
 def test_custom_multichannels_add_duplicate(conda_cli: CondaCLIFixture):
-    custom_multichannels_expected = yaml_round_trip_dump(
+    custom_multichannels_expected = yaml.dumps(
         {"custom_multichannels": {"foo": ["bar"]}}
     )
     with make_temp_condarc(custom_multichannels_expected) as rc:
@@ -686,7 +737,7 @@ def test_custom_multichannels_add_duplicate(conda_cli: CondaCLIFixture):
 
 
 def test_custom_multichannels_prepend_duplicate(conda_cli: CondaCLIFixture):
-    custom_multichannels_expected = yaml_round_trip_dump(
+    custom_multichannels_expected = yaml.dumps(
         {"custom_multichannels": {"foo": ["bar"]}}
     )
     with make_temp_condarc(custom_multichannels_expected) as rc:
@@ -866,29 +917,10 @@ def test_conda_config_validate_sslverify_truststore(
         # test that we can set ssl_verify
         conda_cli("config", f"--file={condarc}", "--set", "ssl_verify", "truststore")
 
-        # test that truststore is valid for Python 3.10+
-        with (
-            pytest.raises(
-                CustomValidationError,
-                match=(
-                    truststore_error := (
-                        "`ssl_verify: truststore` is only supported on "
-                        "Python 3.10 or later"
-                    )
-                ),
-            )
-            if sys.version_info < (3, 10)
-            else nullcontext()
-        ):
-            assert context.ssl_verify == "truststore"
+        # test that truststore is a valid value
+        assert context.ssl_verify == "truststore"
 
-        # test that truststore is a valid value for Python 3.10+
-        with (
-            pytest.raises(CustomValidationError, match=truststore_error)
-            if sys.version_info < (3, 10)
-            else nullcontext()
-        ):
-            stdout, stderr, err = conda_cli("config", "--validate")
-            assert not stdout
-            assert not stderr
-            assert not err
+        stdout, stderr, err = conda_cli("config", "--validate")
+        assert not stdout
+        assert not stderr
+        assert not err

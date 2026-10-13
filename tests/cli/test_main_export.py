@@ -6,24 +6,31 @@ from __future__ import annotations
 
 import json
 import uuid
+import warnings
 from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.base.context import context
-from conda.common.serialize import yaml_safe_load
+from conda.cli.main_export import CondaExportWarning
+from conda.cli.main_export import epilog as export_epilog
+from conda.common.serialize import yaml
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
     CondaValueError,
     EnvironmentExporterNotDetected,
 )
+from conda.plugins import hookimpl
+from conda.plugins.types import CondaEnvironmentExporter, EnvironmentFormat
+
+from .. import PYTHON_SPEC
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from conda.plugins.manager import CondaPluginManager
-    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture, TmpEnvFixture
 
 
 def test_export(conda_cli: CondaCLIFixture) -> None:
@@ -36,7 +43,7 @@ def test_export(conda_cli: CondaCLIFixture) -> None:
     assert stdout
 
     # Verify the output is valid YAML
-    yaml_data = yaml_safe_load(stdout)
+    yaml_data = yaml.loads(stdout)
     assert yaml_data["name"] == name
 
 
@@ -73,7 +80,7 @@ def test_export_add_channels(conda_cli: CondaCLIFixture, tmp_path: Path) -> None
     )
     assert path.exists()
 
-    data = yaml_safe_load(path.read_text())
+    data = yaml.loads(path.read_text())
     assert data["name"] == name
 
     # Verify that the additional channel was added
@@ -89,16 +96,16 @@ def test_execute_export_no_file_specified(conda_cli: CondaCLIFixture) -> None:
     assert stdout
 
     # Should be YAML format
-    yaml_data = yaml_safe_load(stdout)
+    yaml_data = yaml.loads(stdout)
     assert yaml_data["name"] == name
 
 
 @pytest.mark.parametrize(
     "format_name,parser_func",
     [
-        ("environment-yaml", yaml_safe_load),
+        ("environment-yaml", yaml.loads),
         ("environment-json", json.loads),
-        ("yaml", yaml_safe_load),  # Test alias
+        ("yaml", yaml.loads),  # Test alias
         ("json", json.loads),  # Test alias
     ],
 )
@@ -120,8 +127,8 @@ def test_export_format_to_stdout(conda_cli: CondaCLIFixture, format_name, parser
 @pytest.mark.parametrize(
     "filename,parser_func",
     [
-        ("environment.yaml", yaml_safe_load),
-        ("environment.yml", yaml_safe_load),
+        ("environment.yaml", yaml.loads),
+        ("environment.yml", yaml.loads),
         ("environment.json", json.loads),
     ],
 )
@@ -364,7 +371,7 @@ def test_export_preserves_channels_from_installed_packages(
     assert stdout
 
     # Parse the YAML output
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
 
     # Should have channels section
     assert "channels" in env_data
@@ -396,7 +403,7 @@ def test_export_ignore_channels_flag(
     assert not code
     assert stdout
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
 
     if ignore_channels:
         # With --ignore-channels, should still have channels (from context.channels)
@@ -417,7 +424,7 @@ def test_export_package_alphabetical_ordering(conda_cli):
     stdout, stderr, code = conda_cli("export", "--format=environment-yaml")
     assert code == 0
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
     dependencies = env_data.get("dependencies", [])
 
     # Extract conda package names (skip pip dependencies which are dicts)
@@ -440,7 +447,7 @@ def test_export_no_builds_format(conda_cli):
     )
     assert code == 0
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
     dependencies = env_data.get("dependencies", [])
 
     # Extract conda package specs (skip pip dependencies which are dicts)
@@ -472,7 +479,7 @@ def test_export_from_history_format(conda_cli):
         # Some environments might not have history, skip gracefully
         pytest.skip("Environment has no history to export")
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
     dependencies = env_data.get("dependencies", [])
 
     # Extract conda package specs (skip pip dependencies which are dicts)
@@ -506,7 +513,7 @@ def test_export_override_channels_behavior(conda_cli):
     )
     assert code == 0
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
     channels = env_data.get("channels", [])
 
     # Should only have the specified channel
@@ -529,7 +536,7 @@ def test_export_override_channels_behavior(conda_cli):
     )
     assert code2 == 0
 
-    env_data2 = yaml_safe_load(stdout2)
+    env_data2 = yaml.loads(stdout2)
     channels2 = env_data2.get("channels", [])
 
     # Should include both specified channels
@@ -542,7 +549,7 @@ def test_export_regular_format_consistency(conda_cli):
     stdout, stderr, code = conda_cli("export", "--format=environment-yaml")
     assert code == 0
 
-    env_data = yaml_safe_load(stdout)
+    env_data = yaml.loads(stdout)
     dependencies = env_data.get("dependencies", [])
 
     # Extract conda package specs (skip pip dependencies which are dicts)
@@ -577,8 +584,8 @@ def test_export_format_comparison_no_builds_vs_regular(conda_cli):
     )
     assert code_no_builds == 0
 
-    env_regular = yaml_safe_load(stdout_regular)
-    env_no_builds = yaml_safe_load(stdout_no_builds)
+    env_regular = yaml.loads(stdout_regular)
+    env_no_builds = yaml.loads(stdout_no_builds)
 
     deps_regular = [
         dep for dep in env_regular.get("dependencies", []) if isinstance(dep, str)
@@ -615,7 +622,7 @@ def test_export_format_comparison_no_builds_vs_regular(conda_cli):
 @pytest.mark.parametrize(
     "format_name,parser_func",
     [
-        ("environment-yaml", yaml_safe_load),
+        ("environment-yaml", yaml.loads),
         ("environment-json", json.loads),
     ],
 )
@@ -655,39 +662,29 @@ def test_export_pip_dependencies_handling(conda_cli, format_name, parser_func):
 @pytest.mark.parametrize(
     "format_name,format_flag,parser_func",
     [
-        ("YAML", "", yaml_safe_load),
+        ("YAML", "", yaml.loads),
         ("JSON", "--format=json", json.loads),
     ],
 )
 def test_export_with_pip_dependencies_integration(
-    tmp_env,
-    conda_cli,
-    pip_cli: PipCLIFixture,
-    wheelhouse: Path,
+    env_with_small_pip_package,
+    conda_cli: CondaCLIFixture,
     format_name,
     format_flag,
     parser_func,
 ):
-    """Test that conda export properly includes pip dependencies when present.
-
-    Uses our small-python-package as a reliable test package that's proven to work in conda's test suite.
+    """Test that conda export properly includes pip dependencies when present. Including raising a warning
+    message when pip is used to install dependencies.
     """
-    with tmp_env("python=3.10", "pip") as prefix:
-        # Install small-python-package wheel built in test data directory
-        wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
+    # Export the environment in the specified format
+    export_args = ["export", f"--prefix={env_with_small_pip_package}"] + (
+        [format_flag] if format_flag else []
+    )
 
-        # Install using pip_cli fixture for better error handling
-        pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
-        assert pip_code == 0, f"pip install failed: {pip_stderr}"
-
-        # Clear prefix data cache to ensure fresh data
-        PrefixData._cache_.clear()
-
-        # Export the environment in the specified format
-        export_args = ["export", f"--prefix={prefix}"] + (
-            [format_flag] if format_flag else []
-        )
-
+    with pytest.warns(
+        CondaExportWarning,
+        match="The exported environment contains 3rd party Python packages",
+    ):
         stdout, stderr, code = conda_cli(*export_args)
         assert code == 0, f"{format_name} export failed: {stderr}"
 
@@ -720,6 +717,54 @@ def test_export_with_pip_dependencies_integration(
         )
 
 
+@pytest.mark.parametrize(
+    "flags,warns",
+    [
+        pytest.param([], True, id="default behavior raises warning"),
+        pytest.param(["--format=json"], True, id="JSON format with `--format` flag"),
+        pytest.param(["--json"], True, id="JSON format with `--json` flag"),
+        pytest.param(
+            ["--file", "environment.yaml"], True, id="warns with `--file` flag alone"
+        ),
+        pytest.param(["--quiet"], False, id="suppress warning with `--quiet`"),
+        pytest.param(
+            ["--json", "--file", "environment.yaml"],
+            False,
+            id="suppress warning with `--json` and `--file`",
+        ),
+    ],
+)
+def test_export_warnings(
+    env_with_small_pip_package: Path,
+    conda_cli: CondaCLIFixture,
+    flags: list[str],
+    warns,
+):
+    """Test that conda export warns under the correct set of cli options when pip dependencies are present."""
+    # Export the environment in the specified format
+    export_args = ["export", f"--prefix={env_with_small_pip_package}"] + flags
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always", category=CondaExportWarning)
+        conda_cli(*export_args)
+        if warns:
+            assert len(w) > 0, f"Expected a warning for flags {flags}"
+        else:
+            assert len(w) == 0, f"Did not expect a warning for flags {flags}"
+
+
+def test_export_non_pip_env_warnings(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    """Test that conda does not warn for environments without pip dependencies"""
+    with tmp_env(PYTHON_SPEC) as prefix:
+        PrefixData._cache_.clear()
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always", category=CondaExportWarning)
+            conda_cli("export", f"--prefix={prefix}")
+            assert len(w) == 0
+
+
 def test_export_override_channels_and_ignore_channels_independence(conda_cli):
     """Test that --override-channels and --ignore-channels work independently.
 
@@ -729,7 +774,7 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
     # Test 1: Default behavior (neither flag)
     stdout, stderr, code = conda_cli("export", "--format=environment-yaml")
     assert code == 0
-    assert yaml_safe_load(stdout) != {}, "Should have some packages"
+    assert yaml.loads(stdout) != {}, "Should have some packages"
 
     # Test 2: Only --override-channels (should still extract package channels)
     stdout, stderr, code = conda_cli(
@@ -740,7 +785,7 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
         "--format=environment-yaml",
     )
     assert code == 0
-    override_only_data = yaml_safe_load(stdout)
+    override_only_data = yaml.loads(stdout)
     override_only_channels = override_only_data.get("channels", [])
 
     # Test 3: Only --ignore-channels (should still include defaults)
@@ -748,7 +793,7 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
         "export", "--ignore-channels", "--format=environment-yaml"
     )
     assert code == 0
-    ignore_only_data = yaml_safe_load(stdout)
+    ignore_only_data = yaml.loads(stdout)
     ignore_only_channels = ignore_only_data.get("channels", [])
 
     # Test 4: Both flags together
@@ -761,7 +806,7 @@ def test_export_override_channels_and_ignore_channels_independence(conda_cli):
         "--format=environment-yaml",
     )
     assert code == 0
-    both_flags_data = yaml_safe_load(stdout)
+    both_flags_data = yaml.loads(stdout)
     both_flags_channels = both_flags_data.get("channels", [])
 
     # Validation: --override-channels only
@@ -806,7 +851,7 @@ def test_export_explicit_format_validation_errors(
 ):
     """Test that explicit format properly errors on invalid environments."""
     # Create an environment with conda packages and pip dependencies
-    with tmp_env("python=3.10", "pip") as prefix:
+    with tmp_env(PYTHON_SPEC, "pip") as prefix:
         # Install a pip package to create external packages
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
         pip_stdout, pip_stderr, pip_code = pip_cli("install", wheel_path, prefix=prefix)
@@ -844,7 +889,7 @@ def test_export_platform_argument(
     assert not code
 
     # Verify the output is valid YAML
-    yaml_data = yaml_safe_load(output.read_text())
+    yaml_data = yaml.loads(output.read_text())
     assert yaml_data["name"] == name
 
 
@@ -869,7 +914,7 @@ def test_export_multiple_platforms(
     assert not code
 
     # Verify the output is valid YAML
-    yaml_data = yaml_safe_load(output.read_text())
+    yaml_data = yaml.loads(output.read_text())
     assert yaml_data["name"] == name
     assert yaml_data["multi-platforms"] == platforms
 
@@ -899,9 +944,146 @@ def test_export_single_platform_different_platform(
     assert not code
 
     # verify the output is valid YAML
-    yaml_data = yaml_safe_load(output.read_text())
+    yaml_data = yaml.loads(output.read_text())
     from pprint import pprint
 
     pprint(yaml_data)
     assert yaml_data["name"] == name
     assert yaml_data["single-platform"] == platform
+
+
+def test_export_invalid_platform_fails_fast(conda_cli):
+    with pytest.raises(
+        CondaValueError, match=r"Could not find platform\(s\): idontexist"
+    ):
+        conda_cli(
+            "export",
+            "--override-platforms",
+            "--platform",
+            "idontexist",
+        )
+
+
+def test_export_invalid_subdir_fails_fast(conda_cli):
+    with pytest.raises(
+        CondaValueError, match=r"Could not find platform\(s\): idontexist"
+    ):
+        conda_cli(
+            "export",
+            "--override-platforms",
+            "--subdir",
+            "idontexist",
+        )
+
+
+def test_export_invalid_platform_from_condarc_fails_fast(
+    conda_cli, tmp_path, monkeypatch
+):
+    condarc = tmp_path / ".condarc"
+    condarc.write_text("export_platforms:\n  - doesnotexist\n")
+
+    monkeypatch.setenv("CONDARC", str(condarc))
+
+    # Import lazily to avoid collection-time failures
+    from conda.base.context import reset_context
+
+    reset_context()
+
+    with pytest.raises(
+        CondaValueError, match=r"Could not find platform\(s\): doesnotexist"
+    ):
+        conda_cli("export")
+
+
+class DummyEnvSpecPlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="dummy-spec",
+            aliases=("spec",),
+            default_filenames=("spec.dummy",),
+            export=lambda env: "",
+        )
+
+
+class DummyLockfilePlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="dummy-lock",
+            aliases=("lock",),
+            default_filenames=("lock.dummy",),
+            export=lambda envs: "",
+            environment_format=EnvironmentFormat.lockfile,
+        )
+
+
+class DummyMultilockPlugin:
+    @hookimpl
+    def conda_environment_exporters(self):
+        yield CondaEnvironmentExporter(
+            name="dummy-multi",
+            aliases=("multi",),
+            default_filenames=("multi.dummy",),
+            multiplatform_export=lambda envs: "",
+            environment_format=EnvironmentFormat.lockfile,
+        )
+
+
+@pytest.mark.parametrize(
+    "spec_plugin,lockfile_plugin,multilock_plugin",
+    [
+        pytest.param(False, False, False, id="no plugins"),
+        pytest.param(True, False, False, id="spec plugin only"),
+        pytest.param(False, True, False, id="lockfile plugin only"),
+        pytest.param(False, False, True, id="multilock plugin only"),
+        pytest.param(True, True, True, id="all plugins"),
+    ],
+)
+def test_epilog(
+    plugin_manager_with_reporter_backends: CondaPluginManager,
+    subtests,
+    spec_plugin: bool,
+    lockfile_plugin: bool,
+    multilock_plugin: bool,
+) -> None:
+    """``conda export --help`` renders examples and format epilog using the registered plugins."""
+    # register dummy plugins
+    if spec_plugin:
+        plugin_manager_with_reporter_backends.register(DummyEnvSpecPlugin())
+    if lockfile_plugin:
+        plugin_manager_with_reporter_backends.register(DummyLockfilePlugin())
+    if multilock_plugin:
+        plugin_manager_with_reporter_backends.register(DummyMultilockPlugin())
+
+    # check help contains expected text
+    epilog = export_epilog()
+    for expected, line in (
+        (True, "Examples:"),
+        (True, "Export an environment spec:"),
+        (True, "conda export --from-history > environment.yml"),
+        (True, "Export a lockfile for the same platform:"),
+        (True, "conda export --file explicit.txt"),
+        (multilock_plugin, "Export a lockfile for multiple platforms:"),
+        (
+            multilock_plugin,
+            "conda export --file multi.dummy --platform linux-64 --platform osx-arm64",
+        ),
+        (
+            spec_plugin or lockfile_plugin or multilock_plugin,
+            "Available output formats:",
+        ),
+        (spec_plugin, "Environment specs:"),
+        (spec_plugin, "- dummy-spec (aliases: spec): spec.dummy"),
+        (lockfile_plugin or multilock_plugin, "Lockfiles:"),
+        (lockfile_plugin, "- dummy-lock (aliases: lock): lock.dummy"),
+        (multilock_plugin, "- dummy-multi (aliases: multi): multi.dummy"),
+    ):
+        with subtests.test(f"{'expected' if expected else 'not expected'}: {line}"):
+            assert (line in epilog) is expected, epilog
+
+
+def test_export_help(conda_cli: CondaCLIFixture) -> None:
+    """``conda export --help`` renders the epilog."""
+    stdout, _, _ = conda_cli("export", "--help", raises=SystemExit)
+    assert export_epilog() in stdout

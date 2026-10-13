@@ -1,0 +1,152 @@
+# New features to try
+
+This page contains recent additions to `conda` worth your attention, including features still in beta that we'd love your feedback on. For the full list of changes across releases, see the {doc}`release-notes`.
+
+**Stage legend**<br />
+{bdg-success}`Stable` — Recommended for production use. Some features require configuration.
+
+{bdg-warning}`Beta` — Opt in to test, not recommended for production. We want your feedback!
+
+---
+## Native win-arm64 platform support
+
+::::{card}
+:class-card: sd-rounded-3 conda-feature-card conda-feature-stable
+
+{bdg-light}`Available in conda 26.9 or later` &nbsp; {bdg-success}`Stable`
+
+Conda has introduced native support for **win-arm64**, the Windows on ARM platform, and can now resolve and install packages natively for the win-arm64 architecture. This means you no longer need to rely on workarounds like WSL2, x86-64 emulation, or manual compilation to run your Python data science toolchain on ARM hardware.
+
+**At the command line**, use the `--platform` flag with `conda create`:
+
+```bash
+# Create a win-64 environment
+# Create a win-64 environment
+conda create --platform win-64 --name myenv-x64 python
+
+# Create a win-arm64 environment
+conda create --platform win-arm64 --name myenv-arm64 python
+
+**As a persistent setting**, configure the `subdir` key in your `.condarc`:
+
+```bash
+# Switch to win-64
+conda config --set subdir win-64
+
+# Switch to win-arm64
+conda config --set subdir win-arm64
+
+# Restore the default (auto-detected from your system)
+conda config --remove-key subdir
+```
+::::
+
+## Faster solves with Rattler solver
+
+::::{card}
+:class-card: sd-rounded-3 conda-feature-card conda-feature-beta
+
+{bdg-light}`Available in conda 26.9 or later` &nbsp; {bdg-warning}`Beta`
+
+While libmamba has been conda's default solver for the past four years and has significantly improved solve performance, we plan to make the Rattler solver the default in version 26.10.0.
+
+Rattler brings faster solves through optimized sparse repodata parsing, native support for new features like `conda-pypi` without requiring a solver switch, and a smaller Miniconda and Miniforge download size by removing the C++ libraries that libmamba required.
+
+Try it now and report any issues to help shape the transition for the wider community.
+
+To opt in, update conda and switch your default solver to Rattler:
+
+```bash
+conda self update
+conda config --set solver rattler
+```
+
+**Note**: If you are running conda older than 26.5, use `conda update conda` instead.
+
+To switch back at any time:
+
+```bash
+conda config --remove-key solver
+```
+
+[Full documentation](https://github.com/conda-incubator/conda-rattler-solver) · [Open a GitHub issue](https://github.com/conda/conda/issues) · [Join the discussion in Zulip](https://conda.zulipchat.com/)
+::::
+
+## Exclude packages newer than X time from solving and search
+::::{card}
+:class-card: sd-rounded-3 conda-feature-card conda-feature-stable
+
+{bdg-light}`Available in conda 26.9 or later` &nbsp; {bdg-success}`Stable`
+
+The `--exclude-newer` flag excludes package records with timestamps after a configured cutoff from environment solves. A configured `exclude_newer` policy also filters `conda search` results. This setting can be used to:
+
+ - avoid pulling in brand-new package releases before regressions or malicious versions have had time to surface and be pulled
+ - support reproducible resolution with time-based cutoffs
+ - reduce the number of packages the solver considers while creating your environment, causing faster solve times
+
+Conda prefers the channel-provided `indexed_timestamp`, which is intended to record when a package first became available in the channel index. If it is absent or zero, conda falls back to the builder-controlled `timestamp`, which records build time rather than publication time. Records without a usable timestamp remain eligible.
+
+For artifacts predating [CEP 47](https://conda.org/learn/ceps/cep-0047/#channel-server-requirements), channels may seed `indexed_timestamp` from build timestamps or other historical signals. These values may not reflect the exact time a package became available.
+
+The fallback can still reduce exposure to newly built malicious packages when build timestamps are accurate, giving time for detection and removal. This is a best-effort security benefit, not a reliable full cooldown after publication. An old build uploaded today can pass the cutoff, and a malicious publisher can backdate the build timestamp. A cutoff can also delay legitimate security fixes.
+
+Timestamp filtering does not guarantee package safety. It can support reproducible resolution, but does not by itself guarantee an exact reconstruction of a channel's past state.
+
+The flag works with `conda create`, `conda install`, and `conda update`. It can also be used as a global setting or per-channel override in your `.condarc` file. Accepted values include durations (`7d`, `3d12h`, `1w`), ISO 8601 durations (`P7D`), RFC 3339 timestamps, and date-only values (`2026-04-01`).
+
+```bash
+conda install --exclude-newer 2026-08-01 scipy
+```
+
+```yaml
+# .condarc
+exclude_newer: 7d
+
+# per-channel overrides
+channel_settings:
+  - channel: conda-forge
+    exclude_newer: 3d
+
+# per-package overrides: exempt package or use a different cutoff
+exclude_newer_package:
+  openssl: false
+  ca-certificates: false
+  numpy: 30d
+```
+
+Package overrides take precedence over channel overrides, which take precedence over the global cutoff.
+
+For more information, see {ref}`Installing packages with a timestamp cutoff <installing-packages-with-an-upload-cutoff>`.
+
+::::
+
+## Install packages from PyPI with `conda install`
+::::{card}
+:class-card: sd-rounded-3 conda-feature-card conda-feature-stable
+
+{bdg-light}`Stable in conda 26.9 or later` &nbsp; {bdg-success}`Stable`
+
+The new `conda-pypi` plugin lets you install supported pure Python wheels from PyPI natively with `conda install`. Conda resolves across both conda channels and PyPI in a single solve, and these packages behave like any other conda package once installed: they show up in `conda list`, get captured in `conda export`, and uninstall cleanly with `conda remove`.
+
+This replaces the common workaround of running `pip install` inside a conda environment, which can leave you with packages conda doesn't know about, environments that are hard to reproduce, and hard-to-debug conflicts that surface much later.
+
+For more information on installing packages from PyPI with `conda install`, see {doc}`/user-guide/tasks/install-packages-from-pypi`.
+::::
+
+## Native multi-platform lockfile support
+
+::::{card}
+:class-card: sd-rounded-3 conda-feature-card conda-feature-stable
+
+{bdg-light}`Available in conda 26.5 or later` &nbsp; {bdg-success}`Stable`
+
+Available to everyone running conda 26.5 or later. No opt-in required.
+
+`conda export`, `conda create`, and `conda install` now support lockfiles as a first-class artifact. A lockfile records the exact packages, versions, builds, and channels in an environment, and conda can use that lockfile to recreate that environment exactly. Lockfiles can also record the resolved packages for several platforms at once. With a multi-platform lockfile, the same file can recreate the environment on Linux, macOS, and Windows.
+
+When creating or installing from a lockfile, **conda skips solving entirely** and goes straight to downloading and installing the pinned packages. For large environments, or environments rebuilt repeatedly in CI, this is the difference between minutes of solving on every run and a fast, deterministic install.
+
+Conda supports the `conda-lock.yaml` and `pixi.lock` formats natively. No separate plugin or third-party tool is required.
+
+For more information, see {ref}`Multi-platform lockfiles <multi-platform-lockfiles>`.
+::::

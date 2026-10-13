@@ -4,7 +4,8 @@ import os
 
 import pytest
 
-from conda import instructions
+with pytest.deprecated_call():
+    from conda import instructions
 from conda.exceptions import CondaFileIOError
 
 

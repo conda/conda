@@ -1,0 +1,36 @@
+name: Track Benchmarks
+
+on:
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
+jobs:
+  track-benchmarks:
+    if: >-
+      !github.event.repository.fork
+      && (github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')
+      && (
+        github.event.workflow_run.event == 'pull_request'
+        || (
+          github.event.workflow_run.event == 'push'
+          && (github.event.workflow_run.head_branch == 'main' || startsWith(github.event.workflow_run.head_branch, 'feature/') || endsWith(github.event.workflow_run.head_branch, '.x'))
+        )
+      )
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      checks: write
+      pull-requests: write
+    steps:
+      - name: Report benchmarks
+        uses: conda/actions/bencher@7413c959e861b1a2f3912dcfc7a20cfa9a71aa54
+        with:
+          project: ${{ secrets.BENCHER_PROJECT_SLUG }}
+          api-token: ${{ secrets.BENCHER_API_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-policy: informational

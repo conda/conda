@@ -76,7 +76,7 @@ def test_default_reporter_backends_are_registered(default_reporter_backend_plugi
 @pytest.mark.parametrize(
     "method,backend,argument,expected",
     [
-        ("render", DEFAULT_CONSOLE_REPORTER_BACKEND, "test", "test"),
+        ("render", DEFAULT_CONSOLE_REPORTER_BACKEND, "test", "test\n"),
         ("render", DEFAULT_JSON_REPORTER_BACKEND, "test", '"test"'),
         (
             "detail_view",

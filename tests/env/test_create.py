@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
-import warnings
+from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -14,15 +14,18 @@ from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import CondaValueError
+from conda.exceptions import (
+    CondaValueError,
+    DryRunExit,
+    EnvironmentSpecPluginSelectionError,
+)
 from conda.testing.integration import package_is_installed
 
 from . import remote_support_file, support_file
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import (
         CondaCLIFixture,
@@ -68,7 +71,6 @@ def test_create_update(
         *("--name", env_name),
         *("--file", support_file("example/environment_pinned_updated.yml")),
     )
-    PrefixData._cache_.clear()
     assert package_is_installed(prefix, "flask=2.0.3")
     assert not package_is_installed(prefix, "flask=2.0.2")
 
@@ -144,7 +146,6 @@ def test_create_advanced_pip(
         "--verbose",
     )
 
-    PrefixData._cache_.clear()
     assert prefix.exists()
     assert package_is_installed(prefix, "python")
     assert package_is_installed(prefix, "argh")
@@ -153,29 +154,24 @@ def test_create_advanced_pip(
     assert package_is_installed(prefix, "xmltodict=0.10.2")
 
 
+# TODO: remove once https://github.com/conda/conda-lockfiles/issues/145 is fixed and released
+@pytest.mark.filterwarnings("ignore:.*yaml_safe.*:PendingDeprecationWarning")
 @pytest.mark.integration
 def test_create_empty_env(
-    monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
 ):
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
-    with warnings.catch_warnings(record=True) as warning_list:
-        warnings.simplefilter("always", PendingDeprecationWarning)
-        conda_cli(
-            *("env", "create"),
-            *("--name", env_name),
-            *("--file", support_file("empty_env.yml")),
-        )
+    conda_cli(
+        "env",
+        "create",
+        f"--name={env_name}",
+        f"--file={support_file('empty_env.yml')}",
+        "--format=environment.yml",
+    )
 
-    cep24_warnings = [
-        w
-        for w in warning_list
-        if "The environment file is not fully CEP 24 compliant" in str(w.message)
-    ]
-    assert len(cep24_warnings) > 0
     assert prefix.exists()
 
 
@@ -185,10 +181,10 @@ def test_create_env_default_packages(
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
 ):
-    # use "cheap" packages with no dependencies
-    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,zlib")
+    # Use small packages available on all test platforms.
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "more-itertools,zlib")
     reset_context()
-    assert context.create_default_packages == ("favicon", "zlib")
+    assert context.create_default_packages == ("more-itertools", "zlib")
 
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
@@ -201,7 +197,7 @@ def test_create_env_default_packages(
     assert prefix.exists()
     assert package_is_installed(prefix, "python")
     assert package_is_installed(prefix, "pytz")
-    assert package_is_installed(prefix, "favicon")
+    assert package_is_installed(prefix, "more-itertools")
     assert package_is_installed(prefix, "zlib")
 
 
@@ -211,25 +207,25 @@ def test_create_env_no_default_packages(
     conda_cli: CondaCLIFixture,
     tmp_envs_dir: Path,
 ):
-    # use "cheap" packages with no dependencies
-    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "favicon,zlib")
+    # Use small packages available on all test platforms.
+    monkeypatch.setenv("CONDA_CREATE_DEFAULT_PACKAGES", "more-itertools,imagesize")
     reset_context()
-    assert context.create_default_packages == ("favicon", "zlib")
+    assert context.create_default_packages == ("more-itertools", "imagesize")
 
     env_name = uuid4().hex[:8]
     prefix = tmp_envs_dir / env_name
 
     conda_cli(
         *("env", "create"),
-        *("--name", env_name),
+        *("--prefix", prefix),
         *("--file", support_file("env_with_dependencies.yml")),
         "--no-default-packages",
     )
     assert prefix.exists()
     assert package_is_installed(prefix, "python")
     assert package_is_installed(prefix, "pytz")
-    assert not package_is_installed(prefix, "favicon")
-    assert not package_is_installed(prefix, "zlib")
+    assert not package_is_installed(prefix, "more-itertools")
+    assert not package_is_installed(prefix, "imagesize")
 
 
 @pytest.mark.integration
@@ -274,7 +270,6 @@ def test_create_update_remote_env_file(
             ),
         ),
     )
-    PrefixData._cache_.clear()
     assert package_is_installed(prefix, "flask=2.0.3")
     assert not package_is_installed(prefix, "flask=2.0.2")
 
@@ -341,6 +336,94 @@ def test_protected_dirs_error_for_env_create(
             )
 
 
+def test_create_existing_env_requires_confirmation(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+):
+    install = mocker.patch("conda.cli.install.install")
+    monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+
+    with tmp_env() as prefix:
+        sentinel = prefix / "sentinel"
+        sentinel.touch()
+
+        _, _, exc = conda_cli(
+            "env",
+            "create",
+            f"--prefix={prefix}",
+            "--file",
+            support_file("just_vars.yml"),
+            raises=CondaValueError,
+        )
+        assert exc.match("prefix already exists")
+        install.assert_not_called()
+        assert sentinel.exists()
+
+
+@pytest.mark.parametrize(
+    ("always_yes", "confirmation"),
+    (
+        pytest.param("false", ("--yes",), id="yes"),
+        pytest.param("true", (), id="always-yes"),
+    ),
+)
+def test_create_existing_env_accepts_confirmation(
+    always_yes: str,
+    confirmation: tuple[str, ...],
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+):
+    install = mocker.patch("conda.cli.install.install")
+    monkeypatch.setenv("CONDA_ALWAYS_YES", always_yes)
+
+    with tmp_env() as prefix:
+        sentinel = prefix / "sentinel"
+        sentinel.touch()
+
+        stdout, _, _ = conda_cli(
+            "env",
+            "create",
+            f"--prefix={prefix}",
+            "--file",
+            support_file("just_vars.yml"),
+            *confirmation,
+        )
+        install.assert_called_once()
+        assert not sentinel.exists()
+        assert f"Removing existing environment at '{prefix}'." in stdout
+
+
+def test_create_existing_env_replacement_json_output(
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    tmp_env: TmpEnvFixture,
+):
+    install = mocker.patch("conda.cli.install.install")
+    monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+
+    with tmp_env() as prefix:
+        sentinel = prefix / "sentinel"
+        sentinel.touch()
+
+        stdout, _, _ = conda_cli(
+            "env",
+            "create",
+            f"--prefix={prefix}",
+            "--file",
+            support_file("just_vars.yml"),
+            "--yes",
+            "--json",
+        )
+        install.assert_called_once()
+        assert not sentinel.exists()
+        assert "Removing existing environment" not in stdout
+
+
 def test_create_env_from_non_existent_plugin(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
@@ -349,14 +432,15 @@ def test_create_env_from_non_existent_plugin(
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "nonexistent_plugin")
     with tmp_env() as prefix:
         with pytest.raises(
-            CondaValueError,
+            EnvironmentSpecPluginSelectionError,
         ) as excinfo:
             conda_cli(
                 "env",
                 "create",
-                f"--prefix={prefix}/envs",
+                f"--prefix={prefix}",
                 "--file",
                 support_file("example/environment_pinned.yml"),
+                "--yes",
             )
 
         assert (
@@ -399,6 +483,7 @@ def test_create_env_custom_platform(
             "--file",
             str(env_file),
             f"--platform={platform}",
+            "--yes",
         )
         prefix_data = PrefixData(prefix)
 
@@ -411,6 +496,8 @@ def test_create_env_custom_platform(
         assert f"subdir: {platform}" in config.read_text()
 
 
+# TODO: remove once https://github.com/conda/conda-lockfiles/issues/145 is fixed and released
+@pytest.mark.filterwarnings("ignore:.*yaml_safe.*:PendingDeprecationWarning")
 @pytest.mark.integration
 def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     conda_cli: CondaCLIFixture,
@@ -418,27 +505,93 @@ def test_create_env_from_environment_yml_does_not_output_duplicate_warning(
     monkeypatch: MonkeyPatch,
 ):
     monkeypatch.setenv("CONDA_ENVIRONMENT_SPECIFIER", "environment.yml")
+    _, stderr, _ = conda_cli(
+        "env",
+        "create",
+        f"--prefix={path_factory()}",
+        f"--file={support_file('invalid_keys.yml')}",
+    )
 
-    with warnings.catch_warnings(record=True) as warning_list:
-        warnings.simplefilter("always", PendingDeprecationWarning)
-        prefix = path_factory()
-        stdout, stderr, err = conda_cli(
-            "env",
-            "create",
+    # EnvironmentSectionNotValid should only appear once in stderr
+    assert stderr.count("EnvironmentSectionNotValid") == 1
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "spec_name,content",
+    [
+        ("cep-24", support_file("env_with_dependencies.yml")),
+        ("requirements.txt", support_file("requirements.txt")),
+        ("explicit", support_file("explicit.txt")),
+    ],
+)
+def test_create_env_from_file_with_mismatched_extension_via_env_spec(
+    conda_cli: CondaCLIFixture,
+    path_factory: PathFactoryFixture,
+    spec_name: str,
+    content: str,
+):
+    """When --format is provided, content is validated, not filename."""
+    tmp_file = path_factory(suffix=".foobar")
+    tmp_file.write_text(Path(content).read_text())
+
+    prefix = path_factory()
+    conda_cli(
+        "env",
+        "create",
+        f"--prefix={prefix}",
+        f"--format={spec_name}",
+        "--file",
+        str(tmp_file),
+    )
+    assert PrefixData(prefix).exists()
+    assert PrefixData(prefix).is_environment()
+
+
+@pytest.mark.parametrize(
+    "target_format,file_name",
+    [
+        ("environment-yaml", "env.yaml"),
+        ("env.yml", "env.yaml"),
+        ("requirements", "env.txt"),
+        ("reqs", "env.txt"),
+    ],
+)
+@pytest.mark.integration
+def test_export_and_recreate_environment(
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    path_factory: PathFactoryFixture,
+    target_format,
+    file_name,
+):
+    """
+    Test that a user can recreate an environment with the same
+    plugin name they used to export the environment.
+    Ref: https://github.com/conda-incubator/conda-lockfiles/issues/79
+    """
+    # Setup a simple environment
+    with tmp_env("ca-certificates") as prefix:
+        env_file_path = path_factory(file_name)
+        _, stderr, rc = conda_cli(
+            "export",
             f"--prefix={prefix}",
-            "--file",
-            support_file("invalid_keys.yml"),
+            f"--format={target_format}",
+            f"--file={env_file_path}",
         )
+        assert rc == 0, f"conda export failed ({target_format=}): {stderr}"
 
-    cep24_warnings = [
-        w
-        for w in warning_list
-        if "Provided environment.yaml is invalid: Missing required field 'dependencies'"
-        in str(w.message)
-    ]
-    assert len(cep24_warnings) > 0
-
-    # When splitting the output on "EnvironmentSectionNotValid", we should
-    # get an array of length 2 if the string only appears once. If it appears
-    # multiple times, the array will have more elements.
-    assert len(stdout.split("EnvironmentSectionNotValid")) == 2
+        # recreate the environment
+        recreate_prefix = path_factory()
+        with pytest.raises(DryRunExit):
+            _, stderr, rc = conda_cli(
+                "env",
+                "create",
+                f"--prefix={recreate_prefix}",
+                f"--format={target_format}",
+                f"--file={env_file_path}",
+                "--dry-run",
+            )
+            assert rc == 0, (
+                f"conda env create --dry-run failed ({target_format=}): {stderr}"
+            )

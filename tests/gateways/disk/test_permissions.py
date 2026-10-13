@@ -8,9 +8,6 @@ from errno import EACCES, ENOENT, EPERM, EROFS
 from os.path import isfile, join, lexists
 from shutil import rmtree
 from stat import (
-    S_IRGRP,
-    S_IROTH,
-    S_IRUSR,
     S_IRWXG,
     S_IRWXO,
     S_IRWXU,
@@ -23,6 +20,7 @@ from unittest.mock import patch
 
 import pytest
 
+from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.update import touch
 
 
@@ -50,10 +48,6 @@ def _remove_read_only(func, path, exc):
         func(path)
     else:
         pass
-
-
-def _make_read_only(path):
-    os.chmod(path, S_IRUSR | S_IRGRP | S_IROTH)
 
 
 def _can_write_file(test, content):
@@ -92,7 +86,7 @@ def test_make_writable():
         touch(test_path)
         assert isfile(test_path)
         _try_open(test_path)
-        _make_read_only(test_path)
+        make_read_only(test_path)
         pytest.raises((IOError, OSError), _try_open, test_path)
         make_writable(test_path)
         _try_open(test_path)
@@ -147,7 +141,7 @@ def test_recursive_make_writable():
         touch(test_path)
         assert isfile(test_path)
         _try_open(test_path)
-        _make_read_only(test_path)
+        make_read_only(test_path)
         pytest.raises((IOError, OSError), _try_open, test_path)
         recursive_make_writable(test_path)
         _try_open(test_path)
@@ -164,7 +158,7 @@ def test_make_executable():
         touch(test_path)
         assert isfile(test_path)
         _try_open(test_path)
-        _make_read_only(test_path)
+        make_read_only(test_path)
         assert not _can_write_file(test_path, "welcome to the ministry of silly walks")
         assert not _can_execute(test_path)
         make_executable(test_path)

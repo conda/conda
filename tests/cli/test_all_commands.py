@@ -5,10 +5,22 @@ This testing module is for tests which test multiple commands under the same
 circumstance.
 """
 
+from __future__ import annotations
+
+import re
+import warnings
+from argparse import ArgumentParser
+from typing import TYPE_CHECKING
+
 import pytest
 
+from conda.cli.helpers import add_parser_environment_specifier
 from conda.exceptions import ChannelDenied
-from conda.testing.fixtures import CondaCLIFixture
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import CondaCLIFixture
 
 DENYLIST_CHANNEL: str = "denylist_channel_name"
 DENYLIST_CHANNEL_URL: str = "https://conda.anaconda.org/denylist_channel_name"
@@ -50,8 +62,8 @@ def test_denylist_channels(
     ("command", "err_message"),
     (
         (
-            ("env", "create", "--environment-specifier", "idontexist"),
-            "error: argument --environment-specifier/--env-spec: invalid choice: 'idontexist'",
+            ("env", "create", "--format", "idontexist"),
+            "error: argument --format: invalid choice: 'idontexist'",
         ),
         (
             ("install", "--solver", "idontexist"),
@@ -72,3 +84,43 @@ def test_commands_with_plugin_backed_options(
         conda_cli(*command)
     captured = capsys.readouterr()
     assert err_message in captured.err
+
+
+@pytest.mark.parametrize(
+    "flag",
+    ["--environment-specifier", "--env-spec"],
+)
+def test_env_spec_deprecation(mocker: MockerFixture, flag: str) -> None:
+    # Provide a known valid choice so LazyChoicesAction does not reject it.
+    specifier = "yaml"
+    mocker.patch(
+        "conda.base.context.context.plugin_manager.get_environment_specifiers",
+        return_value=[specifier],
+    )
+
+    parser = ArgumentParser()
+    add_parser_environment_specifier(parser)
+
+    with pytest.deprecated_call():
+        parser.parse_args([flag, specifier])
+
+    # no deprecation warning when unused
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        parser.parse_args(["--format", specifier])
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["activate", "deactivate"],
+)
+def test_activate_help_commands_exit_0_rc(
+    conda_cli: CondaCLIFixture,
+    command: str,
+):
+    """Ensure that conda returns a 0 error code when cli --help is called"""
+    stdout, stderr, exc = conda_cli(command, "-h", raises=SystemExit)
+    assert exc.value.code == 0, f"conda {command} failed ({exc.value.code}): {stderr}"
+    assert f"usage: conda {command}" in stdout
+    assert not re.search(r"\berror\b", stdout, re.IGNORECASE)
+    assert not re.search(r"\berror\b", stderr, re.IGNORECASE)

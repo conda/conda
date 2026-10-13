@@ -1,0 +1,12 @@
+package:
+  name: track_feature
+  version: "{{ pkg_version }}"
+
+build:
+  noarch: generic
+  string: "0"
+  track_features:
+    - "{{ feature }}"
+
+about:
+  summary: "Package with track_features: {{ feature }}"

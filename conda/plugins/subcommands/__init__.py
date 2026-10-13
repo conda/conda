@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-from . import doctor
+from . import doctor as _doctor
+from . import plugins as _plugins
 
-plugins = [doctor]
+plugins = [_doctor, _plugins]

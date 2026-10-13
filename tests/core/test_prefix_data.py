@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import json
+import shutil
+import sys
+from contextlib import nullcontext
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -13,20 +16,27 @@ import pytest
 
 from conda.base.constants import PREFIX_PINNED_FILE, PREFIX_STATE_FILE
 from conda.common.compat import on_win
+from conda.common.path.python import get_python_site_packages_short_path
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
-from conda.exceptions import CondaError, CorruptedEnvironmentError
+from conda.exceptions import CondaError, CondaValueError, CorruptedEnvironmentError
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
+from conda.models.records import PrefixRecord
 from conda.plugins.prefix_data_loaders.pypi import load_site_packages
 from conda.testing.helpers import record
 
+from .. import PYTHON_SPEC
+
 if TYPE_CHECKING:
+    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import CondaCLIFixture, PipCLIFixture, TmpEnvFixture
 
 
 ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
+CORRUPT_DATA_DIR = Path(__file__).parent.parent / "data" / "corrupt"
+DOT_UNDERSCORE_DIR = CORRUPT_DATA_DIR / "dot_underscore"
 
 
 @pytest.mark.parametrize(
@@ -255,6 +265,14 @@ ENV_METADATA_DIR = Path(__file__).parent.parent / "data" / "env_metadata"
             id=PATH_TEST_ENV_2.name,
             marks=pytest.mark.skipif(on_win, reason="Unix only"),
         ),
+        pytest.param(
+            PATH_TEST_ENV_3 := ENV_METADATA_DIR / "envpy313tosx_whl",
+            {
+                "imagesize",
+            },
+            id=PATH_TEST_ENV_3.name,
+            marks=pytest.mark.skipif(on_win, reason="Unix only"),
+        ),
     ],
 )
 def test_pip_interop(
@@ -271,6 +289,47 @@ def test_pip_interop(
     records = load_site_packages(prefixdata.prefix_path, prefixdata._prefix_records)
 
     assert set(records) == expected_output
+
+
+def test_pypi_loader_removes_clobbered_record_json_by_prefix_record_name(
+    empty_env: Path, mocker: MockerFixture
+) -> None:
+    rm_rf = mocker.patch("conda.plugins.prefix_data_loaders.pypi.rm_rf")
+    site_packages_path = get_python_site_packages_short_path("3.11")
+    site_packages = empty_env / site_packages_path
+    site_packages.mkdir(parents=True)
+    records = {
+        "python": PrefixRecord(
+            name="python",
+            version="3.11.0",
+            build="h123_0",
+            build_number=0,
+            channel="conda-forge",
+            subdir="osx-arm64",
+            fn="python-3.11.0-h123_0.conda",
+            files=(),
+        ),
+        "pyqplot": PrefixRecord(
+            name="pyqplot",
+            version="0.7.2",
+            build="py3_none_any_0",
+            build_number=0,
+            channel="conda-pypi",
+            subdir="noarch",
+            fn="pyqplot-0.7.2-py3-none-any.whl",
+            url="https://pypi.org/pyqplot-0.7.2-py3-none-any.whl",
+            package_type=PackageType.VIRTUAL_PYTHON_WHEEL,
+            files=(f"{site_packages_path}/pyqplot-0.7.2.dist-info/RECORD",),
+            depends=("python >=3.11",),
+        ),
+    }
+
+    load_site_packages(empty_env, records)
+
+    assert "pyqplot" not in records
+    rm_rf.assert_called_once_with(
+        empty_env / "conda-meta" / "pyqplot-0.7.2-py3_none_any_0.json"
+    )
 
 
 def test_get_conda_anchor_files_and_records():
@@ -309,6 +368,35 @@ def test_get_conda_anchor_files_and_records():
     )
 
 
+def test_get_conda_anchor_files_and_records_case_sensitivity(monkeypatch: MonkeyPatch):
+    monkeypatch.setattr("conda.core.prefix_data.on_win", True)
+
+    @dataclass
+    class DummyPythonRecord:
+        files: list[str]
+
+    records = {
+        path: DummyPythonRecord([path])
+        for path in (
+            "lib/site-packages/spam.egg-info/PKG-INFO",
+            "Lib/site-packages/foo.dist-info/RECORD",
+            "lIb/site-packages/bar.egg-info",
+        )
+    }
+
+    expected_records_set = {
+        "Lib/site-packages/spam.egg-info/PKG-INFO",
+        "Lib/site-packages/foo.dist-info/RECORD",
+        "Lib/site-packages/bar.egg-info",
+    }
+
+    python_packages = get_conda_anchor_files_and_records(
+        "Lib/site-packages",
+        [*records.values()],
+    )
+    assert set(python_packages) == expected_records_set
+
+
 def test_corrupt_unicode_conda_meta_json():
     """Test for graceful failure if a Unicode corrupt file exists in conda-meta."""
     with pytest.raises(CorruptedEnvironmentError):
@@ -319,6 +407,16 @@ def test_corrupt_json_conda_meta_json():
     """Test for graceful failure if a JSON corrupt file exists in conda-meta."""
     with pytest.raises(CorruptedEnvironmentError):
         PrefixData("tests/data/corrupt/json").load()
+
+
+def test_dot_underscore_conda_meta_json_ignored(tmp_path: Path):
+    target_prefix = tmp_path / "dot_underscore"
+    shutil.copytree(DOT_UNDERSCORE_DIR, target_prefix)
+
+    prefix_data = PrefixData(target_prefix)
+    prefix_data.load()
+
+    assert prefix_data.get("valid") is not None
 
 
 @pytest.fixture
@@ -408,6 +506,35 @@ def test_no_tokens_dumped(empty_env: Path, remove_auth: bool):
         assert "/t/<TOKEN>/" in json_content
     else:
         assert "/t/some-fake-token/" in json_content
+
+
+def test_insert_wheel_style_fn_uses_name_version_build(empty_env: Path) -> None:
+    pkg_record = record(
+        name="pyqplot",
+        version="0.7.2",
+        build="py3_none_any_0",
+        build_number=0,
+        channel="conda-pypi",
+        fn="pyqplot-0.7.2-py3-none-any.whl",
+        url="https://pypi.org/pyqplot-0.7.2-py3-none-any.whl",
+        package_type=PackageType.VIRTUAL_PYTHON_WHEEL,
+    )
+
+    prefix_data = PrefixData(empty_env)
+    prefix_data.insert(pkg_record)
+
+    conda_meta_dir = empty_env / "conda-meta"
+    conda_meta_file = conda_meta_dir / "pyqplot-0.7.2-py3_none_any_0.json"
+    assert conda_meta_file.is_file()
+    assert not (conda_meta_dir / "pyqplot-0.7.2-py3-none-any.json").exists()
+
+    prefix_data.load()
+    reloaded = prefix_data.get("pyqplot")
+    assert reloaded.version == "0.7.2"
+    assert reloaded.build == "py3_none_any_0"
+
+    prefix_data.remove("pyqplot")
+    assert not conda_meta_file.exists()
 
 
 @pytest.mark.parametrize(
@@ -536,7 +663,7 @@ def test_get_packages_behavior_with_interoperability(
 ):
     """Test that package extraction behaves correctly with interoperability settings."""
     # Create environment with conda packages and pip
-    packages = ["python=3.10", "pip", "ca-certificates"]
+    packages = [PYTHON_SPEC, "pip", "ca-certificates"]
     with tmp_env(*packages) as prefix:
         # Install small-python-package wheel for testing pip interoperability
         wheel_path = wheelhouse / "small_python_package-1.0.0-py3-none-any.whl"
@@ -936,7 +1063,7 @@ def test_timestamps(
     conda_cli: CondaCLIFixture,
     test_recipes_channel: Path,
 ):
-    start = datetime.now(tz=timezone.utc)
+    start = datetime.now(tz=UTC)
     with tmp_env(shallow=False) as prefix:
         pd = PrefixData(prefix)
         created = pd.created
@@ -947,4 +1074,145 @@ def test_timestamps(
         second_modification = pd.last_modified
         assert created == pd.created
         assert first_modification < second_modification
-        assert start < pd.created < second_modification < datetime.now(tz=timezone.utc)
+        assert start < pd.created < second_modification < datetime.now(tz=UTC)
+
+
+@pytest.mark.skipif(not on_win, reason="Windows only")
+@pytest.mark.parametrize("change_case", [True, False])
+def test_conda_package_recognized_windows(empty_env, change_case):
+    """
+    On Windows, case sensitivity would mess with package discovery. See
+    https://github.com/conda/conda/pull/15725
+    """
+    requests_text = next(
+        Path(sys.prefix, "conda-meta").glob("requests-*-*.json")
+    ).read_text()
+    if change_case:
+        requests_text = requests_text.replace("lib/site-packages", "LiB/siTe-PacKageS")
+    record = PrefixRecord.from_json(requests_text)
+    prefix_data = PrefixData(empty_env)
+    prefix_data.insert(record)
+    prefix_data.load()
+    assert prefix_data.get("requests").channel_name != "pypi"
+
+
+@pytest.mark.parametrize(
+    "char,should_raise",
+    [
+        # Valid chars
+        ("a", False),
+        ("A", False),
+        ("-", False),
+        ("_", False),
+        (".", False),
+        ("0", False),
+        # Problematic chars, see WINDOWS_PROBLEMATIC_CHARS
+        ("!", False),
+        ("^", False),
+        ("%", False),
+        ("=", False),
+        ("(", False),
+        (")", False),
+        # Invalid chars, see PREFIX_NAME_DISALLOWED_CHARS
+        # ("/", True),
+        (" ", True),
+        # (":", True),
+        ("#", True),
+    ],
+)
+def test_prefix_data_validate_name(
+    tmp_env: TmpEnvFixture,
+    char: str,
+    should_raise: bool,
+):
+    """
+    Test PrefixData.validate_name() for various environment names.
+
+    This test documents current behavior. When implementing #12558, update
+    the expected behavior for Windows-problematic characters.
+
+    See: https://github.com/conda/conda/issues/12558
+    """
+    with tmp_env(path_infix=char) as env_path:
+        pd = PrefixData(env_path)
+        with pytest.raises(CondaValueError) if should_raise else nullcontext():
+            pd.validate_name()
+
+
+@pytest.mark.parametrize(
+    "allow_base,raises",
+    [
+        (False, True),
+        (True, False),
+    ],
+)
+def test_prefix_data_validate_name_base(
+    tmp_env: TmpEnvFixture,
+    mocker: MockerFixture,
+    allow_base: bool,
+    raises: bool,
+):
+    """Test that 'base' is rejected when allow_base=False."""
+    # Path envs/base so PrefixData.name resolves to "base" when envs_dir is mocked
+    with tmp_env(name="envs/base") as base_path:
+        mocker.patch(
+            "conda.base.context.Context.envs_dirs",
+            new_callable=mocker.PropertyMock,
+            return_value=(str(base_path.parent),),
+        )
+
+        pd = PrefixData(base_path)
+        with (
+            pytest.raises(CondaValueError, match="reserved environment name")
+            if raises
+            else nullcontext()
+        ):
+            pd.validate_name(allow_base=allow_base)
+
+
+@pytest.mark.parametrize(
+    "record_data",
+    [
+        {
+            "name": "numpy",
+            "version": "1.24.0",
+            "build": "py310h0000000_0",
+            "build_number": 0,
+            "channel": "defaults",
+            "subdir": "linux-64",
+            "fn": "numpy-1.24.0-py310h0000000_0.conda",
+        },
+    ],
+)
+def test_load_single_record_reads_bytes(tmp_path: Path, record_data: dict) -> None:
+    """_load_single_record should parse a JSON file written as bytes."""
+    conda_meta = tmp_path / "conda-meta"
+    conda_meta.mkdir()
+    fn = f"{record_data['name']}-{record_data['version']}-{record_data['build']}.json"
+    (conda_meta / fn).write_text(json.dumps(record_data))
+
+    pd = PrefixData(tmp_path)
+    pd.load()
+
+    assert record_data["name"] in pd._PrefixData__prefix_records
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        pytest.param(b"not valid json {{{", id="bad-json"),
+        pytest.param(b"{\x00\x00\x00\x00", id="null-bytes-unicode-error"),
+    ],
+)
+def test_load_single_record_raises_on_corrupt_json(
+    tmp_path: Path, content: bytes
+) -> None:
+    """_load_single_record should raise CorruptedEnvironmentError for invalid JSON."""
+    conda_meta = tmp_path / "conda-meta"
+    conda_meta.mkdir()
+    (conda_meta / "bad-1.0-h0000000_0.json").write_bytes(content)
+
+    pd = PrefixData(tmp_path)
+
+    with pytest.raises(CorruptedEnvironmentError):
+        pd.load()

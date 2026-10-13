@@ -13,15 +13,18 @@ import pytest
 from requests import HTTPError, Request
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
+from conda.base.constants import PARTIAL_EXTENSION
 from conda.base.context import context, reset_context
 from conda.common.compat import ensure_binary
 from conda.common.url import path_to_url
-from conda.exceptions import CondaExitZero, OfflineError
+from conda.exceptions import CondaExitZero, OfflineError, PluginError
 from conda.gateways.anaconda_client import remove_binstar_token, set_binstar_token
+from conda.gateways.connection.adapters.http import HTTPAdapter
 from conda.gateways.connection.download import download_inner
 from conda.gateways.connection.session import (
     CondaHttpAuth,
     CondaSession,
+    _validate_plugin_headers,
     get_channel_name_from_url,
     get_session,
     get_session_storage_key,
@@ -63,6 +66,52 @@ def test_add_binstar_token():
         remove_binstar_token("https://api.anaconda.test")
 
 
+def test_add_binstar_token_notices_json():
+    """add_binstar_token must not drop notices.json from URLs that have no platform subdir.
+
+    Regression test for https://github.com/conda/conda/issues/16516:
+    URLs like /channel-name/notices.json have no platform component, so Channel.url()
+    previously discarded the filename and substituted a subdir from context.subdirs.
+    """
+    try:
+        set_binstar_token("https://api.anaconda.test", "tk-abacadaba-1029384756")
+
+        # URL with no platform subdir — notices.json must be preserved
+        url = "https://conda.anaconda.test/channel-name/notices.json"
+        expected = "https://conda.anaconda.test/t/tk-abacadaba-1029384756/channel-name/notices.json"
+        assert CondaHttpAuth.add_binstar_token(url) == expected, (
+            f"notices.json was dropped or URL was mangled: {CondaHttpAuth.add_binstar_token(url)}"
+        )
+    finally:
+        remove_binstar_token("https://api.anaconda.test")
+
+
+@pytest.mark.parametrize(
+    "filename",
+    ("repodata_shards.msgpack.zst", f"{'a' * 64}.msgpack.zst"),
+    ids=("index", "shard"),
+)
+def test_add_binstar_token_preserves_shard_filenames(
+    filename: str,
+    mocker: MockerFixture,
+    monkeypatch: MonkeyPatch,
+    reset_conda_context,
+) -> None:
+    """Preserve shard paths when inserting a stored token (#16637)."""
+    monkeypatch.setenv("CONDA_ADD_ANACONDA_TOKEN", "true")
+    reset_context()
+    mocker.patch(
+        "conda.gateways.connection.session.read_binstar_tokens",
+        return_value={"https://conda.anaconda.test": "example-token"},
+    )
+    subpath = f"conda-forge/linux-64/{filename}"
+    url = f"https://conda.anaconda.test/{subpath}"
+
+    assert CondaHttpAuth.add_binstar_token(url) == (
+        f"https://conda.anaconda.test/t/example-token/{subpath}"
+    )
+
+
 def test_local_file_adapter_404():
     session = CondaSession()
     test_path = "file:///some/location/doesnt/exist"
@@ -92,6 +141,10 @@ def test_local_file_adapter_200():
 
 
 @pytest.mark.skipif(MINIO_EXE is None, reason="Minio server not available")
+@pytest.mark.skipif(
+    context.solver == "libmamba",
+    reason="libmamba solver has a bug with S3 URL construction, see conda-libmamba-solver#866",
+)
 @pytest.mark.integration
 def test_s3_server(
     minio_s3_server,
@@ -108,6 +161,10 @@ def test_s3_server(
 
 
 @pytest.mark.skipif(not BOTO3_AVAILABLE, reason="boto3 module not available")
+@pytest.mark.skipif(
+    context.solver == "libmamba",
+    reason="libmamba solver has a bug with S3 URL construction, see conda-libmamba-solver#866",
+)
 @pytest.mark.integration
 def test_s3_server_with_mock(
     package_server,
@@ -177,15 +234,100 @@ def inner_s3_test(
             pass
 
 
+@pytest.mark.skipif(not BOTO3_AVAILABLE, reason="boto3 module not available")
+def test_s3_download_uses_direct_path(mocker: MockerFixture, tmp_path: Path) -> None:
+    """
+    Verify S3 downloads use direct_download to avoid extra file copy.
+
+    The optimization in S3Adapter.direct_download downloads directly to the
+    target file using boto3's optimized download_fileobj, avoiding the extra copy
+    through a SpooledTemporaryFile that occurs with the streaming path.
+    """
+    from conda.gateways.connection.adapters.s3 import S3Adapter
+
+    # Mock boto3 to avoid actual S3 call
+    mock_boto3 = mocker.patch("boto3.session.Session")
+    mock_s3_obj = mock_boto3.return_value.resource.return_value.Object.return_value
+
+    # Track if download_fileobj was called
+    download_fileobj_called = []
+
+    def mock_download_fileobj(fileobj, Callback=None):
+        download_fileobj_called.append(True)
+        # Write test data with known checksum
+        fileobj.write(b"test package data" * 100)
+
+    mock_s3_obj.download_fileobj = mock_download_fileobj
+
+    # Mock get_session to return session with S3Adapter
+    mock_get_session = mocker.patch("conda.gateways.connection.download.get_session")
+    session = CondaSession()
+    adapter = S3Adapter()
+    session.mount("s3://", adapter)
+    mock_get_session.return_value = session
+
+    # Spy on session.get to verify streaming path is NOT used
+    session_get_spy = mocker.spy(session, "get")
+
+    url = "s3://test-bucket/path/package.tar.bz2"
+    target = tmp_path / "package.tar.bz2"
+    test_data = b"test package data" * 100
+    checksum = hashlib.sha256(test_data).hexdigest()
+
+    # Execute download
+    download_inner(url, target, None, checksum, len(test_data), None)
+
+    # Verify boto3's download_fileobj was called (direct path)
+    assert len(download_fileobj_called) == 1, "direct_download should be called once"
+
+    # Verify session.get was NOT called (streaming path avoided)
+    assert session_get_spy.call_count == 0, (
+        "session.get should not be called for S3 downloads"
+    )
+
+    # Verify file was created successfully
+    assert target.exists(), "Target file should exist after download"
+
+
 def test_get_session_returns_default():
     """
     Tests to make sure that our session manager returns a regular
     CondaSession object when no other session classes are registered.
     """
-    url = "https://localhost/test"
+    url = "http://localhost/test"
     session_obj = get_session(url)
 
     assert type(session_obj) is CondaSession
+
+
+@pytest.mark.parametrize(
+    "channel_settings_url, expect_match",
+    [
+        ("file:///tmp/repro-channel", True),
+        ("file:///tmp/other-channel", False),
+        ("file:///tmp/repro-channel/*", True),
+    ],
+)
+def test_get_session_channel_settings_file_url(
+    mocker, channel_settings_url, expect_match
+):
+    """Handle exact, glob, and nonmatching local channel settings (#16698)."""
+    mock_context = mocker.patch("conda.gateways.connection.session.context")
+    mock_context.known_subdirs = context.known_subdirs
+    mock_context.channel_settings = (
+        {"channel": channel_settings_url, "auth": "dummy_one"},
+    )
+
+    session_obj = get_session("file:///tmp/repro-channel/noarch/repodata.json")
+
+    assert type(session_obj) is CondaSession
+    get_auth_handler = mock_context.plugin_manager.get_auth_handler
+    if expect_match:
+        assert type(session_obj.auth) is not CondaHttpAuth
+        get_auth_handler.assert_called_once_with("dummy_one")
+    else:
+        assert type(session_obj.auth) is CondaHttpAuth
+        get_auth_handler.assert_not_called()
 
 
 def test_get_session_with_channel_settings(mocker):
@@ -217,51 +359,140 @@ def test_get_session_with_channel_settings(mocker):
 
 
 @pytest.mark.parametrize(
-    "channel_settings_url, expect_match",
+    "channel_url, channel_settings_url, expect_match",
     [
         pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "https://repo.some-hostname.com/channel-name",
             True,
             id="exact-url",
         ),
         pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "https://repo.some-hostname.com/*",
             True,
             id="url-prefix",
         ),
         pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "https://repo.some-hostname.com/another-channel",
             False,
             id="no-match",
         ),
         pytest.param(
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            "https://repo.anaconda.com/pkgs/main",
+            True,
+            id="exact-url-channel-subdir",
+        ),
+        pytest.param(
+            "https://repo.example.invalid/pkgs/main/linux-64/repodata.json",
+            "https://repo.anaconda.com/pkgs/main",
+            False,
+            id="exact-url-no-match-different-host",
+        ),
+        pytest.param(
+            "http://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            "https://repo.anaconda.com/pkgs/main",
+            False,
+            id="exact-url-no-match-different-scheme",
+        ),
+        pytest.param(
+            "https://repo.anaconda.com:8443/pkgs/main/linux-64/repodata.json",
+            "https://repo.anaconda.com/pkgs/main",
+            False,
+            id="exact-url-no-match-different-port",
+        ),
+        pytest.param(
+            "https://repo.anaconda.com/pkgs/r/linux-64/repodata.json",
+            "https://repo.anaconda.com/pkgs/main",
+            False,
+            id="exact-url-no-match-different-channel",
+        ),
+        pytest.param(
+            "https://repo.example.invalid/a/b/linux-64/repodata.json",
+            "https://repo.example.invalid/a%2Fb",
+            False,
+            id="exact-url-no-match-encoded-setting-path-separator",
+        ),
+        pytest.param(
+            "https://repo.anaconda.com/pkgs/main/linux-64/repodata.json",
+            "defaults",
+            True,
+            id="channel-name",
+        ),
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "https://*.com/*",
             True,
             id="wildcard-match-same-schema",
         ),
         pytest.param(
+            "https://repo.example.invalid/secure/repodata.json",
+            "https://repo.example.invalid/secure/repodata*.json",
+            True,
+            id="wildcard-match-recognized-extension",
+        ),
+        pytest.param(
+            "https://repo.example.invalid/secure/noarch/unrelated.conda",
+            "https://repo.example.invalid/secure/repodata*.json",
+            False,
+            id="wildcard-no-match-recognized-extension",
+        ),
+        pytest.param(
+            "https://repo.example.invalid/secure/repodata1.json",
+            "https://repo.example.invalid/secure/repodata[0-9].json",
+            True,
+            id="character-class-match-recognized-extension",
+        ),
+        pytest.param(
+            "https://repo.example.invalid/secure/noarch/unrelated.conda",
+            "https://repo.example.invalid/secure/repodata[0-9].json",
+            False,
+            id="character-class-no-match-recognized-extension",
+        ),
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "http://*.com/*",
             False,
             id="wildcard-no-match-different-scheme",
         ),
         pytest.param(
+            "https://repo.some-hostname.com/channel-name",
             "*",
             False,
             id="wildcard-no-match-missing-scheme",
         ),
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name",
+            "https://repo.some-hostname.com/channel-name/",
+            True,
+            id="exact-url-trailing-slash-in-settings",
+        ),
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name/",
+            "https://repo.some-hostname.com/channel-name",
+            True,
+            id="exact-url-trailing-slash-in-request-url",
+        ),
+        pytest.param(
+            "https://repo.some-hostname.com/channel-name/",
+            "https://repo.some-hostname.com/channel-name/",
+            True,
+            id="exact-url-trailing-slash-in-both",
+        ),
+        pytest.param(
+            "https://[::1]/channel/noarch/repodata.json",
+            "https://[::1]/channel",
+            True,
+            id="exact-url-ipv6",
+        ),
     ],
 )
-def test_get_session_with_url_pattern(mocker, channel_settings_url, expect_match):
-    """
-    For channels specified by URL, we can configure channel_settings with a URL containing
-    either an exact URL match or with a glob-like pattern. In the latter case we require the
-    HTTP schemes to be identical.
-    """
-    channel_url = "https://repo.some-hostname.com/channel-name"
-    mocker.patch(
-        "conda.gateways.connection.session.get_channel_name_from_url",
-        return_value=channel_url,
-    )
+def test_get_session_with_url_pattern(
+    mocker, channel_url, channel_settings_url, expect_match
+):
+    """Test exact and glob URL matching for channel settings."""
     mocker.patch(
         "conda.base.context.Context.channel_settings",
         new_callable=mocker.PropertyMock,
@@ -288,6 +519,43 @@ def test_get_session_with_url_pattern(mocker, channel_settings_url, expect_match
 
         # We have not tried to retrieve our auth handler
         assert not get_auth_handler.mock_calls
+
+
+@pytest.mark.parametrize(
+    "channel_url, channel_settings_url",
+    [
+        pytest.param(
+            "https://some.url.somewhere/stuff/darwin/noarch/repodata.json",
+            "s3://just/cant/darwin",
+            id="migrated-custom-channel",
+        ),
+        pytest.param(
+            "ftp://new.url:8082/conda-forge/noarch/repodata.json",
+            "https://conda.anaconda.org/conda-forge",
+            id="migrated-channel-alias",
+        ),
+    ],
+)
+def test_get_session_does_not_match_migrated_url(
+    mocker,
+    context_testdata,
+    reset_conda_context,
+    channel_url,
+    channel_settings_url,
+):
+    mocker.patch(
+        "conda.base.context.Context.channel_settings",
+        new_callable=mocker.PropertyMock,
+        return_value=[{"channel": channel_settings_url, "auth": "dummy_one"}],
+    )
+    get_auth_handler = mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.get_auth_handler"
+    )
+
+    session_obj = get_session(channel_url)
+
+    assert type(session_obj.auth) is CondaHttpAuth
+    assert not get_auth_handler.mock_calls
 
 
 def test_get_session_with_channel_settings_multiple(mocker):
@@ -374,6 +642,51 @@ def test_get_session_with_channel_settings_no_handler(mocker):
     assert mocker.call("dummy_two") in mock.mock_calls
 
 
+@pytest.mark.parametrize(
+    "bad_settings_entry",
+    [
+        pytest.param(
+            {"channel": None, "auth": "dummy_one"},
+            id="channel-value-is-none",
+        ),
+        pytest.param(
+            {"auth": "dummy_one"},
+            id="channel-key-missing",
+        ),
+    ],
+)
+def test_get_session_with_missing_or_none_channel_in_settings(
+    mocker, bad_settings_entry
+):
+    """
+    Settings entries that have a missing or None ``channel`` key must be silently
+    skipped rather than crashing.  The result should be the same default CondaSession
+    that would be returned when no channel_settings are present at all.
+    """
+    mocker.patch(
+        "conda.gateways.connection.session.get_channel_name_from_url",
+        return_value="defaults",
+    )
+    get_auth_handler = mocker.patch(
+        "conda.plugins.manager.CondaPluginManager.get_auth_handler"
+    )
+    mocker.patch(
+        "conda.base.context.Context.channel_settings",
+        new_callable=mocker.PropertyMock,
+        return_value=(bad_settings_entry,),
+    )
+
+    url = "https://localhost/test"
+
+    session_obj = get_session(url)
+
+    assert type(session_obj) is CondaSession
+
+    # The bad entry must have been skipped; no auth handler lookup should occur
+    assert type(session_obj.auth) is CondaHttpAuth
+    assert not get_auth_handler.mock_calls
+
+
 def test_get_session_with_request_headers(mocker: MockerFixture) -> None:
     """
     Tests the code path for when custom request headers have been set by a plugin
@@ -391,7 +704,7 @@ def test_get_session_with_request_headers(mocker: MockerFixture) -> None:
         return_value={request_header: request_value},
     )
 
-    url = "https://localhost/test"
+    url = "http://localhost/test"
     session_obj = get_session(url)
 
     override_header = "Override-Header"
@@ -402,6 +715,143 @@ def test_get_session_with_request_headers(mocker: MockerFixture) -> None:
     assert prepared.headers[session_header] == session_value
     assert prepared.headers[request_header] == request_value
     assert prepared.headers[override_header] == override_value
+
+
+@pytest.mark.parametrize(
+    "header",
+    [
+        "Accept-Charset",
+        "Accept-Encoding",
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method",
+        "Connection",
+        "Content-Length",
+        "Cookie",
+        "Date",
+        "DNT",
+        "Expect",
+        "Host",
+        "Keep-Alive",
+        "Origin",
+        "Referer",
+        "Set-Cookie",
+        "TE",
+        "Trailer",
+        "Transfer-Encoding",
+        "Upgrade",
+        "Via",
+    ],
+)
+def test_validate_plugin_headers_forbidden(header):
+    headers = {header: "test-value"}
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers(headers)
+
+    assert header in str(exc_info.value)
+    assert "forbidden" in str(exc_info.value).lower()
+
+
+@pytest.mark.parametrize(
+    "header, method, should_raise",
+    [
+        ("X-HTTP-Method", "TRACE", True),
+        ("X-HTTP-Method", "CONNECT", True),
+        ("X-HTTP-Method", "TRACK", True),
+        ("X-HTTP-Method-Override", "TRACE", True),
+        ("X-Method-Override", "CONNECT", True),
+        ("X-HTTP-Method", "POST", False),
+        ("X-HTTP-Method", "GET", False),
+        ("X-HTTP-Method-Override", "PUT", False),
+    ],
+)
+def test_validate_plugin_headers_method_override(header, method, should_raise):
+    headers = {header: method}
+
+    if should_raise:
+        with pytest.raises(PluginError) as exc_info:
+            _validate_plugin_headers(headers)
+        assert header in str(exc_info.value)
+        assert method in str(exc_info.value)
+    else:
+        # Should not raise - allowed method override
+        _validate_plugin_headers(headers)
+
+
+def test_prepare_request_rejects_forbidden_plugin_headers(mocker):
+    forbidden_header = "Host"
+    forbidden_value = "malicious.com"
+
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_session_headers",
+        return_value={forbidden_header: forbidden_value},
+    )
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_request_headers",
+        return_value={},
+    )
+
+    url = "http://localhost/test"
+    session_obj = get_session(url)
+
+    request = Request(method="GET", url=url)
+    with pytest.raises(PluginError) as exc_info:
+        session_obj.prepare_request(request)
+
+    assert forbidden_header in str(exc_info.value)
+
+
+def test_prepare_request_allows_valid_plugin_headers(mocker):
+    allowed_header = "X-Custom-Header"
+    allowed_value = "custom-value"
+
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_session_headers",
+        return_value={allowed_header: allowed_value},
+    )
+    mocker.patch(
+        "conda.gateways.connection.session.context.plugin_manager.get_cached_request_headers",
+        return_value={},
+    )
+
+    url = "http://localhost/test"
+    session_obj = get_session(url)
+
+    request = Request(method="GET", url=url)
+    prepared = session_obj.prepare_request(request)
+
+    assert prepared.headers[allowed_header] == allowed_value
+
+
+def test_validate_plugin_headers_case_insensitive():
+    # Test uppercase variant
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers({"HOST": "malicious.com"})
+    assert "HOST" in str(exc_info.value)
+
+    # Test mixed case variant
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers({"CoOkIe": "session=123"})
+    assert "CoOkIe" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    "header",
+    [
+        "Proxy-Authorization",
+        "Proxy-Connection",
+        "Sec-Fetch-Dest",
+        "Sec-Fetch-Mode",
+        "Sec-Fetch-Site",
+        "sec-ch-ua",
+    ],
+)
+def test_validate_plugin_headers_forbidden_prefixes(header):
+    headers = {header: "test-value"}
+    with pytest.raises(PluginError) as exc_info:
+        _validate_plugin_headers(headers)
+
+    assert header in str(exc_info.value)
+    assert "Proxy-" in str(exc_info.value) or "Sec-" in str(exc_info.value)
 
 
 @pytest.mark.parametrize(
@@ -454,7 +904,7 @@ def test_accept_range_none(package_server, tmp_path):
     tmp_dir.mkdir()
     filename = "test-file"
 
-    partial_file = Path(tmp_dir / f"{filename}.partial")
+    partial_file = Path(tmp_dir / f"{filename}{PARTIAL_EXTENSION}")
     complete_file = Path(tmp_dir / filename)
 
     partial_file.write_text(test_content[:12])
@@ -474,6 +924,32 @@ def test_accept_range_none(package_server, tmp_path):
 
     assert complete_file.read_text() == test_content
     assert not partial_file.exists()
+
+
+def test_ssl_context_adapter_forwards_to_proxy_manager():
+    """``ssl_context`` must reach the proxy pool manager, not just the direct one.
+
+    requests builds a separate ProxyManager via ``proxy_manager_for`` that does
+    not see the kwargs passed to ``init_poolmanager``; without an explicit
+    override the custom truststore context is dropped on proxied connections.
+    """
+    sentinel = object()
+    adapter = HTTPAdapter(ssl_context=sentinel)
+
+    assert adapter.poolmanager.connection_pool_kw["ssl_context"] is sentinel
+
+    proxy_manager = adapter.proxy_manager_for("http://proxy:8080")
+    assert proxy_manager.connection_pool_kw["ssl_context"] is sentinel
+
+
+def test_ssl_context_adapter_omits_proxy_ssl_context_when_unset():
+    """The default ``ssl_verify: True`` path must not inject an ssl_context key."""
+    adapter = HTTPAdapter()
+
+    assert "ssl_context" not in adapter.poolmanager.connection_pool_kw
+
+    proxy_manager = adapter.proxy_manager_for("http://proxy:8080")
+    assert "ssl_context" not in proxy_manager.connection_pool_kw
 
 
 @pytest.mark.parametrize("offline", [True, False])

@@ -29,6 +29,7 @@ extensions = [
     "autoapi.extension",
     "conda_umls",
     "conda_sphinx_theme.version_anchors",
+    "nav_glossary",
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosectionlabel",
@@ -122,8 +123,9 @@ html_context = {
 # -- sphinxcontrib.plantuml ------------------------------------------------
 
 plantuml_output_format = "svg_img"
-plantuml_jarfile_path = Path(__file__).parent.parent / "_build" / "plantuml.jar"
-plantuml = f"java -Djava.awt.headless=true -jar {plantuml_jarfile_path}"
+plantuml = (
+    f"java -Djava.awt.headless=true -jar {Path(sys.prefix) / 'lib' / 'plantuml.jar'}"
+)
 
 
 # -- For sphinx.ext.intersphinx --------------------------------------------
@@ -169,7 +171,7 @@ copybutton_remove_prompts = True
 
 # -- For autoapi.extension -------------------------------------------------
 
-autoapi_dirs = ["../../conda", "../../conda_env"]
+autoapi_dirs = ["../../conda"]
 autoapi_root = "dev-guide/api"
 # Manually inserted into TOC in dev-guide/api.rst for proper integration into
 # folder-view
@@ -202,6 +204,9 @@ link_github = True
 # -- For sphinx_reredirects ------------------------------------------------
 
 redirects = {
+    # legacy specs/ pages now live under deep-dives/
+    "dev-guide/specs/index": "../deep-dives/index.html",
+    "dev-guide/specs/solver-state": "../deep-dives/solver-state.html",
     # internal redirects
     "admin": "user-guide/configuration/admin-multi-user-install.html",
     "api/api": "../dev-guide/api/conda/index.html",

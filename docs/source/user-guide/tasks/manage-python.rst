@@ -5,7 +5,10 @@ Managing Python
 Conda treats Python the same as any other package, so it is easy
 to manage and update multiple installations.
 
-Conda supports Python 3.10, 3.11, 3.12, and 3.13.
+Conda itself requires Python 3.11+ to run. This is the version of Python
+conda is installed with, not a limit on the environments conda can create
+and manage — those can use any available Python version, including versions
+older than conda's own minimum, as shown below.
 
 Viewing a list of available Python versions
 ===========================================
@@ -68,6 +71,12 @@ To use the PyPy builds you can do the following::
     conda create -n pypy pypy
     conda activate pypy
 
+.. warning::
+
+   Using strict channel priority can make some environments unsatisfiable
+   because it prevents fallback to lower-priority channels when a package
+   with the same name exists in a higher-priority channel.
+   To learn more about strict channel priority, see :ref:`channel configuration best practices <strict>`.
 
 Using a different version of Python
 ====================================

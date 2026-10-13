@@ -4,8 +4,10 @@ Authors are sorted alphabetically.
 * ARF1
 * Aaron Meurer
 * Abheek Mathur
+* Adel Kaleche
 * Adrian Freund
 * Agriya Khetarpal
+* Ahmet Deger
 * Alain Domissy
 * Alan Du
 * Albert DeFusco
@@ -20,6 +22,7 @@ Authors are sorted alphabetically.
 * Almar Klein
 * Amelio Vazquez-Reina
 * Amir Mohammadi
+* Andre
 * Andrea Ghensi
 * Andreas Girgensohn
 * Andrew Achkar
@@ -53,6 +56,7 @@ Authors are sorted alphabetically.
 * Bernardo da Eira Duarte
 * Bernd Jünger
 * Berton Earnshaw
+* Bhanuja Karumuru
 * Bianca Henderson
 * Billy Keyes
 * Blake Nicholson
@@ -61,6 +65,7 @@ Authors are sorted alphabetically.
 * Brad Erickson
 * Brad Nemanich
 * Brad S
+* Bradley Dice
 * Bradley Kreider
 * Brennan Chapman
 * Brent Pedersen
@@ -69,6 +74,7 @@ Authors are sorted alphabetically.
 * Brian W. Hart
 * Bruno Oliveira
 * Bryan Van de Ven
+* Carl Anderson
 * Carlos H Brandt
 * Casper da Costa-Luis
 * Chawye Hsu
@@ -100,13 +106,16 @@ Authors are sorted alphabetically.
 * Dan Lovell
 * Dan Meador
 * Dan Yeaw
+* Daniel
 * Daniel Bast
+* Daniel Ching
 * Daniel Holth
 * Daniel Hook
 * Daniel Wehner
 * Daniel Zeng
 * Dario Curreri
 * Darren Dale
+* Dasha Gurova
 * Dave
 * Dave Hirschfeld
 * Dave Hogue
@@ -128,6 +137,7 @@ Authors are sorted alphabetically.
 * Eli Rykoff
 * Elsa Granger
 * Eric Dill
+* Eric Lundby
 * Eric Prestat
 * Erik Sundell
 * Erik Whiting
@@ -145,8 +155,10 @@ Authors are sorted alphabetically.
 * Frederic Bastien
 * Gabe Martin-Dempesy
 * Gabriel Reis
+* Gayan Silva
 * Geir Ove Myhr
 * George Hartzell
+* Giacomo Cirò
 * Gil Forsyth
 * Giles Cope
 * Gonzalo Peña-Castellanos
@@ -176,6 +188,7 @@ Authors are sorted alphabetically.
 * Jacopo Sabbatini
 * Jacques Kvam
 * Jaime Rodríguez-Guerra
+* Jakov Smolić
 * James Domingo
 * James Myatt
 * James Penn
@@ -203,6 +216,7 @@ Authors are sorted alphabetically.
 * Johan Carlin
 * Johannes Köster
 * John Ayad
+* John Costa
 * John Flavin
 * John Kirkham
 * Johnny Núñez Cano
@@ -211,6 +225,7 @@ Authors are sorted alphabetically.
 * Josh Mayer
 * Juan Luis Cano Rodríguez
 * Juan Nunez-Iglesias
+* Julien Jerphanion
 * Julien Schueller
 * Justin Wood (Callek)
 * Justus Schwabedal
@@ -273,6 +288,7 @@ Authors are sorted alphabetically.
 * Matt Kramer
 * Matthew Anderson
 * Matthew Dillon
+* Matthew Feickert
 * Matthew Linebaugh
 * Matthew R. Becker
 * Matthew Rocklin
@@ -300,6 +316,7 @@ Authors are sorted alphabetically.
 * Mihir Rege
 * Mika Fischer
 * Mike Croucher
+* Mike Taves
 * MinRK
 * Minh Phan
 * Monius
@@ -344,7 +361,9 @@ Authors are sorted alphabetically.
 * Philip Thomas
 * Philippe Mathieu
 * Philippe Ombredanne
+* Pirzada Ahmad Faraz
 * Pradipta Ghosh
+* Pradyot Ranjan
 * Preston Moore
 * Rachel Rigdon
 * Rafael de Barros
@@ -369,6 +388,7 @@ Authors are sorted alphabetically.
 * Sam Davis
 * Sam Haese
 * Sam Nicholls
+* Samartha
 * Samson Yeung
 * Samuel Debionne
 * Samuel Walters-Nevet
@@ -394,6 +414,7 @@ Authors are sorted alphabetically.
 * Simon Li
 * Simon McLaren
 * Skipper Seabold
+* SmartCoder
 * Sophia Castellarin
 * Spencer Mathews
 * Srivas Venkatesh
@@ -404,6 +425,7 @@ Authors are sorted alphabetically.
 * Stefan Seefeld
 * Steffen Van
 * Stephan Hoyer
+* Stephen Crowe
 * Stephen Robinson
 * Steve Palmroth
 * Steven Engler
@@ -441,9 +463,11 @@ Authors are sorted alphabetically.
 * Ullrich Koethe
 * Uwe L. Korn
 * Valentin Haenel
+* Vedant Madane
 * Victor Ma
 * Vlad Frolov
 * Vlad Zagorodniy
+* Vladyslav Shevchenko
 * Wes Roach
 * Wes Turner
 * Will Warner
@@ -454,25 +478,31 @@ Authors are sorted alphabetically.
 * Xuehai Pan
 * Xylar Asay-Davis
 * Yaroslav Dmytryk
+* Yuchen Fan
 * Yuval Reches
 * Yuvi Panda
 * Zach Heaton
 * Zahari
 * Zhiwei Liang
 * Zongyuan Zuo
+* btraven
 * dependabot[bot]
+* eeshsaxena
 * endolith
 * giumas
 * kanehira
 * lexual
+* lsoksane
 * mcopes73
 * oinizan
 * ovz
 * padeoe
+* paperbenni
 * peter1000
 * pre-commit CI
 * saraneem
 * shadow_walker
+* shenhaofang
 * ugurthemaster
 * wulmer
 * Øystein Idema Torget

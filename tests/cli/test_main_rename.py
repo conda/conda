@@ -8,7 +8,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.context import context, locate_prefix_by_name
+from conda.base.context import (
+    context,
+    locate_prefix_by_name,
+    reset_context,
+)
 from conda.common.compat import on_win
 from conda.core.envs_manager import list_all_known_prefixes
 from conda.core.prefix_data import PrefixData
@@ -77,8 +81,8 @@ def test_rename_by_name_success(
     env_one: str,
     env_rename: str,
 ):
-    out, err, rc = conda_cli("rename", "--name", env_one, env_rename)
-    assert not rc
+    _, stderr, rc = conda_cli("rename", "--name", env_one, env_rename)
+    assert rc == 0, f"conda rename failed ({rc}): {stderr}"
     assert locate_prefix_by_name(env_rename)
     with pytest.raises(EnvironmentNameNotFound):
         locate_prefix_by_name(env_one)
@@ -334,15 +338,13 @@ def test_rename_default_activation_env(
     conda_cli: CondaCLIFixture,
     tmp_env: TmpEnvFixture,
     tmp_path: Path,
+    monkeypatch: MonkeyPatch,
 ):
     """Check that renaming the default_activation_env raises an exception."""
     with tmp_env() as prefix:
-        conda_cli(
-            "config",
-            "--set",
-            "default_activation_env",
-            prefix,
-        )
+        monkeypatch.setenv("CONDA_DEFAULT_ACTIVATION_ENV", prefix)
+        reset_context()
+
         assert prefix == context.default_activation_prefix
         with pytest.raises(
             CondaEnvException,

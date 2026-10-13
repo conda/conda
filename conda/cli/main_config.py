@@ -39,12 +39,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..base.constants import CONDA_HOMEPAGE_URL
     from ..base.context import context, sys_rc_path, user_rc_path
     from ..common.constants import NULL
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import add_parser_json, add_parser_prefix_to_group
 
     escaped_user_rc_path = user_rc_path.replace("%", "%%")
     escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
 
-    summary = "Modify configuration values in .condarc."
+    summary = BUILTIN_SUBCOMMANDS["config"]["help"]
     description = dals(
         f"""
         {summary}
@@ -63,34 +64,34 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
         Examples:
 
-        Display all configuration values as calculated and compiled::
+        Display all configuration values as calculated and compiled:
 
             conda config --show
 
-        Display all identified configuration sources::
+        Display all identified configuration sources:
 
             conda config --show-sources
 
         Print the descriptions of all available configuration
-        options to your command line::
+        options to your command line:
 
             conda config --describe
 
         Print the description for the "channel_priority" configuration
-        option to your command line::
+        option to your command line:
 
             conda config --describe channel_priority
 
-        Add the conda-canary channel::
+        Add the conda-canary channel:
 
             conda config --add channels conda-canary
 
         Set the output verbosity to level 3 (highest) for
-        the current activate environment::
+        the current activate environment:
 
             conda config --set verbosity 3 --env
 
-        Add the 'conda-forge' channel as a backup to 'defaults'::
+        Add the 'conda-forge' channel as a backup to 'defaults':
 
             conda config --append channels conda-forge
 
@@ -212,6 +213,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         metavar=("KEY", "VALUE"),
     )
     config_modifiers.add_argument(
+        "--clear",
+        action="append",
+        help="""Clear all values from a list key.""",
+        default=[],
+        metavar="KEY",
+    )
+    config_modifiers.add_argument(
         "--remove-key",
         action="append",
         help="""Remove a configuration key (and all its values).""",
@@ -261,7 +269,16 @@ def format_dict(d):
         elif isiterable(v):
             if v:
                 lines.append(f"{k}:")
-                lines.append(pretty_list(v))
+                if any(isinstance(item, Mapping) for item in v):
+                    for item in v:
+                        if isinstance(item, Mapping):
+                            formatted = format_dict(item)
+                            lines.append(f"  - {formatted[0]}")
+                            lines.extend(f"    {line}" for line in formatted[1:])
+                        else:
+                            lines.append(f"  - {item}")
+                else:
+                    lines.append(pretty_list(v))
             else:
                 lines.append(f"{k}: []")
         else:
@@ -270,7 +287,7 @@ def format_dict(d):
 
 
 def parameter_description_builder(name, context=None, plugins=False):
-    from ..common.serialize import json, yaml_round_trip_dump
+    from ..common.serialize import json, yaml
 
     # Keeping this for backward-compatibility, in case no context instance is provided
     if context is None:
@@ -314,11 +331,9 @@ def parameter_description_builder(name, context=None, plugins=False):
     # If we are dealing with a plugin parameter, we need to nest it
     # instead of having it at the top level (YAML-wise).
     if plugins:
-        yaml_content = yaml_round_trip_dump(
-            {"plugins": {name: json.loads(default_value_str)}}
-        )
+        yaml_content = yaml.dumps({"plugins": {name: json.loads(default_value_str)}})
     else:
-        yaml_content = yaml_round_trip_dump({name: json.loads(default_value_str)})
+        yaml_content = yaml.dumps({name: json.loads(default_value_str)})
 
     builder.extend(yaml_content.strip().split("\n"))
 
@@ -360,7 +375,8 @@ def describe_all_parameters(context=None, plugins=False) -> str:
 
 
 def print_config_item(key, value):
-    stdout_write = getLogger("conda.stdout").info
+    from ..gateways.streams import stdout as stdout_write
+
     if isinstance(value, (dict,)):
         for k, v in value.items():
             print_config_item(key + "." + k, v)
@@ -391,8 +407,9 @@ def set_keys(*args: tuple[str, Any], path: str | os.PathLike[str] | Path) -> Non
     """
     Set multiple configuration keys in a file.
 
-    :param args: Variable number of (key, value) tuples to set.
-    :param path: Path to the configuration file.
+    Args:
+        args: Variable number of (key, value) tuples to set.
+        path: Path to the configuration file.
     """
     config = ConfigurationFile(path)
     for key, value in args:
@@ -407,8 +424,9 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     Handles various config subcommands including show, show-sources, describe,
     validate, write-default, and modification operations (add, set, remove, etc.).
 
-    :param args: Parsed command line arguments.
-    :param parser: Argument parser instance.
+    Args:
+        args: Parsed command line arguments.
+        parser: Argument parser instance.
     """
     from .. import CondaError
     from ..base.context import (
@@ -417,8 +435,10 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
         user_rc_path,
     )
     from ..common.io import timeout
-    from ..common.serialize import json, yaml_round_trip_load
+    from ..common.serialize import json, yaml
     from ..core.prefix_data import PrefixData
+    from ..gateways.streams import stderr as stderr_write
+    from ..gateways.streams import stdout as stdout_write
 
     # Override context for --file operations with --show/--describe
     if args.file and (args.show is not None or args.describe is not None):
@@ -426,30 +446,33 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
 
         context = Context(search_path=(args.file,), argparse_args=args)
 
-    stdout_write = getLogger("conda.stdout").info
-    stderr_write = getLogger("conda.stderr").info
     get_key_pairs = []
     json_warnings = []
 
     if args.show_sources:
+        all_sources = context.collect_all()
+        plugin_sources = context.plugins.collect_all()
+
+        # Merge plugin settings into each source, nested under "plugins"
+        for source, plugin_reprs in plugin_sources.items():
+            if plugin_reprs:
+                all_sources.setdefault(source, {})["plugins"] = plugin_reprs
+
         if context.json:
             stdout_write(
                 json.dumps(
-                    {
-                        str(source): values
-                        for source, values in context.collect_all().items()
-                    },
+                    {str(source): values for source, values in all_sources.items()},
                     sort_keys=True,
                 )
             )
         else:
             lines = []
-            for source, reprs in context.collect_all().items():
+            for source, reprs in all_sources.items():
                 lines.append(f"==> {source} <==")
                 lines.extend(format_dict(reprs))
                 lines.append("")
             stdout_write("\n".join(lines))
-        return
+        return 0
 
     if args.show is not None:
         if args.show:
@@ -520,7 +543,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
             stdout_write("\n".join(format_dict(d)))
         context.validate_configuration()
         context.plugins.validate_configuration()
-        return
+        return 0
 
     if args.describe is not None:
         if args.describe:
@@ -574,11 +597,13 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
         else:
             if context.json:
                 skip_categories = ("CLI-only", "Hidden and Undocumented")
-                provided_parameters = sorted(
-                    chain.from_iterable(
-                        parameter_names
-                        for category, parameter_names in context.category_map.items()
-                        if category not in skip_categories
+                provided_parameters = tuple(
+                    sorted(
+                        chain.from_iterable(
+                            parameter_names
+                            for category, parameter_names in context.category_map.items()
+                            if category not in skip_categories
+                        )
                     )
                 )
                 stdout_write(
@@ -593,11 +618,11 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
             else:
                 stdout_write(describe_all_parameters(context))
                 stdout_write(describe_all_parameters(context.plugins, plugins=True))
-        return
+        return 0
 
     if args.validate:
         context.validate_all()
-        return
+        return 0
 
     if args.system:
         rc_path = sys_rc_path
@@ -630,14 +655,14 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
         with open(rc_path, "w") as fh:
             fh.write(describe_all_parameters(context))
             fh.write(describe_all_parameters(context.plugins, plugins=True))
-        return
+        return 0
 
     rc_config = ConfigurationFile(
         path=rc_path,
         context=context,
-        warning_handler=lambda msg: json_warnings.append(msg)
-        if context.json
-        else stderr_write(msg),
+        warning_handler=lambda msg: (
+            json_warnings.append(msg) if context.json else stderr_write(msg)
+        ),
     )
 
     # read existing condarc
@@ -658,10 +683,10 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     if args.stdin:
         content = timeout(5, sys.stdin.read)
         if not content:
-            return
+            return 0
         try:
             # round trip load required because... we need to round trip
-            parsed = yaml_round_trip_load(content)
+            parsed = yaml.loads(content)
             rc_config.content.update(parsed)
         except Exception:  # pragma: no cover
             from ..exceptions import ParseError
@@ -681,6 +706,10 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     for key, item in args.remove:
         rc_config.remove_item(key, item)
 
+    # Clear
+    for key in args.clear or ():
+        rc_config.clear_key(key)
+
     # Remove Key
     for key in args.remove_key:
         rc_config.remove_key(key)
@@ -698,6 +727,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
     else:
         for k, v in get_key_pairs:
             print_config_item(k, v)
+    return 0
 
 
 # Deprecated private functions - moved to conda.cli.condarc.ConfigurationFile

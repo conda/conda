@@ -11,6 +11,7 @@ import os
 import sys
 from logging import getLogger
 from os.path import isdir, join
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -24,13 +25,14 @@ log = getLogger(__name__)
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from .actions import ExtendConstAction
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import add_output_and_prompt_options
 
-    summary = "Remove unused packages and caches."
+    summary = BUILTIN_SUBCOMMANDS["clean"]["help"]
     description = summary
     epilog = dals(
         """
-        Examples::
+        Examples:
 
             conda clean --tarballs
         """
@@ -49,7 +51,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "-a",
         "--all",
         action="store_true",
-        help="Remove index cache, lock files, unused cache packages, tarballs, and logfiles.",
+        help="Remove index cache, unused cache packages, tarballs, tempfiles, and logfiles.",
     )
     removal_target_options.add_argument(
         "-i",
@@ -62,8 +64,8 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         "--packages",
         action="store_true",
         help="Remove unused packages from writable package caches. "
-        "WARNING: This does not check for packages installed using "
-        "symlinks back to the package cache.",
+        "WARNING: Environments not listed by `conda info --envs` are not checked "
+        "for symlinks back to the package cache.",
     )
     removal_target_options.add_argument(
         "-t",
@@ -150,25 +152,27 @@ def _rm_rf(*parts: str, quiet: bool, verbose: bool) -> None:
 
 
 def find_tarballs() -> dict[str, Any]:
-    from ..base.constants import CONDA_PACKAGE_EXTENSIONS, CONDA_PACKAGE_PARTS
+    from ..base.constants import PARTIAL_EXTENSION
+    from ..base.context import context
 
     warnings: list[str] = []
     pkg_sizes: dict[str, dict[str, int]] = {}
     for pkgs_dir in find_pkgs_dirs():
         # tarballs are files in pkgs_dir
-        _, _, tars = next(os.walk(pkgs_dir))
-        for tar in tars:
-            # tarballs also end in .tar.bz2, .conda, .tar.bz2.part, or .conda.part
-            if not tar.endswith((*CONDA_PACKAGE_EXTENSIONS, *CONDA_PACKAGE_PARTS)):
+        _, _, files = next(os.walk(pkgs_dir))
+        for file in files:
+            # tarballs end in .tar.bz2, .conda (or .tar.bz2.partial, .conda.partial)
+            package = file.removesuffix(PARTIAL_EXTENSION)
+            if not context.plugin_manager.has_package_extension(package):
                 continue
 
             # get size
             try:
-                size = _get_size(pkgs_dir, tar, warnings=warnings)
+                size = _get_size(pkgs_dir, file, warnings=warnings)
             except NotImplementedError:
                 pass
             else:
-                pkg_sizes.setdefault(pkgs_dir, {})[tar] = size
+                pkg_sizes.setdefault(pkgs_dir, {})[file] = size
 
     return {
         "warnings": warnings,
@@ -200,6 +204,29 @@ def find_pkgs() -> dict[str, Any]:
                 pass
             else:
                 pkg_sizes.setdefault(pkgs_dir, {})[pkg] = size
+
+    if pkg_sizes:
+        from ..core.package_cache_data import get_softlinked_package_dirs
+
+        softlinked_pkgs = get_softlinked_package_dirs()
+        softlinked_pkgs_by_name: dict[str, list[Path]] = {}
+        for path in softlinked_pkgs:
+            softlinked_pkgs_by_name.setdefault(path.name.casefold(), []).append(path)
+        for pkgs_dir, pkgs in pkg_sizes.items():
+            for pkg in tuple(pkgs):
+                package_dir = Path(pkgs_dir, pkg).resolve(strict=False)
+                if package_dir in softlinked_pkgs:
+                    del pkgs[pkg]
+                    continue
+
+                for softlinked_pkg in softlinked_pkgs_by_name.get(pkg.casefold(), ()):
+                    try:
+                        matches = package_dir.samefile(softlinked_pkg)
+                    except OSError:
+                        continue
+                    if matches:
+                        del pkgs[pkg]
+                        break
 
     return {
         "warnings": warnings,

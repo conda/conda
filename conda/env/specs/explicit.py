@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from ...base.constants import EXPLICIT_MARKER
 from ...base.context import context
-from ...exceptions import CondaValueError
+from ...exceptions import CondaValueError, PluginError
 from ...gateways.disk.read import yield_lines
 from ...misc import get_package_records_from_explicit
 from ...models.environment import Environment
@@ -22,8 +22,9 @@ class ExplicitSpec(EnvironmentSpecBase):
     def __init__(self, filename: str | None = None, **kwargs) -> None:
         """Initialize the explicit specification.
 
-        :param filename: Path to the requirements file
-        :param kwargs: Additional arguments
+        Args:
+            filename: Path to the requirements file
+            kwargs: Additional arguments
         """
         self.filename = filename
 
@@ -34,26 +35,32 @@ class ExplicitSpec(EnvironmentSpecBase):
             * a filename was provided
             * the file has the "@EXPLICIT" marker
 
-        :return: True if the file can be handled, False otherwise
+        Returns:
+            True if the file can be handled, False otherwise
         """
         # Return early if no filename was provided
         if self.filename is None:
-            return False
+            raise CondaValueError("No filename provided")
 
         # Ensure the file has the "@EXPLICIT" marker
         dependencies_list = list(yield_lines(self.filename))
         if EXPLICIT_MARKER in dependencies_list:
             return True
         else:
-            return False
+            raise PluginError(
+                f"{self.filename} is not an explicit file. Missing the explicit marker."
+            )
 
     @property
     def env(self) -> Environment:
         """
         Build an environment from the explicit file.
 
-        :return: An Environment object containing the package specifications
-        :raises ValueError: If the file cannot be read
+        Returns:
+            An Environment object containing the package specifications
+
+        Raises:
+            ValueError: If the file cannot be read
         """
         if not self.filename:
             raise CondaValueError("No filename provided")

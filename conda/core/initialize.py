@@ -31,7 +31,6 @@ how that strategy is implemented.
 
 import os
 import re
-import struct
 import sys
 from difflib import unified_diff
 from errno import ENOENT
@@ -264,9 +263,7 @@ def _initialize_dev_bash(prefix, env_vars, unset_env_vars):
 
 
 def _initialize_dev_cmdexe(prefix, env_vars, unset_env_vars):
-    dev_arg = ""
-    if context.dev:
-        dev_arg = "--dev"
+    dev_arg = "--dev"
     condabin = Path(prefix, "condabin")
 
     yield (
@@ -323,21 +320,11 @@ def make_install_plan(conda_prefix):
     # ######################################
     if on_win:
         conda_exe_path = join(conda_prefix, "Scripts", "conda-script.py")
-        conda_env_exe_path = join(conda_prefix, "Scripts", "conda-env-script.py")
         plan.append(
             {
                 "function": make_entry_point_exe.__name__,
                 "kwargs": {
                     "target_path": join(conda_prefix, "Scripts", "conda.exe"),
-                    "conda_prefix": conda_prefix,
-                },
-            }
-        )
-        plan.append(
-            {
-                "function": make_entry_point_exe.__name__,
-                "kwargs": {
-                    "target_path": join(conda_prefix, "Scripts", "conda-env.exe"),
                     "conda_prefix": conda_prefix,
                 },
             }
@@ -356,7 +343,6 @@ def make_install_plan(conda_prefix):
             }
         )
         conda_exe_path = join(conda_prefix, "bin", "conda")
-        conda_env_exe_path = join(conda_prefix, "bin", "conda-env")
 
     plan.append(
         {
@@ -365,18 +351,6 @@ def make_install_plan(conda_prefix):
                 "target_path": conda_exe_path,
                 "conda_prefix": conda_prefix,
                 "module": "conda.cli",
-                "func": "main",
-            },
-        }
-    )
-    plan.append(
-        {
-            "function": make_entry_point.__name__,
-            "kwargs": {
-                "target_path": conda_env_exe_path,
-                "conda_prefix": conda_prefix,
-                # TODO: Remove upon full deprecation in 25.3
-                "module": "conda_env.cli.main",
                 "func": "main",
             },
         }
@@ -1204,12 +1178,15 @@ def make_entry_point(target_path, conda_prefix, module, func):
 
 
 def make_entry_point_exe(target_path, conda_prefix):
+    from .launchers import get_windows_launcher_stub, verify_windows_launcher
+
     # target_path: join(conda_prefix, 'Scripts', 'conda.exe')
     exe_path = target_path
-    bits = 8 * struct.calcsize("P")
-    source_exe_path = join(CONDA_PACKAGE_ROOT, "shell", "cli-%d.exe" % bits)
+    source_exe_path, sha256 = get_windows_launcher_stub(
+        conda_prefix, source_prefixes=(conda_prefix, context.conda_prefix)
+    )
     if isfile(exe_path):
-        if compute_sum(exe_path, "md5") == compute_sum(source_exe_path, "md5"):
+        if compute_sum(exe_path, "sha256") == sha256:
             return Result.NO_CHANGE
 
     if not context.dry_run:
@@ -1217,6 +1194,7 @@ def make_entry_point_exe(target_path, conda_prefix):
             mkdir_p(dirname(exe_path))
         # prefer copy() over create_hard_link_or_copy() because of windows file deletion issues
         # with open processes
+        verify_windows_launcher(source_exe_path, sha256)
         copy(source_exe_path, exe_path)
     return Result.MODIFIED
 
@@ -1241,7 +1219,7 @@ def install_anaconda_prompt(target_path, conda_prefix, reverse):
     if not context.dry_run:
         create_shortcut(
             "%windir%\\System32\\cmd.exe",
-            "Anconda Prompt",
+            "Anaconda Prompt",
             "" + target_path,
             " ".join(args),
             "" + expanduser("~"),
@@ -2241,6 +2219,7 @@ def remove_conda_in_sp_dir(target_path):
         modified = True
     others = (
         "conda",
+        # conda-env was removed in conda 26.3, but we still include it in the uninstall plan if present
         "conda_env",
     )
     for other in others:

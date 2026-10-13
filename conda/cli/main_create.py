@@ -18,10 +18,43 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
+def epilog() -> str:
+    """Build ``conda create`` epilog (examples and plugin-driven format list)."""
+    from ..base.context import context
+    from .formats import get_available_environment_formats
+
+    # get environment specifiers grouped by format
+    formats = context.plugin_manager.get_environment_specifiers_grouped()
+
+    # compose examples/epilog
+    examples = [
+        "Examples:",
+        "  Create from package specs:",
+        "    conda create -n myenv python=3.12 numpy",
+        "",
+        "  Create from an environment spec (solved at install time):",
+        "    conda create -n myenv --file environment.yml",
+        "",
+        "  Create from a lockfile (no solve, exact reproduction):",
+        "    conda create -n myenv --file explicit.txt",
+        "",
+        "  Clone an existing environment:",
+        "    conda create -n env2 --clone env1",
+    ]
+    # include available formats if any are registered
+    if formats:
+        examples.append("")
+        examples.append("Available input formats:")
+        examples.append(get_available_environment_formats(formats, indent=2))
+    return "\n".join(examples)
+
+
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..common.constants import NULL
+    from ..deprecations import deprecated
     from .actions import NullCountAction
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import (
         add_parser_create_install_update,
         add_parser_default_packages,
@@ -29,34 +62,27 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_solver,
     )
 
-    summary = "Create a new conda environment from a list of specified packages. "
+    summary = BUILTIN_SUBCOMMANDS["create"]["help"]
     description = dals(
         f"""
         {summary}
 
+        Environments can be created from package specs on the command line,
+        from an input file whose format is detected from its name or
+        contents, or as a clone of an existing environment. See the epilog
+        for the input formats available in your installation.
+
         To use the newly-created environment, use 'conda activate envname'.
-        This command requires either the -n NAME or -p PREFIX option.
+        This command requires either the -n NAME or -p PREFIX option unless
+        --dry-run or --download-only is specified.
         """
     )
-    epilog = dals(
-        """
-        Examples:
 
-        Create an environment containing the package 'sqlite'::
-
-            conda create -n myenv sqlite
-
-        Create an environment (env2) as a clone of an existing environment (env1)::
-
-            conda create -n env2 --clone path/to/file/env1
-
-        """
-    )
     p = sub_parsers.add_parser(
         "create",
         help=summary,
         description=description,
-        epilog=epilog,
+        epilog=epilog(),
         **kwargs,
     )
     p.add_argument(
@@ -71,7 +97,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     add_parser_solver(solver_mode_options)
     p.add_argument(
         "--dev",
-        action=NullCountAction,
+        action=deprecated.action(
+            "27.3",
+            "27.9",
+            NullCountAction,
+            addendum="Set `PYTHONPATH` to the conda source root instead.",
+        ),
         help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
         "This is mainly for use during tests where we test new conda sources "
         "against old Python versions.",
@@ -93,29 +124,28 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.prefix_data import PrefixData
     from ..exceptions import ArgumentError, CondaValueError, TooManyArgumentsError
     from ..gateways.disk.delete import rm_rf
+    from ..gateways.streams import stdoutlog
     from ..reporters import confirm_yn
     from .common import (
+        get_name_prefix_from_env_file,
         print_activate,
         validate_environment_files_consistency,
+        validate_file_exists,
         validate_subdir_config,
     )
     from .install import install, install_clone
 
-    # Ensure provided combination of command line argments are valid
-    # At least one of the arguments -n/--name -p/--prefix is required
-    if not args.name and not args.prefix:
-        if context.dry_run:
-            args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
-            context.__init__(argparse_args=args)
-        else:
-            raise ArgumentError(
-                "one of the arguments -n/--name -p/--prefix is required"
-            )
+    env_create = getattr(args, "env_create", False)
 
-    # If the --clone argument is provided, users must not provide any other
-    # package specification. That includes providing the --file argument or
-    # a list of packages
+    # When `--clone` is present, `--file` and `packages` are not allowed
     if args.clone:
+        if args.file:
+            raise TooManyArgumentsError(
+                0,
+                len(args.file),
+                list(args.file),
+                "`--file` and `--clone` arguments are mutually exclusive.",
+            )
         if args.packages:
             raise TooManyArgumentsError(
                 0,
@@ -123,13 +153,41 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 list(args.packages),
                 "Did not expect any new packages or arguments for `--clone`.",
             )
-        elif args.file:
-            raise TooManyArgumentsError(
-                0,
-                len(args.file),
-                list(args.file),
-                "`--file` and `--clone` arguments are mutually exclusive.",
+
+    for fpath in args.file:
+        validate_file_exists(fpath)
+    validate_environment_files_consistency(args.file)
+
+    if not args.name and not args.prefix:
+        if args.file and len(args.file) > 1:
+            raise ArgumentError(
+                "Multiple environment files were specified but no name or prefix was provided. "
+                "Please provide -n/--name or -p/--prefix when using multiple --file arguments."
             )
+
+        if args.file:
+            # We know there's only a single file being passed in at this point
+            name, prefix = get_name_prefix_from_env_file(args.file[0])
+            if name is not None:
+                args.name = name
+            if prefix is not None and args.name is None:
+                args.prefix = prefix
+
+        if args.name is not None or args.prefix is not None:
+            context.__init__(argparse_args=args)
+        elif args.file:
+            raise ArgumentError(
+                "The environment file(s) do not specify a name or prefix. "
+                "Please provide one via -n/--name or -p/--prefix."
+            )
+        elif context.dry_run or context.download_only:
+            args.prefix = os.path.join(mktemp(), UNUSED_ENV_NAME)
+            context.__init__(argparse_args=args)
+        else:
+            raise ArgumentError(
+                "one of the arguments -n/--name -p/--prefix is required"
+            )
+
     prefix_data = PrefixData.from_context(validate=True)
 
     if prefix_data.is_environment():
@@ -139,6 +197,14 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             raise CondaValueError(
                 "Cannot `create --dry-run` with an existing conda environment"
             )
+        if env_create and not context.always_yes:
+            raise CondaValueError(f"prefix already exists: {prefix_data.prefix_path}")
+
+    if env_create:
+        args.yes = True
+        context._set_argparse_args(args)
+
+    if prefix_data.is_environment():
         confirm_yn(
             f"WARNING: A conda environment already exists at '{context.target_prefix}'\n\n"
             "Remove existing environment?\nThis will remove ALL directories contained within "
@@ -146,7 +212,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             default="no",
             dry_run=False,
         )
-        log.info("Removing existing environment %s", context.target_prefix)
+        if env_create:
+            stdoutlog(f"Removing existing environment at '{context.target_prefix}'.")
+        else:
+            log.info("Removing existing environment %s", context.target_prefix)
         rm_rf(context.target_prefix)
     elif prefix_data.exists():
         confirm_yn(
@@ -159,9 +228,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 
     # Ensure the subdir config is valid
     validate_subdir_config()
-
-    # Validate that input files are of the same format type
-    validate_environment_files_consistency(args.file)
 
     # Run appropriate install
     if args.clone:

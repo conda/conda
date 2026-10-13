@@ -90,6 +90,64 @@ If you want to use a specific Python version, it is best to use
 an environment with that version. For more information,
 see :doc:`../troubleshooting`.
 
+.. _installing-packages-with-an-upload-cutoff:
+
+Installing packages with a timestamp cutoff
+===========================================
+
+.. versionadded:: 26.9.0
+
+Use ``--exclude-newer`` to ignore package records with timestamps after a
+configured cutoff for one ``conda create``, ``conda install``, or
+``conda update`` command.
+
+Conda prefers the channel-provided ``indexed_timestamp``, which is intended to
+record when the package first became available in the channel index. If it is
+absent or zero, conda falls back to the builder-controlled ``timestamp``, which
+records build time rather than publication time. Records without a usable
+timestamp remain eligible.
+
+For artifacts predating `CEP 47
+<https://conda.org/learn/ceps/cep-0047/#channel-server-requirements>`_, channels
+may seed ``indexed_timestamp`` from build timestamps or other historical
+signals. These values may not reflect the exact time a package became available.
+
+The fallback can still reduce exposure to newly built malicious packages when
+build timestamps are accurate, giving time for detection and removal. This is
+a best-effort security benefit, not a reliable full cooldown after publication.
+An old build uploaded today can pass the cutoff, and a malicious publisher can
+backdate the build timestamp. For example, with a 7-day cutoff, a package built
+6 days before publication has only about 1 day of delay after publication.
+A cutoff can also delay legitimate security fixes.
+
+Timestamp filtering does not guarantee package safety.
+It can support reproducible resolution, but does not by itself guarantee an
+exact reconstruction of a channel's past state.
+
+To install a package while ignoring package records whose effective timestamps
+fall within the last 7 days:
+
+.. code-block:: bash
+
+   conda install --exclude-newer 7d scipy
+
+To update packages while applying the same cutoff:
+
+.. code-block:: bash
+
+   conda update --exclude-newer 7d --all
+
+To create an environment while excluding package records with effective
+timestamps after a specific date:
+
+.. code-block:: bash
+
+   conda create --name myenv --exclude-newer 2026-04-01 python
+
+Date-only cutoffs are interpreted as the start of the next day in UTC. To
+apply this policy persistently, or to set channel-specific or package-specific
+overrides, configure ``exclude_newer`` in your ``.condarc`` file.
+
 Installing similar packages
 ===========================
 Installing packages that have similar filenames and serve similar
@@ -146,19 +204,19 @@ To install a package from Anaconda.org:
 Installing non-conda packages
 =============================
 
-If a package is not available from conda or Anaconda.org, you may be able to
-find and install the package via conda-forge or with another package manager
-like pip.
+If a package is not available from any of the popular conda channels, there are a few
+options depending on the package type.
 
-Pip packages do not have all the features of conda packages and we recommend
-first trying to install any package with conda. If the package is unavailable
-through conda, try finding and installing it with
-`conda-forge <https://conda-forge.org/search.html>`_.
+For packages with supported pure Python wheels, the recommended path is to install them
+directly with ``conda install`` using the ``conda-pypi`` channel, which indexes
+pure Python wheels from the public PyPI index and resolves them alongside conda
+packages in a single operation. See :doc:`install-packages-from-pypi` for
+setup instructions and supported workflows.
 
-If you still cannot install the package, you can try
-installing it with pip. The differences between pip and
-conda packages cause certain unavoidable limits in compatibility but conda
-works hard to be as compatible with pip as possible.
+For packages not covered by the ``conda-pypi`` workflow, you may be able to use
+pip as a fallback. The differences between packages installed with pip and conda
+packages cause certain unavoidable limits in compatibility but conda works hard
+to be as compatible with pip as possible.
 
 .. note::
    Both pip and conda are included in Anaconda and Miniconda, so you do not

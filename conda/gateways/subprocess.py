@@ -18,6 +18,7 @@ from ..auxlib.ish import dals
 from ..base.context import context
 from ..common.compat import encode_environment, isiterable
 from ..common.constants import TRACE
+from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..utils import wrap_subprocess_call
 
@@ -43,11 +44,11 @@ def _format_output(command_str, cwd, rc, stdout, stderr):
     ) % (command_str, cwd, rc, stdout, stderr)
 
 
-def any_subprocess(args, prefix, env=None, cwd=None):
+def any_subprocess(args: Sequence[str], prefix, env=None, cwd=None):
     script_caller, command_args = wrap_subprocess_call(
         context.root_prefix,
         prefix,
-        context.dev,
+        context._dev,
         context.debug,
         args,
     )
@@ -65,7 +66,7 @@ def any_subprocess(args, prefix, env=None, cwd=None):
             rm_rf(script_caller)
         else:
             log.warning(
-                f"CONDA_TEST_SAVE_TEMPS :: retaining pip run_script {script_caller}"
+                "CONDA_TEST_SAVE_TEMPS :: retaining pip run_script %s", script_caller
             )
     if hasattr(stdout, "decode"):
         stdout = stdout.decode("utf-8", errors="replace")
@@ -133,6 +134,7 @@ def subprocess_call(
     return Response(stdout, stderr, int(rc))
 
 
+@deprecated("27.3", "27.9")
 def _subprocess_clean_env(env, clean_python=True, clean_conda=True):
     dels = []
     if clean_python:
@@ -146,6 +148,11 @@ def _subprocess_clean_env(env, clean_python=True, clean_conda=True):
             del env[key]
 
 
+@deprecated(
+    "27.3",
+    "27.9",
+    addendum="Use `subprocess_call` with a cleaned copy of `os.environ` instead.",
+)
 def subprocess_call_with_clean_env(
     command,
     path=None,

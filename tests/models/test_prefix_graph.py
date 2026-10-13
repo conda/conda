@@ -59,8 +59,8 @@ def get_windows_conda_build_record_set(tmpdir, merge_noarch=True):
 @cache
 def get_sqlite_cyclical_record_set(tmpdir):
     # sqlite-3.20.1-haaaaaaa_4
-    if context.solver == "libmamba":
-        # LIBMAMBA ADJUSTMENT
+    if context.solver in ("libmamba", "rattler"):
+        # LIBMAMBA/RATTLER ADJUSTMENT
         # build_number is not supported
         spec = "sqlite=3.20.1[build=*_4]"
     else:
@@ -987,6 +987,18 @@ def test_general_graph_bfs_simple():
     assert backwards is None
 
 
+def test_prefix_graph_name_glob_dependency():
+    consumer = PackageRecord(
+        name="consumer", version="1", build="0", build_number=0, depends=["foo*"]
+    )
+    foo = PackageRecord(name="foo", version="1", build="0", build_number=0)
+    foobar = PackageRecord(name="foobar", version="1", build="0", build_number=0)
+
+    graph = PrefixGraph((consumer, foo, foobar))
+
+    assert graph.graph[consumer] == {foo: None, foobar: None}
+
+
 def test_general_graph_bfs_version():
     a = PackageRecord(
         name="a", version="1", build="0", build_number=0, depends=["b", "c", "d"]
@@ -1002,6 +1014,9 @@ def test_general_graph_bfs_version():
     g2 = PackageRecord(name="g", version="2", build="0", build_number=0)
     records = [a, b, c, d, e, f, g1, g2]
     graph = GeneralGraph(records)
+
+    assert graph.graph[c] == {g1: None}
+    assert graph.graph[d] == {f: None, g2: None}
 
     a_to_g1 = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("g=1"))
     assert a_to_g1 == [MatchSpec("a"), MatchSpec("c"), MatchSpec("g=1")]

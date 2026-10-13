@@ -6,23 +6,19 @@ from typing import TYPE_CHECKING
 
 from conda.base.context import context
 from conda.cli.conda_argparse import BUILTIN_COMMANDS
-from conda.cli.find_commands import find_commands
 
 if TYPE_CHECKING:
     from conda.testing import CondaCLIFixture
 
 
 def test_commands(conda_cli: CondaCLIFixture) -> None:
-    stdout, stderr, code = conda_cli("commands")
+    stdout, stderr, rc = conda_cli("commands")
 
-    assert stdout == "\n".join(
-        sorted(
-            {
-                *BUILTIN_COMMANDS,
-                *context.plugin_manager.get_subcommands(),
-                *find_commands(True),
-            }
-        )
+    assert rc == 0, f"conda commands failed ({rc}): {stderr}"
+    assert stdout.splitlines() == sorted(
+        {
+            *BUILTIN_COMMANDS,
+            *context.plugin_manager.get_subcommands(),
+        }
     )
     assert not stderr
-    assert not code

@@ -7,6 +7,7 @@ from __future__ import annotations
 import sys
 import warnings
 from argparse import SUPPRESS, Action
+from dataclasses import dataclass, field
 from functools import wraps
 from types import ModuleType
 from typing import TYPE_CHECKING
@@ -30,6 +31,9 @@ class DeprecatedError(RuntimeError):
     pass
 
 
+_UNSET = object()
+
+
 # inspired by deprecation (https://deprecation.readthedocs.io/en/latest/) and
 # CPython's warnings._deprecated
 class DeprecationHandler:
@@ -40,7 +44,8 @@ class DeprecationHandler:
     def __init__(self: Self, version: str) -> None:
         """Factory to create a deprecation handle for the specified version.
 
-        :param version: The version to compare against when checking deprecation statuses.
+        Args:
+            version: The version to compare against when checking deprecation statuses.
         """
         self._version = version
         # Try to parse the version string as a simple tuple[int, ...] to avoid
@@ -52,7 +57,8 @@ class DeprecationHandler:
     def _get_version_tuple(version: str) -> tuple[int, ...] | None:
         """Return version as non-empty tuple of ints if possible, else None.
 
-        :param version: Version string to parse.
+        Args:
+            version: Version string to parse.
         """
         try:
             return tuple(int(part) for part in version.strip().split(".")) or None
@@ -62,7 +68,8 @@ class DeprecationHandler:
     def _version_less_than(self: Self, version: str) -> bool:
         """Test whether own version is less than the given version.
 
-        :param version: Version string to compare against.
+        Args:
+            version: Version string to compare against.
         """
         if self._version_tuple and (version_tuple := self._get_version_tuple(version)):
             return self._version_tuple < version_tuple
@@ -70,13 +77,14 @@ class DeprecationHandler:
         # If self._version or version could not be represented by a simple
         # tuple[int, ...], do a more elaborate version parsing and comparison.
         # Avoid this import otherwise to reduce import time for conda activate.
-        from packaging.version import parse
+        from packaging.version import InvalidVersion, parse
 
         if self._version_object is None:
             try:
                 self._version_object = parse(self._version)  # type: ignore[arg-type]
-            except TypeError:
-                # TypeError: self._version could not be parsed
+            except (TypeError, InvalidVersion):
+                # Unparseable version (e.g. None): packaging <26 raised TypeError;
+                # packaging >=26.3 raises InvalidVersion.
                 self._version_object = parse("0.0.0.dev0+placeholder")
         return self._version_object < parse(version)
 
@@ -91,10 +99,11 @@ class DeprecationHandler:
     ) -> Callable[[Callable[P, T]], Callable[P, T]]:
         """Deprecation decorator for functions, methods, & classes.
 
-        :param deprecate_in: Version in which code will be marked as deprecated.
-        :param remove_in: Version in which code is expected to be removed.
-        :param addendum: Optional additional messaging. Useful to indicate what to do instead.
-        :param stack: Optional stacklevel increment.
+        Args:
+            deprecate_in: Version in which code will be marked as deprecated.
+            remove_in: Version in which code is expected to be removed.
+            addendum: Optional additional messaging. Useful to indicate what to do instead.
+            stack: Optional stacklevel increment.
         """
 
         def deprecated_decorator(obj: Callable[P, T]) -> Callable[P, T]:
@@ -153,12 +162,13 @@ class DeprecationHandler:
     ) -> Callable[[Callable[P, T]], Callable[P, T]]:
         """Deprecation decorator for keyword arguments.
 
-        :param deprecate_in: Version in which code will be marked as deprecated.
-        :param remove_in: Version in which code is expected to be removed.
-        :param argument: The argument to deprecate.
-        :param rename: Optional new argument name.
-        :param addendum: Optional additional messaging. Useful to indicate what to do instead.
-        :param stack: Optional stacklevel increment.
+        Args:
+            deprecate_in: Version in which code will be marked as deprecated.
+            remove_in: Version in which code is expected to be removed.
+            argument: The argument to deprecate.
+            rename: Optional new argument name.
+            addendum: Optional additional messaging. Useful to indicate what to do instead.
+            stack: Optional stacklevel increment.
         """
 
         def deprecated_decorator(func: Callable[P, T]) -> Callable[P, T]:
@@ -270,10 +280,11 @@ class DeprecationHandler:
     ) -> None:
         """Deprecation function for modules.
 
-        :param deprecate_in: Version in which code will be marked as deprecated.
-        :param remove_in: Version in which code is expected to be removed.
-        :param addendum: Optional additional messaging. Useful to indicate what to do instead.
-        :param stack: Optional stacklevel increment.
+        Args:
+            deprecate_in: Version in which code will be marked as deprecated.
+            remove_in: Version in which code is expected to be removed.
+            addendum: Optional additional messaging. Useful to indicate what to do instead.
+            stack: Optional stacklevel increment.
         """
         self.topic(
             deprecate_in=deprecate_in,
@@ -288,21 +299,39 @@ class DeprecationHandler:
         deprecate_in: str,
         remove_in: str,
         constant: str,
-        value: Any,
+        value: Any = _UNSET,
         *,
+        factory: Callable[[], Any] | None = None,
         addendum: str | None = None,
         stack: int = 0,
         deprecation_type: type[Warning] = DeprecationWarning,
     ) -> None:
         """Deprecation function for module constant/global.
 
-        :param deprecate_in: Version in which code will be marked as deprecated.
-        :param remove_in: Version in which code is expected to be removed.
-        :param constant:
-        :param value:
-        :param addendum: Optional additional messaging. Useful to indicate what to do instead.
-        :param stack: Optional stacklevel increment.
+        Args:
+            deprecate_in: Version in which code will be marked as deprecated.
+            remove_in: Version in which code is expected to be removed.
+            constant:
+            value: The value to return when the deprecated constant is
+                accessed. Mutually exclusive with ``factory``.
+            factory: A zero-argument callable invoked the first time the
+                deprecated constant is accessed; the result is cached. Use this to
+                avoid paying registration-time costs (e.g., heavy imports) for a
+                symbol that may never be accessed. Mutually exclusive with ``value``.
+            addendum: Optional additional messaging. Useful to indicate what to do instead.
+            stack: Optional stacklevel increment.
         """
+        if (value is _UNSET) == (factory is None):
+            raise TypeError(
+                f"deprecated.constant({constant!r}, ...): pass exactly one of "
+                "`value` or `factory=`."
+            )
+        if factory is not None and not callable(factory):
+            raise TypeError(
+                f"deprecated.constant({constant!r}, factory=...): `factory` "
+                "must be a zero-argument callable."
+            )
+
         # detect calling module
         module, fullname = self._get_module(stack)
         # detect function name and generate message
@@ -319,19 +348,23 @@ class DeprecationHandler:
             raise DeprecatedError(message)
 
         # patch module level __getattr__ to alert user that it's time to remove something
-        super_getattr = getattr(module, "__getattr__", None)
+        if isinstance(
+            fallback := getattr(module, "__getattr__", None),
+            _ConstantDeprecationRegistry,
+        ):
+            deprecations = fallback
+        else:
+            deprecations = _ConstantDeprecationRegistry(fullname, fallback)
+            module.__getattr__ = deprecations  # type: ignore[method-assign]
 
-        def __getattr__(name: str) -> Any:
-            if name == constant:
-                warnings.warn(message, category, stacklevel=3 + stack)
-                return value
-
-            if super_getattr:
-                return super_getattr(name)
-
-            raise AttributeError(f"module '{fullname}' has no attribute '{name}'")
-
-        module.__getattr__ = __getattr__  # type: ignore[method-assign]
+        deprecations.register(
+            constant,
+            message,
+            category,
+            stack,
+            value if factory is None else factory,
+            factory=factory is not None,
+        )
 
     def topic(
         self: Self,
@@ -345,11 +378,12 @@ class DeprecationHandler:
     ) -> None:
         """Deprecation function for a topic.
 
-        :param deprecate_in: Version in which code will be marked as deprecated.
-        :param remove_in: Version in which code is expected to be removed.
-        :param topic: The topic being deprecated.
-        :param addendum: Optional additional messaging. Useful to indicate what to do instead.
-        :param stack: Optional stacklevel increment.
+        Args:
+            deprecate_in: Version in which code will be marked as deprecated.
+            remove_in: Version in which code is expected to be removed.
+            topic: The topic being deprecated.
+            addendum: Optional additional messaging. Useful to indicate what to do instead.
+            stack: Optional stacklevel increment.
         """
         # detect function name and generate message
         category, message = self._generate_message(
@@ -370,8 +404,11 @@ class DeprecationHandler:
     def _get_module(self: Self, stack: int) -> tuple[ModuleType, str]:
         """Detect the module from which we are being called.
 
-        :param stack: The stacklevel increment.
-        :return: The module and module name.
+        Args:
+            stack: The stacklevel increment.
+
+        Returns:
+            The module and module name.
         """
         try:
             frame = sys._getframe(2 + stack)
@@ -417,12 +454,15 @@ class DeprecationHandler:
         """Generate the standardized deprecation message and determine whether the
         deprecation is pending, active, or past.
 
-        :param deprecate_in: Version in which code will be marked as deprecated.
-        :param remove_in: Version in which code is expected to be removed.
-        :param prefix: The message prefix, usually the function name.
-        :param addendum: Additional messaging. Useful to indicate what to do instead.
-        :param deprecation_type: The warning type to use for active deprecations.
-        :return: The warning category (if applicable) and the message.
+        Args:
+            deprecate_in: Version in which code will be marked as deprecated.
+            remove_in: Version in which code is expected to be removed.
+            prefix: The message prefix, usually the function name.
+            addendum: Additional messaging. Useful to indicate what to do instead.
+            deprecation_type: The warning type to use for active deprecations.
+
+        Returns:
+            The warning category (if applicable) and the message.
         """
         category: type[Warning] | None
         if self._version_less_than(deprecate_in):
@@ -439,6 +479,52 @@ class DeprecationHandler:
             category,
             " ".join(filter(None, [prefix, warning, addendum])),  # message
         )
+
+
+@dataclass
+class _ConstantDeprecationRegistry:
+    """Registry of deprecated module constants.
+
+    Serves as a module's __getattr__, issuing deprecation warnings
+    when registered constants are accessed.
+    """
+
+    deprecations: dict[str, tuple[str, type[Warning], int, Any, bool]] = field(
+        default_factory=dict,
+        init=False,
+        repr=False,
+    )
+    fullname: str
+    fallback: Callable[[str], Any] | None
+
+    def __call__(self, name: str) -> Any:
+        if name in self.deprecations:
+            message, category, stacklevel, value, is_factory = self.deprecations[name]
+            warnings.warn(message, category, stacklevel=stacklevel)
+            if is_factory:
+                # invoke the factory once and cache the result so future accesses
+                # return the same object without paying the materialization cost
+                value = value()
+                self.deprecations[name] = (message, category, stacklevel, value, False)
+            return value
+
+        if self.fallback:
+            return self.fallback(name)
+
+        raise AttributeError(f"module '{self.fullname}' has no attribute '{name}'")
+
+    def register(
+        self,
+        constant: str,
+        message: str,
+        category: type[Warning],
+        stack: int,
+        value: Any,
+        *,
+        factory: bool = False,
+    ) -> None:
+        # stacklevel=2 points from __call__ to user code accessing the constant
+        self.deprecations[constant] = (message, category, 2 + stack, value, factory)
 
 
 deprecated = DeprecationHandler(__version__)

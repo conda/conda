@@ -22,7 +22,6 @@ from urllib.parse import (  # noqa: F401
 from urllib.parse import urlparse as _urlparse
 from urllib.parse import urlunparse as _urlunparse  # noqa: F401
 
-from ..deprecations import deprecated
 from .compat import on_win
 from .path import split_filename, strip_pkg_extension
 
@@ -31,23 +30,6 @@ if TYPE_CHECKING:
     from re import Pattern
     from typing import Any, Self
     from urllib.parse import ParseResult
-
-
-@deprecated("25.9", "26.3", addendum="Use int(..., 16) instead.")
-def hex_octal_to_int(ho: str) -> int:
-    ho = ord(ho.upper())
-    o0 = ord("0")
-    o9 = ord("9")
-    oA = ord("A")
-    oF = ord("F")
-    res = (
-        ho - o0
-        if ho >= o0 and ho <= o9
-        else (ho - oA + 10)
-        if ho >= oA and ho <= oF
-        else None
-    )
-    return res
 
 
 @cache

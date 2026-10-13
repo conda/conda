@@ -12,7 +12,7 @@ import warnings
 from collections import defaultdict
 from itertools import chain
 from logging import getLogger
-from os.path import basename, dirname, isdir, join
+from os.path import dirname, isdir, join
 from pathlib import Path
 from textwrap import indent
 from traceback import format_exception_only
@@ -38,7 +38,6 @@ from ..common.path import (
     get_python_site_packages_short_path,
 )
 from ..common.signals import signal_handler
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaSystemExit,
     DisallowedPackageError,
@@ -65,6 +64,7 @@ from ..reporters import confirm_yn, get_spinner
 from ..resolve import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
+from .portability import batch_codesign_calls
 from .path_actions import (
     AggregateCompileMultiPycAction,
     CompileMultiPycAction,
@@ -111,18 +111,7 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
         for trgt in prefix_record.files
     )
 
-    try:
-        extracted_package_dir = basename(prefix_record.extracted_package_dir)
-    except AttributeError:
-        try:
-            extracted_package_dir = basename(prefix_record.link.source)
-        except AttributeError:
-            # for backward compatibility only
-            extracted_package_dir = (
-                f"{prefix_record.name}-{prefix_record.version}-{prefix_record.build}"
-            )
-
-    meta_short_path = "{}/{}".format("conda-meta", extracted_package_dir + ".json")
+    meta_short_path = f"conda-meta/{prefix_record._get_json_fn()}"
     remove_conda_meta_actions = (
         RemoveLinkedPackageRecordAction(
             transaction_context, prefix_record, target_prefix, meta_short_path
@@ -150,8 +139,11 @@ def make_unlink_actions(transaction_context, target_prefix, prefix_record):
     )
 
 
-def match_specs_to_dists(packages_info_to_link, specs):
-    matched_specs = [None for _ in range(len(packages_info_to_link))]
+def match_specs_to_dists(packages_info_to_link, specs) -> tuple[list[MatchSpec], ...]:
+    """
+    Find which specs belong to each package to link
+    """
+    matched_specs = [[] for _ in range(len(packages_info_to_link))]
     for spec in specs or ():
         spec = MatchSpec(spec)
         idx = next(
@@ -163,7 +155,7 @@ def match_specs_to_dists(packages_info_to_link, specs):
             None,
         )
         if idx is not None:
-            matched_specs[idx] = spec
+            matched_specs[idx].append(spec)
     return tuple(matched_specs)
 
 
@@ -183,26 +175,22 @@ class ActionGroup(NamedTuple):
     target_prefix: str
 
 
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="PrefixActions will be renamed to PrefixActionGroup in 26.3.",
-)
 @dataclass
-class PrefixActions:
+class PrefixActionGroup:
     """A container for groups of actions carried out during an UnlinkLinkTransaction.
 
-    :param remove_menu_action_groups: Actions which remove menu items
-    :param unlink_action_groups: Actions which unlink files
-    :param unregister_action_groups: Actions which unregister environment locations
-    :param link_action_groups: Actions which link files
-    :param register_action_groups: Actions which register environment locations
-    :param compile_action_groups: Actions which compile pyc files
-    :param make_menu_action_groups: Actions which create menu items
-    :param entry_point_action_groups: Actions which create python entry points
-    :param prefix_record_groups: Actions which create package json files in ``conda-meta/``
-    :param initial_action_groups: User-defined actions which run before all other actions
-    :param final_action_groups: User-defined actions which run after all other actions
+    Args:
+        remove_menu_action_groups: Actions which remove menu items.
+        unlink_action_groups: Actions which unlink files.
+        unregister_action_groups: Actions which unregister environment locations.
+        link_action_groups: Actions which link files.
+        register_action_groups: Actions which register environment locations.
+        compile_action_groups: Actions which compile pyc files.
+        make_menu_action_groups: Actions which create menu items.
+        entry_point_action_groups: Actions which create python entry points.
+        prefix_record_groups: Actions which create package json files in ``conda-meta/``.
+        initial_action_groups: User-defined actions which run before all other actions.
+        final_action_groups: User-defined actions which run after all other actions.
     """
 
     remove_menu_action_groups: Iterable[ActionGroup]
@@ -220,19 +208,6 @@ class PrefixActions:
     def __iter__(self) -> Generator[Iterable[ActionGroup], None, None]:
         for field in fields(self):
             yield getattr(self, field.name)
-
-
-@deprecated("25.9", "26.3", addendum="Use PrefixActions instead.")
-class PrefixActionGroup(NamedTuple):
-    remove_menu_action_groups: Iterable[ActionGroup]
-    unlink_action_groups: Iterable[ActionGroup]
-    unregister_action_groups: Iterable[ActionGroup]
-    link_action_groups: Iterable[ActionGroup]
-    register_action_groups: Iterable[ActionGroup]
-    compile_action_groups: Iterable[ActionGroup]
-    make_menu_action_groups: Iterable[ActionGroup]
-    entry_point_action_groups: Iterable[ActionGroup]
-    prefix_record_groups: Iterable[ActionGroup]
 
 
 class ChangeReport(NamedTuple):
@@ -340,7 +315,7 @@ class UnlinkLinkTransaction:
                 try:
                     maybe_raise(CondaMultiError(exceptions), context)
                 except:
-                    rm_rf(self.transaction_context["temp_dir"])
+                    self._cleanup_transaction_artifacts()
                     raise
                 log.info(exceptions)
         try:
@@ -353,9 +328,15 @@ class UnlinkLinkTransaction:
                 )
             )
         except CondaSystemExit:
-            rm_rf(self.transaction_context["temp_dir"])
+            self._cleanup_transaction_artifacts()
             raise
         self._verified = True
+
+    def _cleanup_transaction_artifacts(self):
+        """Remove the temp dir and any prefixes this transaction created."""
+        rm_rf(self.transaction_context["temp_dir"])
+        for prefix in self.transaction_context.get("created_prefixes", ()):
+            rm_rf(prefix)
 
     def _verify_pre_link_message(self, all_link_groups):
         flag_pre_link = False
@@ -384,14 +365,19 @@ class UnlinkLinkTransaction:
         if context.dry_run:
             raise RuntimeError("Cannot run .execute() with dry-run enabled.")
 
+        succeeded = False
         try:
-            # innermost dict.values() is an iterable of PrefixActions
-            # instances; zip() is an iterable of each PrefixActions
+            # innermost dict.values() is an iterable of PrefixActionGroup
+            # instances; zip() is an iterable of each PrefixActionGroup
             self._execute(
                 tuple(chain(*chain(*zip(*self.prefix_action_groups.values()))))
             )
+            succeeded = True
         finally:
             rm_rf(self.transaction_context["temp_dir"])
+            if not succeeded:
+                for prefix in self.transaction_context.get("created_prefixes", ()):
+                    rm_rf(prefix)
 
     def _get_pfe(self):
         from .package_cache_data import ProgressiveFetchExtract
@@ -431,6 +417,8 @@ class UnlinkLinkTransaction:
                     "Check that you have sufficient permissions."
                     ""
                 )
+            # Remember prefixes we created in case we need to rollback changes.
+            transaction_context.setdefault("created_prefixes", set()).add(target_prefix)
 
         # gather information from disk and caches
         prefix_data = PrefixData(target_prefix)
@@ -439,7 +427,8 @@ class UnlinkLinkTransaction:
         # TODO: figure out if this filter shouldn't be an assert not None
         prefix_recs_to_unlink = tuple(lpd for lpd in prefix_recs_to_unlink if lpd)
         pkg_cache_recs_to_link = tuple(
-            PackageCacheData.get_entry_to_link(prec) for prec in link_precs
+            PackageCacheData.get_entry_to_link(prec, target_prefix)
+            for prec in link_precs
         )
         if not all(pkg_cache_recs_to_link):
             raise SpecNotFoundInPackageCache("Some records cannot be found in cache.")
@@ -505,14 +494,14 @@ class UnlinkLinkTransaction:
         compile_action_groups = []
         make_menu_action_groups = []
         record_axns = []
-        for pkg_info, lt, spec in zip(
+        for pkg_info, lt, specs in zip(
             packages_info_to_link, link_types, matchspecs_for_link_dists
         ):
             link_ag = ActionGroup(
                 "link",
                 pkg_info,
                 cls._make_link_actions(
-                    transaction_context, pkg_info, target_prefix, lt, spec
+                    transaction_context, pkg_info, target_prefix, lt, specs
                 ),
                 target_prefix,
             )
@@ -526,7 +515,8 @@ class UnlinkLinkTransaction:
                     pkg_info,
                     target_prefix,
                     lt,
-                    spec,
+                    specs,
+                    packages_info_to_link,
                     link_action_groups,
                 ),
                 target_prefix,
@@ -541,7 +531,7 @@ class UnlinkLinkTransaction:
                     pkg_info,
                     target_prefix,
                     lt,
-                    spec,
+                    specs,
                     link_action_groups,
                 ),
                 target_prefix,
@@ -570,7 +560,7 @@ class UnlinkLinkTransaction:
                     pkg_info,
                     target_prefix,
                     lt,
-                    spec,
+                    specs,
                     all_link_path_actions,
                 )
             )
@@ -615,7 +605,7 @@ class UnlinkLinkTransaction:
             neutered_specs,
         )
 
-        return PrefixActions(
+        return PrefixActionGroup(
             remove_menu_action_groups,
             unlink_action_groups,
             unregister_action_groups,
@@ -641,20 +631,23 @@ class UnlinkLinkTransaction:
             for axngroup in action_groups
         )
 
-        # run all per-action (per-package) verify methods
-        #   one of the more important of these checks is to verify that a file listed in
-        #   the packages manifest (i.e. info/files) is actually contained within the package
         error_results = []
-        for axn in all_actions:
-            if axn.verified:
-                continue
-            error_result = axn.verify()
-            if error_result:
-                formatted_error = "".join(
-                    format_exception_only(type(error_result), error_result)
-                )
-                log.debug("Verification error in action %s\n%s", axn, formatted_error)
-                error_results.append(error_result)
+        with batch_codesign_calls():
+            # run all per-action (per-package) verify methods
+            #   one of the more important of these checks is to verify that a file listed in
+            #   the packages manifest (i.e. info/files) is actually contained within the package
+            for axn in all_actions:
+                if axn.verified:
+                    continue
+                error_result = axn.verify()
+                if error_result:
+                    formatted_error = "".join(
+                        format_exception_only(type(error_result), error_result)
+                    )
+                    log.debug(
+                        "Verification error in action %s\n%s", axn, formatted_error
+                    )
+                    error_results.append(error_result)
         return error_results
 
     @staticmethod
@@ -792,14 +785,34 @@ class UnlinkLinkTransaction:
             # this should never be able to be skipped, even with --force
             yield RemoveError(
                 "This operation will remove conda without replacing it with\n"
-                "another version of conda."
+                "another version of conda.",
+                guidance={
+                    "summary": "Conda cannot remove itself.",
+                    "cause": (
+                        "The planned transaction would uninstall the conda package "
+                        "without linking a replacement."
+                    ),
+                    "hints": [
+                        {
+                            "text": (
+                                "Install a specific conda version first, for example:\n"
+                                "      conda install conda=<version>"
+                            ),
+                            "hint_code": "install_conda_version",
+                        },
+                        {
+                            "text": "Use a separate environment for other packages "
+                            "instead of changing the base environment where conda runs.",
+                            "hint_code": "use_non_base_env",
+                        },
+                    ],
+                },
             )
 
         if conda_final_setup is None:
             # means we're not unlinking then linking a new package, so look up current conda record
             conda_final_prefix = context.conda_prefix
             pd = PrefixData(conda_final_prefix)
-            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = ()
             pkg_names_being_unlnkd = ()
             conda_linked_depends = next(
@@ -813,7 +826,6 @@ class UnlinkLinkTransaction:
         else:
             conda_final_prefix = conda_final_setup.target_prefix
             pd = PrefixData(conda_final_prefix)
-            pkg_names_already_lnkd = tuple(rec.name for rec in pd.iter_records())
             pkg_names_being_lnkd = tuple(
                 prec.name for prec in conda_final_setup.link_precs or ()
             )
@@ -826,12 +838,39 @@ class UnlinkLinkTransaction:
             for conda_dependency in conda_linked_depends:
                 dep_name = MatchSpec(conda_dependency).name
                 if dep_name not in pkg_names_being_lnkd and (
-                    dep_name not in pkg_names_already_lnkd
-                    or dep_name in pkg_names_being_unlnkd
+                    dep_name in pkg_names_being_unlnkd
                 ):
                     yield RemoveError(
                         f"'{dep_name}' is a dependency of conda and cannot be removed from\n"
-                        "conda's operating environment."
+                        "conda's operating environment.",
+                        guidance={
+                            "summary": (
+                                f"'{dep_name}' is required by conda and cannot be "
+                                "removed from this environment."
+                            ),
+                            "cause": (
+                                "The solver planned a change that would remove this "
+                                "package from the environment that runs conda."
+                            ),
+                            "hints": [
+                                {
+                                    "text": (
+                                        "Create a new environment for your work "
+                                        "instead of installing everything in base, "
+                                        "for example:\n"
+                                        "      conda create -n myenv python=..."
+                                    ),
+                                    "hint_code": "use_non_base_env",
+                                },
+                                {
+                                    "text": (
+                                        "If you mix pip and conda, reinstall affected "
+                                        "packages with conda so conda can track them."
+                                    ),
+                                    "hint_code": "pip_conda_mix",
+                                },
+                            ],
+                        },
                     )
 
         # Verification 3. enforce disallowed_packages
@@ -956,7 +995,9 @@ class UnlinkLinkTransaction:
                     # post link scripts may employ entry points.  Do them before post-link.
                     if install_side:
                         for axngroup in entry_point_actions:
-                            UnlinkLinkTransaction._execute_actions(axngroup)
+                            exc = UnlinkLinkTransaction._execute_actions(axngroup)
+                            if exc:
+                                exceptions.append(exc)
 
                     # Run post-link or post-unlink scripts and registering AFTER link/unlink,
                     #    because they may depend on files in the prefix.  Additionally, run
@@ -969,8 +1010,9 @@ class UnlinkLinkTransaction:
                     # parallel block 2:
                     composite_ag = []
                     if install_side:
-                        composite_ag.extend(record_actions)
                         # consolidate compile actions into one big'un for better efficiency
+                        # note: compile must run before record so that we capture pyc_file
+                        # sizes in the manifest.
                         individual_actions = [
                             axn for ag in compile_actions for axn in ag.actions
                         ]
@@ -986,6 +1028,7 @@ class UnlinkLinkTransaction:
                                     composite.target_prefix,
                                 )
                             )
+                        composite_ag.extend(record_actions)
                     # functions return None unless there was an exception
                     for exc in self.execute_executor.map(
                         UnlinkLinkTransaction._execute_actions, composite_ag
@@ -1029,10 +1072,9 @@ class UnlinkLinkTransaction:
 
                 if prec:
                     log.error(
-                        "An error occurred while {} package '{}'.".format(
-                            "uninstalling" if is_unlink else "installing",
-                            prec.dist_str(),
-                        )
+                        "An error occurred while %s package '%s'.",
+                        "uninstalling" if is_unlink else "installing",
+                        prec.dist_str(),
                     )
 
                 # reverse all executed packages except the one that failed
@@ -1188,7 +1230,7 @@ class UnlinkLinkTransaction:
         )
         if linking_new_python:
             python_record = linking_new_python.repodata_record
-            log.debug(f"found in current transaction python: {python_record}")
+            log.debug("found in current transaction python: %s", python_record)
             return version_and_sp(python_record)
         python_record = PrefixData(target_prefix).get("python", None)
         if python_record:
@@ -1202,7 +1244,7 @@ class UnlinkLinkTransaction:
             )
             if unlinking_python is None:
                 # python is already linked and not being unlinked
-                log.debug(f"found in current prefix, python: {python_record}")
+                log.debug("found in current prefix, python: %s", python_record)
                 return version_and_sp(python_record)
         # no python in the finished environment
         log.debug("no python version found in prefix")
@@ -1241,6 +1283,7 @@ class UnlinkLinkTransaction:
         target_prefix,
         requested_link_type,
         requested_spec,
+        packages_info_to_link,
         link_action_groups,
     ):
         required_quad = (
@@ -1249,7 +1292,9 @@ class UnlinkLinkTransaction:
             target_prefix,
             requested_link_type,
         )
-        return CreatePythonEntryPointAction.create_actions(*required_quad)
+        return CreatePythonEntryPointAction.create_actions(
+            *required_quad, source_package_infos=packages_info_to_link
+        )
 
     @staticmethod
     def _make_compile_actions(
@@ -1607,7 +1652,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                context._dev,
                 False,
                 ("@CALL", path),
             )
@@ -1619,7 +1664,7 @@ def run_script(
             script_caller, command_args = wrap_subprocess_call(
                 context.root_prefix,
                 prefix,
-                context.dev,
+                context._dev,
                 False,
                 (".", path),
             )
@@ -1690,7 +1735,7 @@ def run_script(
                 rm_rf(script_caller)
             else:
                 log.warning(
-                    f"CONDA_TEST_SAVE_TEMPS :: retaining run_script {script_caller}"
+                    "CONDA_TEST_SAVE_TEMPS :: retaining run_script %s", script_caller
                 )
 
 

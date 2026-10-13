@@ -11,19 +11,23 @@ from typing import TYPE_CHECKING
 
 import pluggy
 import pytest
+from packaging.metadata import Metadata
 from packaging.version import Version
 
-from conda import plugins
+from conda import CondaError, plugins
+from conda.base.context import reset_context
 from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
-from conda.plugins import virtual_packages
+from conda.plugins import solvers, virtual_packages
 from conda.plugins.types import CondaPlugin
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
+    from pathlib import Path
     from typing import Any
 
+    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.plugins.manager import CondaPluginManager
@@ -61,6 +65,22 @@ class DummyVirtualPackagePlugin:
     @plugins.hookimpl
     def conda_virtual_packages(*args) -> Iterator[plugins.types.CondaVirtualPackage]:
         yield DummyVirtualPackage
+
+
+def test_get_plugin_source_registered_plugin(plugin_manager: CondaPluginManager):
+    plugin_manager.register(VerboseSolverPlugin)
+    solvers_list = [p for ps in plugin_manager.hook.conda_solvers() for p in ps]
+    solver = next(p for p in solvers_list if p.name == "verbose-classic")
+    assert plugin_manager.get_plugin_source(solver).endswith(".VerboseSolverPlugin")
+
+
+def test_get_plugin_source_entrypoint_distribution(
+    plugin_manager: CondaPluginManager,
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    solvers_list = [p for ps in plugin_manager.hook.conda_solvers() for p in ps]
+    solver = next(p for p in solvers_list if p.name == "test")
+    assert plugin_manager.get_plugin_source(solver) == "conda-test-plugin 1.0"
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
@@ -101,8 +121,20 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
             yield plugins.types.CondaVirtualPackage("archspec", "", None)
 
     plugin_manager.register(SecondArchspec)
+    second_archspec_source = re.escape(
+        f"{__name__}.test_get_hook_results.<locals>.SecondArchspec"
+    )
     with pytest.raises(
-        PluginError, match="Conflicting plugins found for `virtual_packages`"
+        PluginError,
+        match=(
+            r"Conflicting plugins found for `virtual_packages`:\n\n"
+            r"  - 'archspec' provided by:\n"
+            r"    - conda\.plugins\.virtual_packages\.archspec\n"
+            rf"    - {second_archspec_source}\n\n"
+            r"Multiple conda plugins are registered via the "
+            r"`conda_virtual_packages` hook\. Please make sure that you don't have any "
+            r"incompatible plugins installed\."
+        ),
     ):
         plugin_manager.get_hook_results(name)
 
@@ -118,6 +150,142 @@ def test_load_entrypoints_success(plugin_manager: CondaPluginManager):
     assert plugin_manager.list_name_plugin()[0][0] == "test_plugin.success"
 
 
+@pytest.mark.parametrize(
+    "alias", ("success", "conda-test-plugin", "conda_test_plugin", "Conda_Test.Plugin")
+)
+def test_disable_entrypoint_plugin_by_alias(
+    plugin_manager: CondaPluginManager, alias: str
+):
+    """Entry point and distribution names disable the registered plugin."""
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+
+    plugin_manager.disable_plugins([alias])
+
+    assert plugin_manager.is_blocked("test_plugin.success")
+
+
+@pytest.mark.parametrize(
+    "alias", ("Conda_Multi.Plugin", "conda-multi-plugin", "CONDA.MULTI_PLUGIN")
+)
+@pytest.mark.parametrize("enabled", (False, True))
+def test_disable_entrypoints_by_distribution(
+    plugin_manager: CondaPluginManager,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    alias: str,
+    enabled: bool,
+):
+    metadata = tmp_path / "conda_multi_plugin-1.0.dist-info"
+    metadata.mkdir()
+    (metadata / "METADATA").write_text(
+        "Metadata-Version: 2.1\nName: Conda_Multi.Plugin\nVersion: 1.0\n"
+    )
+    (metadata / "entry_points.txt").write_text(
+        "[test_multi_plugin]\nfirst=test_plugin.success\nsecond=test_plugin.blocked\n"
+    )
+    monkeypatch.syspath_prepend(tmp_path)
+    assert plugin_manager.load_entrypoints("test_multi_plugin") == 2
+    plugin_manager.register(object(), "unrelated.plugin")
+
+    if enabled:
+        plugin_manager.disable_external_plugins(except_plugins=[alias])
+    else:
+        plugin_manager.disable_plugins([alias])
+
+    assert plugin_manager.has_plugin("test_plugin.success") is enabled
+    assert plugin_manager.has_plugin("test_plugin.blocked") is enabled
+    assert plugin_manager.has_plugin("unrelated.plugin") is not enabled
+
+
+def test_get_installed_plugins(plugin_manager: CondaPluginManager):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+
+    expected = [
+        {
+            "name": "conda-test-plugin",
+            "version": "1.0",
+            "canonical_name": "test_plugin.success",
+            "status": "active",
+            "hooks": ["solvers"],
+        }
+    ]
+    assert plugin_manager.get_installed_plugins() == expected
+
+    plugin_manager.disable_external_plugins()
+    expected[0]["status"] = "disabled"
+
+    assert plugin_manager.get_installed_plugins() == expected
+
+
+@pytest.mark.parametrize(
+    "name",
+    ("conda-test-plugin", "conda_test_plugin", "test_plugin.success"),
+)
+@pytest.mark.parametrize("disabled", (False, True))
+def test_get_installed_plugin_info(
+    name: str, disabled: bool, plugin_manager: CondaPluginManager
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    if disabled:
+        plugin_manager.disable_external_plugins()
+
+    assert plugin_manager.get_installed_plugin_info(name) == {
+        "name": "conda-test-plugin",
+        "version": "1.0",
+        "canonical_name": "test_plugin.success",
+        "status": "disabled" if disabled else "active",
+        "hooks": ["solvers"],
+        "summary": "A test plugin",
+        "license": "",
+        "homepage": "https://example.com/legacy-home",
+        "project_urls": [
+            {"label": "Home", "url": "https://example.com/home"},
+            {"label": "Documentation", "url": "https://example.com/docs"},
+        ],
+    }
+
+
+def test_get_installed_plugin_info_tolerates_invalid_optional_metadata(
+    plugin_manager: CondaPluginManager,
+    mocker: MockerFixture,
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    metadata = Metadata.from_email(
+        """\
+Metadata-Version: 2.1
+Name: conda-test-plugin
+Version: 1.0
+Summary: first line
+ second line
+Project-URL: Homepage, https://example.com/home
+Project-URL: Empty,
+""",
+        validate=False,
+    )
+    mocker.patch(
+        "conda.plugins.manager.Metadata.from_email",
+        return_value=metadata,
+    )
+
+    plugin = plugin_manager.get_installed_plugin_info("conda-test-plugin")
+
+    assert plugin["summary"] == ""
+    assert plugin["homepage"] == "https://example.com/home"
+    assert plugin["project_urls"] == [
+        {"label": "Homepage", "url": "https://example.com/home"}
+    ]
+
+
+def test_get_installed_plugin_info_not_found(plugin_manager: CondaPluginManager):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+
+    with pytest.raises(
+        CondaValueError,
+        match="No installed conda plugin found matching 'missing'.",
+    ):
+        plugin_manager.get_installed_plugin_info("missing")
+
+
 def test_load_entrypoints_importerror(
     plugin_manager: CondaPluginManager,
     mocker: MockerFixture,
@@ -129,9 +297,9 @@ def test_load_entrypoints_importerror(
 
     assert mocked_warning.call_count == 1
     assert mocked_warning.call_args.args[0] == (
-        "Error while loading conda entry point: importerror "
-        "(No module named 'package_that_does_not_exist')"
+        "Error while loading conda entry point: %s (%s)"
     )
+    assert mocked_warning.call_args.args[1] == "importerror"
 
 
 def test_load_entrypoints_blocked(plugin_manager: CondaPluginManager):
@@ -170,9 +338,79 @@ def test_known_solver(plugin_manager: CondaPluginManager):
     assert plugin_manager.get_solver_backend("verbose-classic") == VerboseSolver
 
 
+@pytest.mark.parametrize("use_shards", [True, False])
+@pytest.mark.parametrize(
+    "capabilities",
+    [
+        (False, False, False),
+        (True, False, False),
+        (False, True, False),
+        (False, False, True),
+        (True, True, True),
+    ],
+)
+def test_solver_with_repodata_subset(
+    use_shards: bool,
+    capabilities: tuple[bool, bool, bool],
+    plugin_manager: CondaPluginManager,
+    monkeypatch: MonkeyPatch,
+    tmp_path: Path,
+):
+    """
+    Cover getting a solver that uses sharded repodata api
+    """
+
+    class TestSolver(solve.Solver):
+        (
+            supports_exclude_newer_global,
+            supports_exclude_newer_channel,
+            supports_exclude_newer_package,
+        ) = capabilities
+
+        def __init__(
+            self,
+            build_repodata_subset=None,
+            *args,
+            **kwargs,
+        ):
+            return super().__init__(*args, **kwargs)
+
+        @staticmethod
+        def user_agent() -> str:
+            return "test-solver/1.0"
+
+    TestCondaSolver = plugins.types.CondaSolver(
+        name="test-classic",
+        backend=TestSolver,
+    )
+
+    class TestSolverPlugin:
+        @plugins.hookimpl
+        def conda_solvers(*args):
+            yield TestCondaSolver
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", str(use_shards))
+    monkeypatch.setenv("CONDA_EXCLUDE_NEWER", "1d")
+    reset_context()
+
+    assert plugin_manager.load_plugins(TestSolverPlugin) == 1
+    solver = plugin_manager.get_solver_backend("test-classic")
+    assert solver.user_agent() == "test-solver/1.0"
+    assert (
+        solver.supports_exclude_newer_global,
+        solver.supports_exclude_newer_channel,
+        solver.supports_exclude_newer_package,
+    ) == capabilities
+    if capabilities[0]:
+        solver(prefix=str(tmp_path))
+    else:
+        with pytest.raises(CondaError, match="global cutoff"):
+            solver(prefix=str(tmp_path))
+
+
 def test_get_canonical_name_object(plugin_manager: CondaPluginManager):
     canonical_name = plugin_manager.get_canonical_name(object())
-    assert re.match(r"<unknown_module>.object\[\d+\]", canonical_name), canonical_name
+    assert re.match(r"builtins.object\[\d+\]", canonical_name), canonical_name
 
 
 def test_get_canonical_name_module(plugin_manager: CondaPluginManager):
@@ -190,6 +428,47 @@ def test_get_canonical_name_instance(plugin_manager: CondaPluginManager):
         rf"{__name__}.VerboseSolverPlugin\[\d+\]",
         canonical_name,
     )
+
+
+def test_conflicting_plugin_error_names_registered_instances(
+    plugin_manager: CondaPluginManager,
+) -> None:
+    class IntruderSolver:
+        hide_module = True
+
+        def __dir__(self):
+            return [name for name in super().__dir__() if name != "__module__"]
+
+        def __getattribute__(self, name):
+            if name == "__module__" and self.hide_module:
+                raise AttributeError(name)
+            return super().__getattribute__(name)
+
+        @plugins.hookimpl
+        def conda_solvers(self):
+            yield plugins.types.CondaSolver(name="classic", backend=object)
+
+    intruder_solver_source = re.escape(
+        f"{__name__}."
+        "test_conflicting_plugin_error_names_registered_instances."
+        "<locals>.IntruderSolver"
+    )
+    plugin_manager.load_plugins(solvers)
+    intruder_solver = IntruderSolver()
+    plugin_manager.register(intruder_solver)
+
+    with pytest.raises(
+        PluginError,
+        match=(
+            r"Conflicting plugins found for `solvers`:\n\n"
+            r"  - 'classic' provided by:\n"
+            r"    - conda\.plugins\.solvers\n"
+            rf"    - {intruder_solver_source}\[\d+\]\n\n"
+            r"Multiple conda plugins are registered via the `conda_solvers` hook\. "
+            r"Please make sure that you don't have any incompatible plugins installed\."
+        ),
+    ):
+        plugin_manager.get_hook_results("solvers")
 
 
 @pytest.mark.parametrize("plugin", [this_module, VerboseSolverPlugin])
@@ -262,6 +541,121 @@ def test_get_solvers(plugin_manager: CondaPluginManager):
     assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
     assert plugin_manager.get_plugins() == {VerboseSolverPlugin}
     assert plugin_manager.get_solvers() == {"verbose-classic": VerboseCondaSolver}
+
+
+def test_disable_plugins_by_canonical_name(plugin_manager: CondaPluginManager):
+    """Plugins can be disabled by their canonical (registered) name."""
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
+    canonical = plugin_manager.get_name(VerboseSolverPlugin)
+    assert canonical is not None
+
+    plugin_manager.disable_plugins([canonical])
+    assert plugin_manager.is_blocked(canonical)
+
+
+def test_disable_plugins_by_alias(plugin_manager: CondaPluginManager):
+    """Plugins can be disabled via plugin_aliases (dist/entry point name)."""
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
+    canonical = plugin_manager.get_name(VerboseSolverPlugin)
+    assert canonical is not None
+
+    plugin_manager.plugin_aliases["my-cool-plugin"] = {canonical}
+    plugin_manager.disable_plugins(["my-cool-plugin"])
+    assert plugin_manager.is_blocked(canonical)
+
+
+@pytest.mark.parametrize(
+    "name,entrypoint_selected", (("Conda_Test.Plugin", False), ("success", True))
+)
+def test_disable_plugins_name_precedence(
+    plugin_manager: CondaPluginManager, name: str, entrypoint_selected: bool
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    plugin_manager.register(object(), name)
+
+    plugin_manager.disable_plugins([name])
+
+    assert plugin_manager.is_blocked("test_plugin.success") is entrypoint_selected
+    assert plugin_manager.is_blocked(name) is not entrypoint_selected
+
+
+@pytest.fixture()
+def log_records(request):
+    """Capture log records from conda.plugins.manager."""
+    records: list[logging.LogRecord] = []
+    handler = logging.Handler()
+    handler.emit = records.append  # type: ignore[assignment]
+    logger = logging.getLogger("conda.plugins.manager")
+    logger.addHandler(handler)
+    request.addfinalizer(lambda: logger.removeHandler(handler))
+    return records
+
+
+def test_disable_plugins_unknown_name(
+    plugin_manager: CondaPluginManager, log_records: list[logging.LogRecord]
+):
+    """A warning is logged when the plugin name is not recognized."""
+    plugin_manager.disable_plugins(["does-not-exist"])
+    assert any("does-not-exist" in r.getMessage() for r in log_records)
+
+
+def test_disable_plugins_builtin_rejected(plugin_manager: CondaPluginManager):
+    """Built-in conda plugins cannot be disabled."""
+    plugin_manager.plugin_aliases["sneaky"] = {"conda.plugins.subcommands"}
+    with pytest.raises(PluginError, match="Built-in plugin.*cannot be disabled"):
+        plugin_manager.disable_plugins(["sneaky"])
+
+
+@pytest.mark.parametrize(
+    "alias", ("test_plugin.success", "success", "Conda_Test.Plugin")
+)
+def test_disable_plugins_already_blocked(
+    plugin_manager: CondaPluginManager,
+    log_records: list[logging.LogRecord],
+    alias: str,
+):
+    """Disabling an already-blocked plugin is a no-op."""
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+
+    plugin_manager.disable_plugins([alias])
+    plugin_manager.disable_plugins([alias])
+
+    assert plugin_manager.is_blocked("test_plugin.success")
+    assert not log_records
+
+
+@pytest.mark.parametrize("name", ("SUCCESS", "OTHER_PLUGIN"))
+def test_disable_plugins_names_are_exact(
+    plugin_manager: CondaPluginManager,
+    log_records: list[logging.LogRecord],
+    name: str,
+):
+    assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
+    plugin_manager.register(object(), "other-plugin")
+
+    plugin_manager.disable_plugins([name])
+
+    assert plugin_manager.has_plugin("test_plugin.success")
+    assert plugin_manager.has_plugin("other-plugin")
+    assert any(name in record.getMessage() for record in log_records)
+
+    with pytest.raises(PluginError, match="No registered plugin matching"):
+        plugin_manager.disable_plugins([], except_plugins=[name])
+
+
+def test_disable_plugins_multi_alias(plugin_manager: CondaPluginManager):
+    """A dist name mapping to multiple canonical names disables all of them."""
+    assert plugin_manager.load_plugins(this_module) == 1
+    assert plugin_manager.load_plugins(VerboseSolverPlugin) == 1
+
+    name_a = plugin_manager.get_name(this_module)
+    name_b = plugin_manager.get_name(VerboseSolverPlugin)
+    assert name_a is not None and name_b is not None
+
+    plugin_manager.plugin_aliases["multi-pkg"] = {name_a, name_b}
+    plugin_manager.disable_plugins(["multi-pkg"])
+    assert plugin_manager.is_blocked(name_a)
+    assert plugin_manager.is_blocked(name_b)
 
 
 def test_get_session_headers(plugin_manager: CondaPluginManager):

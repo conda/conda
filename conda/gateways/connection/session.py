@@ -18,9 +18,10 @@ from ...common.url import (
     add_username_and_password,
     get_proxy_username_and_pass,
     split_anaconda_token,
+    split_conda_url_easy_parts,
     urlparse,
 )
-from ...exceptions import OfflineError, ProxyError
+from ...exceptions import OfflineError, PluginError, ProxyError
 from ...models.channel import Channel
 from ..anaconda_client import read_binstar_tokens
 from . import (
@@ -56,6 +57,45 @@ CONDA_SESSION_SCHEMES = frozenset(
     )
 )
 
+# Forbidden headers, which should never be set by plugins. Based on
+# https://web.archive.org/web/20251124174612/https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header
+# (last updated as of November 17, 2025). Set-Cookie is a response header and not a request header, but
+# it's semantically invalid, so we include it here.
+
+FORBIDDEN_HEADERS = frozenset(
+    [
+        "accept-charset",
+        "accept-encoding",
+        "access-control-request-headers",
+        "access-control-request-method",
+        "connection",
+        "content-length",
+        "cookie",
+        "date",
+        "dnt",
+        "expect",
+        "host",
+        "keep-alive",
+        "origin",
+        "referer",
+        "set-cookie",
+        "te",
+        "trailer",
+        "transfer-encoding",
+        "upgrade",
+        "via",
+    ]
+)
+# Headers that override HTTP methods, which are forbidden when they contain the following.
+FORBIDDEN_METHOD_OVERRIDE_HEADERS = frozenset(
+    [
+        "x-http-method",
+        "x-http-method-override",
+        "x-method-override",
+    ]
+)
+FORBIDDEN_HTTP_METHODS = frozenset(["connect", "trace", "track"])
+
 
 class EnforceUnusedAdapter(BaseAdapter):
     def send(self, request: Request, *args, **kwargs):
@@ -75,6 +115,45 @@ def get_channel_name_from_url(url: str) -> str | None:
     return Channel.from_url(url).canonical_name
 
 
+def _validate_plugin_headers(headers: dict) -> None:
+    """
+    Validate plugin-provided headers and raise PluginError if any forbidden
+    headers are detected. This prevents plugins from compromising conda's
+    core network stack.
+
+    Args:
+        headers: Dictionary of headers to validate
+
+    Raises:
+        PluginError: If any forbidden headers are detected
+    """
+    for key, value in headers.items():
+        key_lower = key.lower()
+
+        if key_lower in FORBIDDEN_HEADERS:
+            raise PluginError(
+                f"Plugin attempted to set forbidden header '{key}'. "
+                "This header is not allowed as it could compromise conda's network stack. "
+                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header"
+            )
+
+        if key_lower.startswith("proxy-") or key_lower.startswith("sec-"):
+            raise PluginError(
+                f"Plugin attempted to set forbidden header '{key}'. "
+                "Headers starting with 'Proxy-' or 'Sec-' are not allowed as they could "
+                "compromise conda's network stack. "
+                "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header"
+            )
+
+        if key_lower in FORBIDDEN_METHOD_OVERRIDE_HEADERS:
+            if isinstance(value, str) and value.lower() in FORBIDDEN_HTTP_METHODS:
+                raise PluginError(
+                    f"Plugin attempted to set header '{key}' with forbidden method '{value}'. "
+                    "This method override is not allowed as it could compromise conda's network stack. "
+                    "See https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header"
+                )
+
+
 @cache
 def get_session(url: str):
     """
@@ -88,26 +167,50 @@ def get_session(url: str):
     if channel_name is None:
         return CondaSession()
 
+    request_url_parts = split_conda_url_easy_parts(context.known_subdirs, url)
+    parsed_url = urlparse(url)
+
     # We ensure here if there are duplicates defined, we choose the last one
     channel_settings = {}
     for settings in context.channel_settings:
-        channel = settings.get("channel", "")
-        if channel == channel_name:
+        channel = settings.get("channel")
+
+        if channel is None:
+            continue
+
+        parsed_setting = urlparse(channel)
+        # Detect URL globs before split_conda_url_easy_parts can remove a final
+        # path component that resembles a package or repodata filename.
+        pattern = (parsed_setting.netloc or "") + parsed_setting.path
+        is_url_pattern = any(char in pattern for char in "*?[")
+        channel_name_matches = (
+            not parsed_setting.scheme and channel.rstrip("/") == channel_name
+        )
+        channel_url_matches = False
+        # Use component comparison only for exact URLs. URL globs must retain
+        # their netloc and path for the same-scheme fnmatch check below.
+        if parsed_setting.scheme and not is_url_pattern:
+            setting_url_parts = split_conda_url_easy_parts(
+                context.known_subdirs, channel
+            )
+            channel_url_matches = (
+                setting_url_parts.scheme == request_url_parts.scheme
+                and setting_url_parts.hostname == request_url_parts.hostname
+                and setting_url_parts.port == request_url_parts.port
+                and setting_url_parts.path == request_url_parts.path
+            )
+
+        if channel_name_matches or channel_url_matches:
             # First we check for exact match
             channel_settings = settings
             continue
-
-        # If we don't have an exact match, we attempt to match a URL pattern
-        parsed_url = urlparse(url)
-        parsed_setting = urlparse(channel)
 
         # We require that the schemes must be identical to prevent downgrade attacks.
         # This includes the case of a scheme-less pattern like "*", which is not allowed.
         if parsed_setting.scheme != parsed_url.scheme:
             continue
 
-        url_without_schema = parsed_url.netloc + parsed_url.path
-        pattern = parsed_setting.netloc + parsed_setting.path
+        url_without_schema = (parsed_url.netloc or "") + parsed_url.path
         if fnmatch(url_without_schema, pattern):
             channel_settings = settings
 
@@ -172,7 +275,8 @@ class CondaSession(Session, metaclass=CondaSessionType):
         auth: AuthBase | tuple[str, str] | None = None,
     ):
         """
-        :param auth: Optionally provide ``requests.AuthBase`` compliant objects
+        Args:
+            auth: Optionally provide ``requests.AuthBase`` compliant objects
         """
         super().__init__()
 
@@ -190,8 +294,8 @@ class CondaSession(Session, metaclass=CondaSessionType):
                 ssl_context = truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             except ImportError:
                 raise CondaError(
-                    "The `ssl_verify: truststore` setting is only supported on"
-                    "Python 3.10 or later."
+                    "The `ssl_verify: truststore` setting requires the `truststore` "
+                    "package to be installed."
                 )
             self.verify = True
         else:
@@ -232,15 +336,22 @@ class CondaSession(Session, metaclass=CondaSessionType):
         # inject headers from plugins if this is a https/http request
         url = urlparse(request.url)
         if url.scheme in ("https", "http"):
+            session_headers = context.plugin_manager.get_cached_session_headers(
+                host=url.netloc
+            )
+            request_headers = context.plugin_manager.get_cached_request_headers(
+                host=url.netloc, path=url.path
+            )
+
+            # Validate plugin headers - raises PluginError if forbidden headers detected
+            _validate_plugin_headers(session_headers)
+            _validate_plugin_headers(request_headers)
+
             request.headers = CaseInsensitiveDict(
                 {
                     # hardcoded session headers (self.headers) are injected in super().prepare_request
-                    **context.plugin_manager.get_cached_session_headers(
-                        host=url.netloc
-                    ),
-                    **context.plugin_manager.get_cached_request_headers(
-                        host=url.netloc, path=url.path
-                    ),
+                    **session_headers,
+                    **request_headers,
                     **(request.headers or {}),
                 }
             )

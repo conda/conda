@@ -12,14 +12,12 @@ from __future__ import annotations
 
 import os
 from logging import getLogger
-from os.path import abspath, basename, exists, isdir
+from os.path import abspath
 from pathlib import Path
-
-from boltons.setutils import IndexedSet
+from typing import TYPE_CHECKING
 
 from ..base.constants import (
     REPODATA_FN,
-    RESERVED_ENV_NAMES,
     UpdateModifier,
 )
 from ..base.context import context
@@ -31,7 +29,6 @@ from ..core.prefix_data import PrefixData
 from ..core.solve import diff_for_unlink_link_precs
 from ..deprecations import deprecated
 from ..exceptions import (
-    CondaEnvException,
     CondaExitZero,
     CondaImportError,
     CondaIndexError,
@@ -43,6 +40,8 @@ from ..exceptions import (
     NoBaseEnvironmentError,
     PackageNotInstalledError,
     PackagesNotFoundError,
+    PackagesNotFoundInChannelsError,
+    PackagesNotFoundInPrefixError,
     ResolvePackageNotFound,
     SpecsConfigurationConflictError,
     UnsatisfiableError,
@@ -63,73 +62,47 @@ from . import common
 from .common import check_non_admin
 from .main_config import set_keys
 
+if TYPE_CHECKING:
+    from typing import Any
+
 log = getLogger(__name__)
-stderrlog = getLogger("conda.stderr")
-
-
-@deprecated("25.9", "26.3", addendum="Use PrefixData.exists()")
-def validate_prefix_exists(prefix: str | Path) -> None:
-    """
-    Validate that we are receiving at least one valid value for --name or --prefix.
-    """
-    prefix = Path(prefix)
-    if not prefix.exists():
-        raise CondaEnvException("The environment you have specified does not exist.")
-
-
-@deprecated(
-    "25.9", "26.3", addendum="Use PrefixData.exists() + PrefixData.validate_path()"
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "stderrlog",
+    getLogger("conda.stderr"),
+    addendum="Use `conda.gateways.streams.stderr` instead.",
 )
-def validate_new_prefix(dest: str, force: bool = False) -> str:
-    """Ensure that the new prefix does not exist."""
-    from ..base.context import context, validate_prefix_name
-    from ..common.path import expand
-
-    if os.sep in dest:
-        dest = expand(dest)
-    else:
-        dest = validate_prefix_name(dest, ctx=context, allow_base=False)
-
-    if not force and os.path.exists(dest):
-        env_name = os.path.basename(os.path.normpath(dest))
-        raise CondaEnvException(
-            f"The environment '{env_name}' already exists. Override with --yes."
-        )
-
-    return dest
 
 
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use PrefixData.exists(), PrefixData.validate_path(), PrefixData.validate_name()",
-)
-def check_prefix(prefix: str, json=False):
-    if os.pathsep in prefix:
-        raise CondaValueError(
-            f"Cannot create a conda environment with '{os.pathsep}' in the prefix. Aborting."
-        )
-    name = basename(prefix)
-    error = None
-    if name in RESERVED_ENV_NAMES:
-        error = f"'{name}' is a reserved environment name"
-    if exists(prefix):
-        if isdir(prefix) and "conda-meta" not in tuple(
-            entry.name for entry in os.scandir(prefix)
-        ):
-            return None
-        error = f"prefix already exists: {prefix}"
+def reinstall_packages(args, specs: list[str], **kwargs) -> int:
+    """Reinstall packages using conda install.
 
-    if error:
-        raise CondaValueError(error, json)
+    Helper for health fixes that need to reinstall packages.
 
-    if " " in prefix:
-        stderrlog.warning(
-            "WARNING: A space was detected in your requested environment path:\n"
-            f"'{prefix}'\n"
-            "Spaces in paths can sometimes be problematic. To minimize issues,\n"
-            "make sure you activate your environment before running any executables!\n"
-        )
+    Args:
+        args: Parsed arguments namespace
+        specs: Package specs to reinstall
+        kwargs: Override default install options (e.g., force_reinstall=True)
+    """
+    args.packages = specs
+    args.channel = kwargs.get("channel", None)
+    args.override_channels = kwargs.get("override_channels", False)
+    args.force_reinstall = kwargs.get("force_reinstall", False)
+    args.satisfied_skip_solve = kwargs.get("satisfied_skip_solve", False)
+    args.update_deps = kwargs.get("update_deps", False)
+    args.only_deps = kwargs.get("only_deps", False)
+    args.no_deps = kwargs.get("no_deps", False)
+    args.prune = kwargs.get("prune", False)
+    args.freeze_installed = kwargs.get("freeze_installed", False)
+    args.solver_retries = kwargs.get("solver_retries", 0)
+    args.use_local = kwargs.get("use_local", False)
+    args.file = kwargs.get("file", [])
+    args.repodata_fns = kwargs.get("repodata_fns", None)
+    args.update_modifier = kwargs.get("update_modifier", NULL)
+
+    install(args, None)
+    return 0
 
 
 def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
@@ -158,13 +131,7 @@ def clone(src_arg, dst_prefix, json=False, quiet=False, index_args=None):
         )
 
 
-@deprecated("25.9", "26.3", addendum="Use conda.cli.common.print_activate()")
-def print_activate(env_name_or_prefix):  # pragma: no cover
-    from .common import print_activate as _print_activate
-
-    _print_activate(env_name_or_prefix)
-
-
+@deprecated("27.3", "27.9")
 def get_revision(arg, json=False):
     try:
         return int(arg)
@@ -172,10 +139,14 @@ def get_revision(arg, json=False):
         raise CondaValueError(f"expected revision number, not: '{arg}'", json)
 
 
-def get_index_args(args) -> dict[str, any]:
+def get_index_args(args) -> dict[str, Any]:
     """Returns a dict of args required for fetching an index
-    :param args: The args provided by the cli
-    :returns: dict of index args
+
+    Args:
+        args: The args provided by the cli
+
+    Returns:
+        dict of index args
     """
     return {
         # TODO: deprecate --use-index-cache
@@ -227,8 +198,8 @@ class TryRepodata:
         ):
             return True
         elif isinstance(exc_value, ResolvePackageNotFound):
-            # convert the ResolvePackageNotFound into PackagesNotFoundError
-            raise PackagesNotFoundError(
+            # convert the ResolvePackageNotFound into PackagesNotFoundInChannelsError
+            raise PackagesNotFoundInChannelsError(
                 exc_value._formatted_chains,
                 all_channel_urls(context.channels),
             )
@@ -268,9 +239,12 @@ def validate_install_command(prefix: str, command: str = "install"):
       * ensuring the user in not an admin
       * ensure the user is not forcing 32bit installs in the root prefix
 
-    :param prefix: The prefix where the environment will be created
-    :param command: Type of operation being performed
-    :raises: error if the configuration for the install is bad
+    Args:
+        prefix: The prefix where the environment will be created
+        command: Type of operation being performed
+
+    Raises:
+        error if the configuration for the install is bad
     """
     context.validate_configuration()
     check_non_admin()
@@ -296,10 +270,13 @@ def validate_install_command(prefix: str, command: str = "install"):
 def ensure_update_specs_exist(prefix: str, specs: list[str]):
     """Checks that each spec that is requested as an update exists in the prefix
 
-    :param prefix: The target install prefix
-    :param specs: List of specs to be updated
-    :raises CondaError: if there is an invalid spec provided
-    :raises PackageNotInstalledError: if the requested specs to install don't exist in the prefix
+    Args:
+        prefix: The target install prefix
+        specs: List of specs to be updated
+
+    Raises:
+        CondaError: if there is an invalid spec provided
+        PackageNotInstalledError: if the requested specs to install don't exist in the prefix
     """
     prefix_data = PrefixData(prefix)
     for spec in specs:
@@ -316,16 +293,6 @@ def install(args, parser, command="install"):
     isupdate = command == "update"
     isinstall = command == "install"
 
-    # fail early if using a deprecated option
-    if newenv and args.clone:
-        deprecated.topic(
-            "25.9",
-            "26.3",
-            topic="This function will not handle clones anymore.",
-            addendum="Use `conda.cli.install.install_clone()` instead",
-        )
-        return install_clone(args, parser)
-
     prefix = context.target_prefix
     index_args = get_index_args(args=args)
 
@@ -335,7 +302,7 @@ def install(args, parser, command="install"):
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
 
-    env = Environment.from_cli(
+    env, fpath_envs_map = Environment.from_cli_with_file_envs(
         args=args,
         add_default_packages=command == "create" and not args.no_default_packages,
     )
@@ -392,7 +359,11 @@ def install(args, parser, command="install"):
                 unlink_link_transaction = solver.solve_for_transaction(
                     deps_modifier=deps_modifier,
                     update_modifier=update_modifier,
-                    force_reinstall=context.force_reinstall or context.force,
+                    force_reinstall=(
+                        getattr(args, "force_reinstall", False)
+                        or context.force_reinstall
+                        or context.force
+                    ),
                     should_retry_solve=(
                         _should_retry_unfrozen or repodata != repodata_fns[-1]
                     ),
@@ -404,11 +375,28 @@ def install(args, parser, command="install"):
                     unlink_link_transaction = solver.solve_for_transaction(
                         deps_modifier=deps_modifier,
                         update_modifier=UpdateModifier.UPDATE_SPECS,
-                        force_reinstall=context.force_reinstall or context.force,
+                        force_reinstall=(
+                            getattr(args, "force_reinstall", False)
+                            or context.force_reinstall
+                            or context.force
+                        ),
                         should_retry_solve=(repodata != repodata_fns[-1]),
                     )
                 else:
                     raise e
+            except (PackagesNotFoundInChannelsError, PackagesNotFoundInPrefixError):
+                # no extra processing for subclasses of PackagesNotFoundError
+                raise
+            except PackagesNotFoundError as e:
+                # If a backend raises the generic error, convert it to a more specific one
+                if e.channel_urls:
+                    raise PackagesNotFoundInChannelsError(
+                        e.packages, e.channel_urls
+                    ) from e
+                else:
+                    raise PackagesNotFoundInPrefixError(
+                        e.packages, prefix=prefix
+                    ) from e
             except SystemExit as e:
                 if not getattr(e, "allow_retry", True):
                     raise e
@@ -416,7 +404,58 @@ def install(args, parser, command="install"):
                     raise CondaImportError(str(e))
                 raise e
 
-    handle_txn(unlink_link_transaction, prefix, args, newenv)
+    defer_json = context.json and bool(env.external_packages)
+
+    conda_actions = (
+        handle_txn(
+            unlink_link_transaction, prefix, args, newenv, defer_json_success=defer_json
+        )
+        or {}
+    )
+
+    if env.external_packages and not context.dry_run and not context.download_only:
+        from ..env.installers.base import get_installer
+        from ..env.pip_util import get_pip_workdir
+
+        installer_results = {}
+        external_envs = [
+            (fpath, file_env)
+            for fpath, file_env in fpath_envs_map.items()
+            if file_env.external_packages
+        ]
+        pip_sources = []
+        for fpath, file_env in external_envs:
+            for installer_type, pkg_specs in file_env.external_packages.items():
+                if installer_type == "pip":
+                    pip_sources.append((fpath, list(pkg_specs), get_pip_workdir(fpath)))
+                    continue
+
+                installer = get_installer(installer_type, file=fpath)
+                result = installer.install(prefix, list(pkg_specs), args, file_env)
+                if result is not None:
+                    installer_results[installer_type.upper()] = result
+
+        if pip_sources:
+            installer = get_installer("pip", file=pip_sources[0][0])
+            result = installer.install(
+                prefix,
+                [],
+                args,
+                env,
+                requirements_sources=[
+                    (pkg_specs, workdir) for _, pkg_specs, workdir in pip_sources
+                ],
+            )
+            if result is not None:
+                installer_results["PIP"] = result
+
+        conda_actions.update(installer_results)
+
+    if env.variables:
+        PrefixData(prefix).set_environment_env_vars(env.variables)
+
+    if defer_json:
+        common.stdout_json_success(prefix=prefix, actions=conda_actions)
 
 
 def install_clone(args, parser):
@@ -475,9 +514,8 @@ def install_revision(args, parser):
                     prefix=prefix,
                     repodata_fn=repodata,
                 )
-            revision_idx = get_revision(args.revision)
-            with get_spinner(f"Reverting to revision {revision_idx}"):
-                unlink_link_transaction = revert_actions(prefix, revision_idx, index)
+            with get_spinner(f"Reverting to revision {args.revision}"):
+                unlink_link_transaction = revert_actions(prefix, args.revision, index)
 
     handle_txn(unlink_link_transaction, prefix, args, newenv=False)
 
@@ -513,27 +551,52 @@ def revert_actions(prefix, revision=-1, index: Index | None = None):
             link_precs.add(precs[0])
 
     if not_found_in_index_specs:
-        raise PackagesNotFoundError(not_found_in_index_specs)
+        raise PackagesNotFoundInChannelsError(
+            not_found_in_index_specs,
+            all_channel_urls(context.channels, context.subdirs),
+        )
 
-    final_precs = IndexedSet(PrefixGraph(link_precs).graph)  # toposort
+    final_precs = tuple(PrefixGraph(link_precs).graph)  # toposort
     unlink_precs, link_precs = diff_for_unlink_link_precs(prefix, final_precs)
     setup = PrefixSetup(prefix, unlink_precs, link_precs, (), user_requested_specs, ())
     return UnlinkLinkTransaction(setup)
 
 
-def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
+def handle_txn(
+    unlink_link_transaction,
+    prefix,
+    args,
+    newenv,
+    remove_op=False,
+    defer_json_success=False,
+) -> dict | None:
+    """
+    Handles executing an unlink_link_transaction, and reporting changes. If `defer_json_success`
+    argument is provided, will return a dict of actions that have been taken as part of the
+    transaction.
+
+    :param unlink_link_transaction: transaction to execute, output from the solver
+    :param prefix: prefix to execute the transaction on
+    :param args: cli args
+    :param newenv: boolean noting that the environment is being created for the first time
+    :param remove_op: defaults to false, boolean noting that the user is requesting to remove
+                      a package from the environment
+    :param defer_json_success: when true, will return the set of actions executed in dict form
+    """
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
             # No packages found to remove from environment
-            raise PackagesNotFoundError(args.package_names)
+            raise PackagesNotFoundInPrefixError(args.package_names, prefix=prefix)
         elif not newenv:
             if context.json:
+                if defer_json_success:
+                    return {}
                 common.stdout_json_success(
                     message="All requested packages already installed."
                 )
             else:
                 print("\n# All requested packages already installed.\n")
-            return
+            return None
 
     if not context.json:
         unlink_link_transaction.print_transaction_summary()
@@ -565,4 +628,6 @@ def handle_txn(unlink_link_transaction, prefix, args, newenv, remove_op=False):
 
     if context.json:
         actions = unlink_link_transaction._make_legacy_action_groups()[0]
+        if defer_json_success:
+            return actions
         common.stdout_json_success(prefix=prefix, actions=actions)

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterable
 from os.path import isdir
 from pathlib import Path
@@ -14,15 +15,17 @@ import pytest
 
 from conda.base.constants import PREFIX_FROZEN_FILE
 from conda.base.context import context
-from conda.cli.main_info import get_info_components, iter_info_components
+from conda.cli.main_info import get_installer_info, iter_info_components
 from conda.common.path import paths_equal
 from conda.core.envs_manager import list_all_known_prefixes
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import ArgumentError
 from conda.plugins.reporter_backends.console import ConsoleReporterRenderer
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import CondaCLIFixture
+    from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
 
 
 BASE_KEYS = {"root_prefix"}
@@ -41,6 +44,7 @@ DETAIL_KEYS = {
     "conda_version",
     "envs_dirs",
     "pkgs_dirs",
+    "notices_cache_dir",
     "channels",
     "config_files",
     "offline",
@@ -145,6 +149,7 @@ def test_info_detail(conda_cli: CondaCLIFixture):
     assert "conda version" in stdout
     assert "envs directories" in stdout
     assert "package cache" in stdout
+    assert "notices cache" in stdout
     assert "channel URLs" in stdout
     assert "config file" in stdout
     assert "offline mode" in stdout
@@ -157,6 +162,60 @@ def test_info_detail(conda_cli: CondaCLIFixture):
     assert DETAIL_KEYS <= set(parsed.keys())
     assert not stderr
     assert not err
+
+
+def test_info_installer(
+    conda_cli: CondaCLIFixture,
+    mocker: MockerFixture,
+) -> None:
+    installer = {
+        "name": "Miniconda3",
+        "version": "26.7.0",
+        "platform": "linux-64",
+        "type": "sh",
+    }
+    mocker.patch("conda.cli.main_info.get_installer_info", return_value=installer)
+
+    stdout, stderr, err = conda_cli("info")
+    assert "distribution : Miniconda3 26.7.0 (sh, linux-64)" in stdout
+    assert not stderr
+    assert not err
+
+    stdout, stderr, err = conda_cli("info", "--json")
+    assert json.loads(stdout)["installer"] == installer
+    assert not stderr
+    assert not err
+
+
+def test_get_installer_info(tmp_path: Path) -> None:
+    installer = {
+        "name": "Miniconda3",
+        "version": "26.7.0",
+        "platform": "linux-64",
+        "type": "sh",
+    }
+    Path(tmp_path, ".installer.info").write_text(json.dumps(installer))
+
+    assert get_installer_info(str(tmp_path)) == installer
+
+
+def test_get_installer_info_missing(tmp_path: Path) -> None:
+    assert get_installer_info(str(tmp_path)) is None
+
+
+@pytest.mark.parametrize(
+    "contents",
+    (
+        "not json",
+        "[]",
+        '{"name": "Miniconda3"}',
+        '{"name": "Miniconda3", "version": 1, "platform": "linux-64", "type": "sh"}',
+    ),
+)
+def test_get_installer_info_invalid(tmp_path: Path, contents: str) -> None:
+    Path(tmp_path, ".installer.info").write_text(contents)
+
+    assert get_installer_info(str(tmp_path)) is None
 
 
 # conda info --all [--json]
@@ -192,6 +251,7 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "envs_details",
         "envs_dirs",
         "pkgs_dirs",
+        "notices_cache_dir",
         "platform",
         "python_version",
         "rc_path",
@@ -235,18 +295,42 @@ def test_info_envs_json(conda_cli: CondaCLIFixture):
     assert isdir(first_env)
     first_envs_details = parsed["envs_details"][first_env]
     assert isinstance(first_envs_details, dict)
+    assert "size" not in first_envs_details
 
 
-# conda info --license
-def test_info_license(conda_cli: CondaCLIFixture):
-    with pytest.deprecated_call():
-        conda_cli("info", "--license")
+def test_info_envs_size(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("info", "--envs", "--size")
+    assert not stderr
+    assert not err
+
+    lines = stdout.strip().split("\n")
+    non_comment_lines = [line for line in lines if line and not line.startswith("#")]
+
+    # regex to match: <any prefix stuff> <number> <unit> <path>
+    # The path is at the end of the line.
+    pattern = re.compile(
+        r"\s+(?P<size>\d+(\.\d+)?)\s+(?P<unit>B|KB|MB|GB)\s+(?P<path>.*)$"
+    )
+
+    for line in non_comment_lines:
+        match = pattern.search(line)
+        assert match, f"Line did not match size pattern: {line}"
+        assert match.group("unit") in ["B", "KB", "MB", "GB"]
 
 
-# conda info --root
-def test_info_root(conda_cli: CondaCLIFixture):
-    with pytest.deprecated_call():
-        conda_cli("info", "--root")
+def test_info_envs_size_json(conda_cli: CondaCLIFixture):
+    stdout, stderr, err = conda_cli("info", "--envs", "--size", "--json")
+    assert not stderr
+    assert not err
+
+    parsed = json.loads(stdout.strip())
+    assert isinstance(parsed, dict)
+    assert "envs_details" in parsed
+
+    for _, details in parsed["envs_details"].items():
+        assert "size" in details
+        assert isinstance(details["size"], int)
+        assert details["size"] >= 0
 
 
 def test_iter_info_components() -> None:
@@ -264,17 +348,20 @@ def test_iter_info_components() -> None:
     assert tuple(components) == ("base", "channels", "envs", "envs_details", "system")
 
 
-def test_get_info_components() -> None:
-    with pytest.deprecated_call():
-        components = get_info_components(
-            args=SimpleNamespace(
-                base=True,
-                unsafe_channels=True,
-                all=True,
-                envs=True,
-                system=True,
-            ),
-            context=SimpleNamespace(json=False),
-        )
-    assert isinstance(components, set)
-    assert components == {"base", "channels", "envs", "envs_details", "system"}
+def test_compute_prefix_size(tmp_env: TmpEnvFixture):
+    with tmp_env("ca-certificates") as prefix:
+        prefix_data = PrefixData(prefix)
+        size = prefix_data.size()
+        assert size > 0
+
+
+def test_compute_prefix_size_empty_env(tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
+        prefix_data = PrefixData(prefix)
+        size = prefix_data.size()
+        assert size == 0
+
+
+def test_info_size_without_envs(conda_cli: CondaCLIFixture):
+    with pytest.raises(ArgumentError, match="--size can only be used with --envs"):
+        conda_cli("info", "--size")

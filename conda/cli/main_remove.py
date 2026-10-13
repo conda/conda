@@ -16,7 +16,9 @@ log = logging.getLogger(__name__)
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..common.constants import NULL
+    from ..deprecations import deprecated
     from .actions import NullCountAction
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_channels,
@@ -28,7 +30,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_solver,
     )
 
-    summary = "Remove a list of packages from a specified conda environment. "
+    summary = BUILTIN_SUBCOMMANDS["remove"]["help"]
     description = dals(
         f"""
         {summary}
@@ -46,19 +48,19 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         """
         Examples:
 
-        Remove the package 'scipy' from the currently-active environment::
+        Remove the package 'scipy' from the currently-active environment:
 
             conda remove scipy
 
-        Remove a list of packages from an environment 'myenv'::
+        Remove a list of packages from an environment 'myenv':
 
             conda remove -n myenv scipy curl wheel
 
-        Remove all packages from environment `myenv` and the environment itself::
+        Remove all packages from environment `myenv` and the environment itself:
 
             conda remove -n myenv --all
 
-        Remove all packages from the environment `myenv` but retain the environment::
+        Remove all packages from the environment `myenv` but retain the environment:
 
             conda remove -n myenv --all --keep-env
 
@@ -127,7 +129,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     )
     p.add_argument(
         "--dev",
-        action=NullCountAction,
+        action=deprecated.action(
+            "27.3",
+            "27.9",
+            NullCountAction,
+            addendum="Set `PYTHONPATH` to the conda source root instead.",
+        ),
         help="Use `sys.executable -m conda` in wrapper scripts instead of CONDA_EXE. "
         "This is mainly for use during tests where we test new conda sources "
         "against old Python versions.",
@@ -227,8 +234,35 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             specs = specs_from_args(args.package_names)
         channel_urls = ()
         subdirs = ()
+
+        from ..exceptions import (
+            PackagesNotFoundInChannelsError,
+            PackagesNotFoundInPrefixError,
+        )
+
+        prefix_data = PrefixData(prefix)
+        if unmatched_specs := [
+            str(spec) for spec in specs if not tuple(prefix_data.query(spec))
+        ]:
+            raise PackagesNotFoundInPrefixError(
+                tuple(sorted(unmatched_specs)), prefix=prefix
+            )
+
         solver_backend = context.plugin_manager.get_cached_solver_backend()
         solver = solver_backend(prefix, channel_urls, subdirs, specs_to_remove=specs)
-        txn = solver.solve_for_transaction()
+
+        try:
+            txn = solver.solve_for_transaction()
+        except (PackagesNotFoundInPrefixError, PackagesNotFoundInChannelsError):
+            # no extra processing for subclasses of PackagesNotFoundError
+            raise
+        except PackagesNotFoundError as e:
+            # If a backend raises the generic error, convert it to a more specific one
+            packages = getattr(e, "packages", None)
+            if not packages:
+                packages = tuple(sorted(str(s) for s in specs))
+
+            raise PackagesNotFoundInPrefixError(packages, prefix=prefix) from e
+
         handle_txn(txn, prefix, args, False, True)
         return 0

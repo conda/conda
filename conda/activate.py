@@ -37,7 +37,6 @@ from .base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PACKAGE_ENV_VARS_DIR,
     PREFIX_STATE_FILE,
-    RESERVED_ENV_NAMES,
     RESERVED_ENV_VARS,
 )
 from .base.context import context, locate_prefix_by_name
@@ -46,12 +45,25 @@ from .common.path import path_identity as _path_identity
 from .common.path import paths_equal, unix_path_to_win, win_path_to_unix
 from .common.serialize import json
 from .deprecations import deprecated
-from .exceptions import ActivateHelp, ArgumentError, DeactivateHelp, GenericHelp
+from .exceptions import (
+    ActivateHelp,
+    ArgumentError,
+    CondaValueError,
+    DeactivateHelp,
+    EnvironmentLocationNotFound,
+    GenericHelp,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
+    from typing import Any
+
 
 log = getLogger(__name__)
+
+_MSYS2_CYGWIN_PREFIX_RE: re.Pattern[str] = re.compile(
+    r"^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*"
+)
 
 
 BUILTIN_COMMANDS = {
@@ -108,17 +120,19 @@ class _Activator(metaclass=abc.ABCMeta):
 
     needs_line_ending_fix: bool
 
-    def __init__(self, arguments=None):
-        self._raw_arguments = arguments
+    def __init__(self, arguments: Iterable[str] | None = None):
+        self._raw_arguments = None if arguments is None else tuple(arguments)
 
     def get_export_unset_vars(self, export_metavars=True, **kwargs):
         """
-        :param export_metavars: whether to export `conda_exe_vars` meta variables.
-        :param kwargs: environment variables to export.
-            .. if you pass and set any other variable to None, then it
-            emits it to the dict with a value of None.
+        Args:
+            export_metavars: whether to export `conda_exe_vars` meta variables.
+            kwargs: environment variables to export.
+                .. if you pass and set any other variable to None, then it
+                emits it to the dict with a value of None.
 
-        :return: A dict of env vars to export ordered the same way as kwargs.
+        Returns:
+            A dict of env vars to export ordered the same way as kwargs.
             And a list of env vars to unset.
         """
         unset_vars = []
@@ -188,7 +202,6 @@ class _Activator(metaclass=abc.ABCMeta):
             self._yield_commands(self.build_reactivate()), self.tempfile_extension
         )
 
-    @deprecated.argument("25.9", "26.3", "auto_activate_base", rename="auto_activate")
     def hook(self, auto_activate: bool | None = None) -> str:
         builder: list[str] = []
         if preamble := self._hook_preamble():
@@ -209,10 +222,22 @@ class _Activator(metaclass=abc.ABCMeta):
         # return value meant to be written to stdout
         self._parse_and_set_args()
 
-        # invoke pre/post commands, see conda.cli.conda_argparse.do_call
-        context.plugin_manager.invoke_pre_commands(self.command)
+        # Avoid loading plugins solely to run activation hooks. If another
+        # code path has already initialized the plugin manager, preserve the
+        # existing pre/post hook behavior.
+        from .plugins.manager import get_plugin_manager
+
+        try:
+            plugins_loaded = get_plugin_manager.cache_info().currsize > 0
+        except (AttributeError, TypeError):
+            # Tests may patch the cached factory; keep hooks enabled then.
+            plugins_loaded = True
+
+        if plugins_loaded:
+            context.plugin_manager.invoke_pre_commands(self.command)
         response = getattr(self, self.command)()
-        context.plugin_manager.invoke_post_commands(self.command)
+        if plugins_loaded:
+            context.plugin_manager.invoke_post_commands(self.command)
         return response
 
     def template_unset_var(self, key: str) -> str:
@@ -223,6 +248,12 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def template_path_var(self, key: str, value: str) -> str:
         return self.path_var_tmpl % (key, value)
+
+    def template_set_var(self, key: str, value: str) -> str:
+        return self.set_var_tmpl % (key, value)
+
+    def template_run_script(self, script: str) -> str:
+        return self.run_script_tmpl % script
 
     def _hook_preamble(self) -> str | None:
         result = []
@@ -259,10 +290,17 @@ class _Activator(metaclass=abc.ABCMeta):
             try:
                 dev_idx = remainder_args.index("--dev")
             except ValueError:
-                context.dev = False
+                pass
             else:
                 del remainder_args[dev_idx]
                 context.dev = True
+                deprecated.topic(
+                    "27.3",
+                    "27.9",
+                    topic=f"`conda {command} --dev`",
+                    addendum="Set `PYTHONPATH` to the conda source root instead.",
+                    deprecation_type=FutureWarning,
+                )
 
         if command == "activate":
             self.stack = context.auto_stack and context.shlvl <= context.auto_stack
@@ -304,45 +342,46 @@ class _Activator(metaclass=abc.ABCMeta):
 
     def _yield_commands(self, cmds_dict):
         for key, value in sorted(cmds_dict.get("export_path", {}).items()):
-            yield self.export_var_tmpl % (key, value)
+            yield self.template_export_var(key, value)
 
         for script in cmds_dict.get("deactivate_scripts", ()):
-            yield self.run_script_tmpl % script
+            yield self.template_run_script(script)
 
         for key in cmds_dict.get("unset_vars", ()):
-            yield self.unset_var_tmpl % key
+            yield self.template_unset_var(key)
 
         for key, value in cmds_dict.get("set_vars", {}).items():
-            yield self.set_var_tmpl % (key, value)
+            yield self.template_set_var(key, value)
 
         for key, value in cmds_dict.get("export_vars", {}).items():
-            yield self.export_var_tmpl % (key, value)
+            yield self.template_export_var(key, value)
 
         for script in cmds_dict.get("activate_scripts", ()):
-            yield self.run_script_tmpl % script
+            yield self.template_run_script(script)
 
-    def build_activate(self, env_name_or_prefix):
+    def build_activate(self, env_name_or_prefix: str) -> dict[str, Any]:
         return self._build_activate_stack(env_name_or_prefix, False)
 
-    def build_stack(self, env_name_or_prefix):
+    def build_stack(self, env_name_or_prefix: str) -> dict[str, Any]:
         return self._build_activate_stack(env_name_or_prefix, True)
 
-    def _build_activate_stack(self, env_name_or_prefix, stack):
-        # get environment prefix
-        if re.search(r"\\|/", env_name_or_prefix):
-            prefix = expand(env_name_or_prefix)
-            if not isdir(join(prefix, "conda-meta")):
-                from .exceptions import EnvironmentLocationNotFound
-
-                raise EnvironmentLocationNotFound(prefix)
-        elif env_name_or_prefix in (RESERVED_ENV_NAMES):
-            prefix = context.root_prefix
-        else:
-            prefix = locate_prefix_by_name(env_name_or_prefix)
+    def _build_activate_stack(
+        self,
+        env_name_or_prefix: str,
+        stack: bool,
+    ) -> dict[str, Any]:
+        prefix = self._resolve_prefix(env_name_or_prefix)
 
         # get prior shlvl and prefix
         old_conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)
         old_conda_prefix = os.getenv("CONDA_PREFIX")
+
+        if old_conda_shlvl > 0 and not old_conda_prefix:
+            raise CondaValueError(
+                f"CONDA_SHLVL is {old_conda_shlvl} but CONDA_PREFIX is unset or empty. "
+                "Check your shell initialization and any parent process that modifies "
+                "conda environment variables."
+            )
 
         # if the prior active prefix is this prefix we are actually doing a reactivate
         if old_conda_prefix == prefix and old_conda_shlvl > 0:
@@ -471,6 +510,13 @@ class _Activator(metaclass=abc.ABCMeta):
             if old_conda_shlvl <= 1:
                 raise ValueError("'old_conda_shlvl' must be 2 or larger")
             new_prefix = os.getenv("CONDA_PREFIX_%d" % new_conda_shlvl)
+            if not new_prefix:
+                raise ValueError(
+                    "This should not happen! You may have non-consecutive `CONDA_PREFIX_<number> "
+                    "environment variables. Try restarting your shell and, if it persists, "
+                    "check your shell profile to see what may be adding a faulty "
+                    "CONDA_PREFIX_<number> environment variable."
+                )
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
             new_conda_environment_env_vars = self._get_environment_env_vars(new_prefix)
@@ -601,7 +647,7 @@ class _Activator(metaclass=abc.ABCMeta):
 
                 # MSYS2 /c/
                 # cygwin /cygdrive/c/
-                if re.match("^(/[A-Za-z]/|/cygdrive/[A-Za-z]/).*", prefix):
+                if _MSYS2_CYGWIN_PREFIX_RE.match(prefix):
                     path = unix_path_to_win(path, prefix)
 
                 if isdir(path):
@@ -830,8 +876,19 @@ class _Activator(metaclass=abc.ABCMeta):
             )
         return env_vars
 
+    def _resolve_prefix(self, env_name_or_prefix: str) -> str:
+        """Hook for shell-specific activation path validation."""
+        # get environment prefix
+        if "\\" in env_name_or_prefix or "/" in env_name_or_prefix:
+            prefix = expand(env_name_or_prefix)
+            if not isdir(join(prefix, "conda-meta")):
+                raise EnvironmentLocationNotFound(prefix)
+        else:
+            prefix = str(locate_prefix_by_name(env_name_or_prefix))
+        return prefix
 
-def expand(path):
+
+def expand(path: str) -> str:
     return abspath(expanduser(expandvars(path)))
 
 
@@ -991,6 +1048,15 @@ class CmdExeActivator(_Activator):
         # TODO: cmd.exe doesn't get a hook function? Or do we need to do something different?
         #       Like, for cmd.exe only, put a special directory containing only conda.bat on PATH?
         pass
+
+    def _resolve_prefix(self, env_name_or_prefix: str) -> str:
+        prefix = super()._resolve_prefix(env_name_or_prefix)
+        if "^" in str(prefix):
+            raise CondaValueError(
+                "Cannot activate environments with '^' in their path from cmd.exe.\n"
+                "Use PowerShell or a caret-free environment path."
+            )
+        return prefix
 
 
 class FishActivator(_Activator):

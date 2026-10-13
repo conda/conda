@@ -100,18 +100,41 @@ use the ``--no-default-packages`` flag:
 Creating an environment from an environment.yml file
 ====================================================
 
-Use the terminal for the following steps:
+Before you start, you need to use a text editor to create an environment file that
+looks like the following:
+
+.. code:: yaml
+
+   # environment.yml
+   name: myenv
+   channels:
+     - conda-forge
+   dependencies:
+     - python
+     - numpy
+
+The file above defines an environment named, "myenv" that uses ``conda-forge`` as its
+channel and adds the dependencies ``python`` and ``numpy``.
+
+Now that the ``environment.yml`` has been created, you can use the terminal for
+the following steps:
 
 #. Create the environment from the ``environment.yml`` file:
 
    .. code::
 
-      conda env create -f environment.yml
+      conda create --file environment.yml
 
    The first line of the ``yml`` file sets the new environment's
    name. For details see :ref:`Creating an environment file manually
    <create-env-file-manually>`.
 
+   .. hint::
+
+      Creating environments from YAML files was previously done with
+      ``conda env create --file <file>``. This still works but is not the preferred
+      way of creating environments. This older invocation will be kept around to
+      ensure backwards compatibility with existing scripts and automations.
 
 #. Activate the new environment: ``conda activate myenv``
 
@@ -309,6 +332,63 @@ source environment and the new copy.
 Building identical conda environments
 =====================================
 
+There are two ways to build identical conda environments,
+using explicit specification files and using lockfiles.
+
+Explicit spec files are usually limited to a single platform,
+but lockfiles can support multiple platforms.
+
+.. _multi-platform-lockfiles:
+
+Multi-platform lockfiles
+------------------------
+
+.. note::
+
+  Lockfile support is available in conda 26.5 and later.
+  Use the following command to update:
+
+  .. code::
+
+     conda install --name base "conda>=26.5"
+
+A lockfile contains the exact packages, versions, builds, and
+channels required to recreate an environment exactly. Because
+the lockfile captures a fully resolved state, conda can skip the solver
+step and go drectly to downloading and installing packages.
+Conda supports ``conda-lock.yaml`` and ``pixi.lock``
+natively, and these lockfile types can be used to exactly recreate
+environments on Windows, Linux, and macOS (depending on package
+availability).
+
+Create a lockfile with `conda export`:
+
+.. code::
+
+    conda export --name my-env --file conda-lock.yaml
+
+Use the lockfile to create an identical environment
+on another machine:
+
+.. code::
+
+    conda create --name my-env --file conda-lock.yaml
+
+Create a lockfile for different platforms:
+
+.. code::
+
+    conda export --name my-env --file conda-lock.yaml \
+    --platform linux-64 \
+    --platform osx-64 \
+    --platform win-64
+
+For more information on conda lockfiles, see the conda-lockfiles
+`GitHub documentation <https://conda-incubator.github.io/conda-lockfiles/getting-started/>`_.
+
+Explicit spec files
+-------------------
+
 You can use explicit specification files to build an identical
 conda environment on the same operating system platform, either
 on the same machine or on a different machine.
@@ -364,12 +444,17 @@ Use the terminal for the following steps:
 
      conda install --name myenv --file spec-file.txt
 
+   The ``--file`` option also supports YAML and other
+   formats via environment specifier plugins. For ``conda install``
+   (and ``conda update``), only the package list is used; any name
+   or prefix in the file is ignored. Packages are installed into
+   the target environment (-n/-p or the current environment).
+
    Conda does not check architecture or dependencies when installing
    from a spec file. To ensure that the packages work correctly,
    make sure that the file was created from a working environment,
    and use it on the same architecture, operating system, and
    platform, such as linux-64 or osx-64.
-
 
 .. _activate-env:
 
@@ -436,6 +521,38 @@ with any child environment active. In general, calling any executable in
 an environment without first activating that environment will likely not work.
 For the ability to run executables in activated environments, you may be
 interested in the ``conda run`` command.
+
+Activating environments in shell scripts
+----------------------------------------
+
+The ``conda activate`` command is normally made available by shell
+initialization code added by ``conda init``. Non-interactive shell scripts
+may not read the same shell startup files as an interactive terminal session,
+so ``conda activate`` can fail even when it works from the command line.
+
+Initialize conda for the current shell before activating the environment:
+
+.. tab-set::
+
+   .. tab-item:: Bash
+
+      .. code-block:: bash
+
+         eval "$(conda shell.bash hook)"
+         conda activate myenv
+
+   .. tab-item:: PowerShell
+
+      .. code-block:: powershell
+
+         conda shell.powershell hook | Out-String | Invoke-Expression
+         conda activate myenv
+
+Replace ``myenv`` with the environment name or directory path. If you only need
+to run a single command in an environment, you can use ``conda run`` instead of
+activating the environment in the script::
+
+  conda run -n myenv python script.py
 
 If you experience errors with PATH, review our :ref:`troubleshooting <path-error>`.
 
@@ -926,6 +1043,18 @@ This exports only explicitly installed packages, excluding platform-specific dep
 .. note::
    The ``--from-history`` flag only works with structured formats (``environment-yaml``,
    ``environment-json``). It's not compatible with text formats (``explicit``, ``requirements``).
+
+Lockfiles also support multiple platforms:
+
+.. code-block:: bash
+
+   conda export --name my-env --file conda-lock.yaml \
+   --platform linux-64 \
+   --platform osx-64 \
+   --platform win-64
+
+For more information on conda lockfiles, see the conda-lockfiles
+`GitHub documentation <https://conda-incubator.github.io/conda-lockfiles/getting-started/>`_.
 
 Alternative: Traditional conda env export
 ------------------------------------------

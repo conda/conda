@@ -1,0 +1,19 @@
+# Copyright (C) 2012 Anaconda, Inc
+# SPDX-License-Identifier: BSD-3-Clause
+
+package:
+  name: buildstring
+  version: 1.0
+
+build:
+  string: versioned_{{ versioned }}
+  noarch: generic
+
+requirements:
+  run:
+    - versioned {{ versioned }}
+
+about:
+  home: https://github.com/conda/conda
+  license: BSD-3-Clause
+  summary: Package with a variant build string for revision installs

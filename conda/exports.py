@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from builtins import input  # noqa: UP029
 from io import StringIO
-from typing import TYPE_CHECKING
 
 from . import CondaError
 from .base.constants import (
@@ -28,7 +27,6 @@ from .cli.helpers import (  # noqa: F401
     add_parser_prefix,
 )
 from .common import compat  # noqa: F401
-from .common.serialize.json import CondaJSONEncoder
 from .common.toposort import _toposort  # noqa: F401
 from .core.index import (
     Index,
@@ -36,7 +34,7 @@ from .core.index import (
 )
 from .core.package_cache_data import ProgressiveFetchExtract  # noqa: F401
 from .core.prefix_data import delete_prefix_from_linked_data
-from .core.solve import Solver  # noqa: F401
+from .core.solve import Solver
 from .core.subdir_data import cache_fn_url  # noqa: F401
 from .deprecations import deprecated
 from .exceptions import (
@@ -68,9 +66,6 @@ from .resolve import (  # noqa: F401
 )
 from .utils import human_bytes, url_path  # noqa: F401
 
-if TYPE_CHECKING:
-    from typing import Any
-
 reset_context()  # initialize context when conda.exports is imported
 
 
@@ -96,26 +91,6 @@ LinkError = LinkError
 CondaOSError = CondaOSError
 # Replacements for six exports for compatibility
 
-
-# FUTURE: conda 26.3+ remove this
-def __getattr__(name: str) -> Any:
-    # lazy load the deprecated module
-    if name == "plan":
-        from . import plan
-
-        return plan
-
-    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
-
-
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "EntityEncoder",
-    CondaJSONEncoder,
-    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
-)
-del CondaJSONEncoder
 
 deprecated.constant(
     "26.9",
@@ -290,6 +265,15 @@ deprecated.constant(
     addendum="Use `conda.exceptions.UnsatisfiableError` instead.",
 )
 del UnsatisfiableError
+
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "Solver",
+    Solver,
+    addendum="Use `conda.core.solve.Solver` instead.",
+)
+del Solver
 
 
 def get_default_urls():

@@ -21,8 +21,10 @@ from ...base.constants import (
 from ...base.context import context
 from ...common.io import swallow_broken_pipe
 from ...common.path import paths_equal
+from ...common.terminal import is_tty, term_dumb
 from ...core.prefix_data import PrefixData
 from ...exceptions import CondaError
+from ...utils import human_bytes
 from .. import hookimpl
 from ..types import (
     CondaReporterBackend,
@@ -33,6 +35,7 @@ from ..types import (
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from typing import Any
 
     from ...common.path import PathType
 
@@ -184,26 +187,26 @@ class ConsoleReporterRenderer(ReporterRendererBase):
     Default implementation for console reporting in conda
     """
 
+    def render(self, data: Any, **kwargs) -> str:
+        text = super().render(data, **kwargs)
+        # trailing newline
+        return text if text.endswith("\n") else f"{text}\n"
+
     def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
-        table_parts = [""]
+        table_parts = []
         longest_header = max(map(len, data.keys()))
 
         for header, value in data.items():
             table_parts.append(f" {header:>{longest_header}} : {value}")
 
-        table_parts.append("\n")
-
-        return "\n".join(table_parts)
+        # leading and trailing newlines
+        return "\n" + "\n".join(table_parts) + "\n\n"
 
     @staticmethod
-    def envs_list(
-        prefixes: Iterable[PathType | PrefixData], output=True, **kwargs
-    ) -> str:
-        if not output:
-            return ""
+    def envs_list(prefixes: Iterable[PathType | PrefixData], **kwargs) -> str:
+        show_size = kwargs.get("show_size", False)
 
         output = [
-            "",
             "# conda environments:",
             "#",
             "# * -> active",
@@ -218,16 +221,24 @@ class ConsoleReporterRenderer(ReporterRendererBase):
                 else " "
             )
             frozen = "+" if prefix.is_frozen() else " "
-            return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
+            if show_size:
+                size_str = human_bytes(prefix.size())
+                return f"{prefix.name:20} {active} {frozen} {size_str:>10} {prefix.prefix_path}"
+            else:
+                return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
 
         for env_prefix in prefixes:
             if not isinstance(env_prefix, PrefixData):
                 env_prefix = PrefixData(env_prefix)
             output.append(disp_env(env_prefix))
 
-        output.append("\n")
+        # leading and trailing newlines
+        return "\n" + "\n".join(output) + "\n\n"
 
-        return "\n".join(output)
+    @property
+    def animations_disabled(self) -> bool:
+        """True when progress bars/spinners should be suppressed."""
+        return context.quiet or not is_tty() or term_dumb()
 
     def progress_bar(
         self,
@@ -235,18 +246,26 @@ class ConsoleReporterRenderer(ReporterRendererBase):
         **kwargs,
     ) -> ProgressBarBase:
         """
-        Determines whether to return a TQDMProgressBar or QuietProgressBar
+        Determines whether to return a TQDMProgressBar or QuietProgressBar.
+
+        Animations are suppressed when:
+        * ``context.quiet`` is set,
+        * the output is not a TTY (e.g. piped to a file), or
+        * ``TERM=dumb`` or ``TERM=unknown`` is set.
         """
-        if context.quiet:
+        if self.animations_disabled:
             return QuietProgressBar(description, **kwargs)
         else:
             return TQDMProgressBar(description, **kwargs)
 
     def spinner(self, message: str, fail_message: str = "failed\n") -> SpinnerBase:
         """
-        Determines whether to return a Spinner or QuietSpinner
+        Determines whether to return a Spinner or QuietSpinner.
+
+        Animations are suppressed under the same conditions as
+        :meth:`progress_bar`.
         """
-        if context.quiet:
+        if self.animations_disabled:
             return QuietSpinner(message, fail_message)
         else:
             return Spinner(message, fail_message)

@@ -192,4 +192,5 @@ def test_register_env_directory_creation_error(mocker):
 
     mock_call, *_ = mock_log.warning.mock_calls
 
-    assert f"Could not create {conda_dir}" in mock_call.args[0]
+    assert "Could not create %s" in mock_call.args[0]
+    assert mock_call.args[1] == conda_dir

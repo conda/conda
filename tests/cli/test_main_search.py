@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
 import pytest
@@ -11,7 +12,7 @@ import requests
 from conda.base.context import context, reset_context
 from conda.cli.main_search import _pretty_record_format, pretty_record
 from conda.common.serialize import json
-from conda.exceptions import PackagesNotFoundError
+from conda.exceptions import NoChannelsConfiguredError, PackagesNotFoundError
 from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.models.records import PackageRecord
 
@@ -70,6 +71,34 @@ def test_search_1(conda_cli: CondaCLIFixture):
     assert not err
 
 
+@pytest.mark.flaky(reruns=5)
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
+def test_search_1_conda_forge(
+    sharded: str, monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture
+):
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
+    reset_context()
+
+    stdout, stderr, err = conda_cli(
+        "search",
+        "ipython",
+        "--json",
+        "--override-channels",
+        "--channel",
+        "conda-forge",
+    )
+    parsed = json.loads(stdout.strip())
+    assert isinstance(parsed, dict)
+    assert not stderr
+    assert not err
+
+
 @pytest.mark.parametrize(
     "package",
     [
@@ -117,28 +146,33 @@ def test_search_3(conda_cli: CondaCLIFixture):
 
 
 @pytest.mark.flaky(reruns=1)
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
 def test_search_4(
+    sharded: str,
+    monkeypatch: MonkeyPatch,
     conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,  # use test channel
     tmp_pkgs_dir: Path,  # empty cache
 ):
     """
     Show error when --use-index-cache is used but index cache is empty.
     """
-    try:
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
+    reset_context()
+
+    with pytest.raises(PackagesNotFoundError):
         conda_cli(
             "search",
             "--json",
-            "--override-channels",
-            "--channel=defaults",
             "--use-index-cache",
-            "python",
+            "small",
         )
-    except PackagesNotFoundError as e:
-        # conda_cli doesn't output json on exception; check that exception is
-        # json serializable with CondaJSONEncoder.
-
-        error = json.dumps(e.dump_map())
-        assert "PackagesNotFoundError" in error  # type: ignore[index]
 
 
 @pytest.mark.flaky(reruns=5)
@@ -184,6 +218,21 @@ def test_search_envs_json(conda_cli: CondaCLIFixture):
     assert all(entry["package_records"][0]["name"] == search_for for entry in parsed)
 
 
+def test_search_envs_nonexistent(conda_cli: CondaCLIFixture):
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", "--envs", "does-not-exist")
+
+
+def test_search_envs_nonexistent_json(conda_cli: CondaCLIFixture):
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", "--envs", "--json", "does-not-exist")
+
+
+def test_search_envs_nonexistent_info(conda_cli: CondaCLIFixture):
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", "--envs", "--info", "does-not-exist")
+
+
 @pytest.mark.flaky(reruns=5)
 def test_search_inflexible(conda_cli: CondaCLIFixture):
     # 'r-rcpparmadill' should not be found
@@ -200,6 +249,59 @@ def test_search_inflexible(conda_cli: CondaCLIFixture):
         )
     # check that failure wasn't from flexible mode
     assert "*r-rcpparmadill*" not in str(excinfo.value)
+
+
+@pytest.mark.parametrize("json_output", (False, True))
+def test_flexible_search_spinner_covers_query_and_deferred_results(
+    mocker, conda_cli: CondaCLIFixture, json_output: bool
+):
+    active_spinner = None
+    events = []
+    record = PackageRecord.from_objects(
+        {"name": "missing-example", "version": "1.0", "build": "0", "build_number": 0}
+    )
+
+    @contextmanager
+    def spinner(message):
+        nonlocal active_spinner
+        previous_spinner = active_spinner
+        active_spinner = message
+        try:
+            yield
+        finally:
+            active_spinner = previous_spinner
+
+    def query_all(spec, channel_urls, subdirs):
+        name = spec.get_raw_value("name")
+        events.append(("query", name, active_spinner))
+        if spec.get_exact_value("name") == "missing":
+            return iter(())
+
+        def deferred_results():
+            events.append(("iterate", name, active_spinner))
+            yield record
+
+        return deferred_results()
+
+    mocker.patch("conda.reporters.get_spinner", side_effect=spinner)
+    mocker.patch("conda.core.subdir_data.query_all", side_effect=query_all)
+
+    args = ("search", "missing", "--override-channels", "--channel=defaults")
+    stdout, stderr, code = conda_cli(*args, *(("--json",) if json_output else ()))
+
+    assert code == 0, stderr
+    assert events[0] == ("query", "missing", "Loading channels")
+    assert [event[:2] for event in events[1:]] == [
+        ("query", "*missing*"),
+        ("iterate", "*missing*"),
+    ]
+    assert events[1][2]
+    assert events[2][2] == events[1][2]
+    if json_output:
+        assert json.loads(stdout)["missing-example"][0]["name"] == "missing-example"
+    else:
+        assert "No match found for: missing" in stdout
+        assert "missing-example" in stdout
 
 
 @pytest.mark.parametrize(
@@ -228,19 +330,40 @@ def test_rpy_search(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture, subdir
     assert "rpy2" in json.loads(stdout)
 
 
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
 def test_current_platform_package_missing(
-    test_recipes_channel: Path,
-    conda_cli: CondaCLIFixture,
-):
-    with pytest.raises(PackagesNotFoundError):
-        conda_cli("search", "arch-package", "--json")
-
-
-def test_mocked_platform_package_found(
+    sharded: str,
     monkeypatch: MonkeyPatch,
     test_recipes_channel: Path,
     conda_cli: CondaCLIFixture,
 ):
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
+    reset_context()
+
+    with pytest.raises(PackagesNotFoundError):
+        conda_cli("search", "arch-package", "--json")
+
+
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
+def test_mocked_platform_package_found(
+    sharded: str,
+    monkeypatch: MonkeyPatch,
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+):
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
     # mock a different subdir
     monkeypatch.setenv("CONDA_SUBDIR", "linux-fake")
     reset_context()
@@ -254,10 +377,22 @@ def test_mocked_platform_package_found(
     assert not err
 
 
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
 def test_different_platform_package_found(
+    sharded: str,
+    monkeypatch: MonkeyPatch,
     test_recipes_channel: Path,
     conda_cli: CondaCLIFixture,
 ):
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
+    reset_context()
+
     stdout, stderr, err = conda_cli(
         "search",
         "--platform=linux-fake",
@@ -271,10 +406,22 @@ def test_different_platform_package_found(
     assert not err
 
 
+@pytest.mark.parametrize(
+    "sharded",
+    (
+        "true",
+        "false",
+    ),
+)
 def test_unknown_platform_package_missing(
+    sharded: str,
+    monkeypatch: MonkeyPatch,
     test_recipes_channel: Path,
     conda_cli: CondaCLIFixture,
 ):
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", sharded)
+    reset_context()
+
     with pytest.raises(PackagesNotFoundError):
         conda_cli("search", "--platform=linux-unknown", "arch-package", "--json")
 
@@ -387,3 +534,23 @@ def test_pretty_record():
     )
 
     assert with_timestamp_and_constrains.startswith("p 1 1\n")
+
+
+def test_search_no_channels_configured(mocker, conda_cli: CondaCLIFixture):
+    """
+    Test that search raises NoChannelsConfiguredError when no channels are configured.
+    """
+    # Mock context.channels to return empty tuple to simulate no channels configured
+    mocker.patch(
+        "conda.base.context.Context.channels",
+        new_callable=mocker.PropertyMock,
+        return_value=(),
+    )
+    with pytest.raises(NoChannelsConfiguredError) as exc:
+        conda_cli(
+            "search",
+            "numpy",
+        )
+    error_message = str(exc.value)
+    assert "No channels are configured" in error_message
+    assert "numpy" in error_message

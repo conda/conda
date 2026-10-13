@@ -22,9 +22,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..base.constants import COMPATIBLE_SHELLS
     from ..common.compat import on_win
     from ..common.constants import NULL
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import add_parser_json
 
-    summary = "Initialize conda for shell interaction."
+    summary = BUILTIN_SUBCOMMANDS["init"]["help"]
     description = summary
     epilog = dals(
         """
@@ -65,6 +66,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         action="store_true",
         help=SUPPRESS,
         default=NULL,
+        dest="init_dev",
     )
 
     p.add_argument(
@@ -167,7 +169,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     else:
         selected_shells = tuple(args.shells)
 
-    if args.dev:
+    if args.init_dev:
         if len(selected_shells) != 1:
             raise ArgumentError("--dev can only handle one shell at a time right now")
         return initialize_dev(selected_shells[0])

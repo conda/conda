@@ -8,16 +8,14 @@ from collections import UserDict
 from logging import getLogger
 from typing import TYPE_CHECKING
 
-from boltons.setutils import IndexedSet
-
-from ..base.context import context, validate_channels
-from ..deprecations import deprecated
+from ..base.context import context
+from ..common.iterators import groupby_to_dict, unique
 from ..exceptions import (
     CondaKeyError,
     InvalidSpec,
     PackagesNotFoundError,
 )
-from ..models.channel import Channel, all_channel_urls
+from ..models.channel import Channel
 from ..models.match_spec import MatchSpec
 from ..models.records import EMPTY_LINK, PackageCacheRecord, PackageRecord, PrefixRecord
 from .package_cache_data import PackageCacheData
@@ -29,26 +27,12 @@ if TYPE_CHECKING:
     from typing import Any, Self
 
     from ..common.path import PathType
+    from .exclude_newer import ExcludeNewerPolicy
 
 
 log = getLogger(__name__)
 
 LAST_CHANNEL_URLS = []
-
-
-@deprecated(
-    "25.9",
-    "26.3",
-    addendum="Use `conda.base.context.validate_channels` instead.",
-)
-def check_allowlist(channel_urls: list[str]) -> None:
-    """
-    Check if the given channel URLs are allowed by the context's allowlist.
-    :param channel_urls: A list of channel URLs to check against the allowlist.
-    :raises ChannelNotAllowed: If any URL is not in the allowlist.
-    :raises ChannelDenied: If any URL is in the denylist.
-    """
-    validate_channels(channel_urls)
 
 
 class Index(UserDict):
@@ -101,6 +85,7 @@ class Index(UserDict):
         prefix: PathType | PrefixData | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
         use_system: bool = False,
+        exclude_newer_policy: ExcludeNewerPolicy | None = None,
     ) -> None:
         """Initializes a new index with the desired components.
 
@@ -128,7 +113,7 @@ class Index(UserDict):
             channels = ["local", *channels]
         if prepend:
             channels += context.channels
-        self._channels = IndexedSet(channels)
+        self._channels = tuple(unique(channels))
         if subdirs:
             if platform:
                 log.warning("subdirs is %s, ignoring platform %s", subdirs, platform)
@@ -136,16 +121,17 @@ class Index(UserDict):
             subdirs = (platform, "noarch") if platform is not None else context.subdirs
         self._subdirs = subdirs
         self._repodata_fn = repodata_fn
-        self.channels = {}
-        self.expanded_channels = IndexedSet()
+        self.channels: dict[str | Channel, list[SubdirData]] = {}
+        expanded_channels = {}
         for channel in self._channels:
-            urls = Channel(channel).urls(True, subdirs)
-            expanded_channels = [Channel(url) for url in urls]
-            self.channels[channel] = [
-                SubdirData(expanded_channel, repodata_fn=repodata_fn)
-                for expanded_channel in expanded_channels
-            ]
-            self.expanded_channels.update(expanded_channels)
+            self.channels[channel] = []
+            for url in Channel(channel).urls(True, subdirs):
+                url_as_channel = Channel(url)
+                self.channels[channel].append(
+                    SubdirData(url_as_channel, repodata_fn=repodata_fn)
+                )
+                expanded_channels.setdefault(url_as_channel, None)
+        self.expanded_channels: tuple[Channel, ...] = tuple(expanded_channels)
         # LAST_CHANNEL_URLS is still used in conda-build and must be maintained for the moment.
         LAST_CHANNEL_URLS.clear()
         LAST_CHANNEL_URLS.extend(self.expanded_channels)
@@ -157,6 +143,9 @@ class Index(UserDict):
             self.prefix_data = PrefixData(prefix)
         self.use_cache = True if use_cache is None and context.offline else use_cache
         self.use_system = use_system
+        from .exclude_newer import ExcludeNewerPolicy
+
+        self.exclude_newer_policy = exclude_newer_policy or ExcludeNewerPolicy()
 
     @property
     def cache_entries(self) -> tuple[PackageCacheRecord, ...]:
@@ -267,6 +256,11 @@ class Index(UserDict):
             prefix=self.prefix_data,
             repodata_fn=self._repodata_fn,
             use_system=self.use_system,
+            exclude_newer_policy=(
+                self.exclude_newer_policy
+                if self.exclude_newer_policy.active
+                else context.exclude_newer_policy
+            ),
         )
 
     @property
@@ -303,25 +297,13 @@ class Index(UserDict):
         for prefix_record in self.prefix_data.iter_records():
             if prefix_record in self._data:
                 current_record = self._data[prefix_record]
-                if current_record.channel == prefix_record.channel:
-                    # The downloaded repodata takes priority, so we do not overwrite.
-                    # We do, however, copy the link information so that the solver (i.e. resolve)
-                    # knows this package is installed.
-                    link = prefix_record.get("link") or EMPTY_LINK
-                    self._data[prefix_record] = PrefixRecord.from_objects(
-                        current_record, prefix_record, link=link
-                    )
-                else:
-                    # If the local packages channel information does not agree with
-                    # the channel information in the index then they are most
-                    # likely referring to different packages.  This can occur if a
-                    # multi-channel changes configuration, e.g. defaults with and
-                    # without the free channel. In this case we need to fake the
-                    # channel data for the existing package.
-                    prefix_channel = prefix_record.channel
-                    prefix_channel._Channel__canonical_name = prefix_channel.url()
-                    del prefix_record._PackageRecord__pkey
-                    self._data[prefix_record] = prefix_record
+                # The downloaded repodata takes priority, so we do not overwrite.
+                # We do, however, copy the link information so that the solver (i.e. resolve)
+                # knows this package is installed.
+                link = prefix_record.get("link") or EMPTY_LINK
+                self._data[prefix_record] = PrefixRecord.from_objects(
+                    current_record, prefix_record, link=link
+                )
             else:
                 # If the package is not in the repodata, use the local data.
                 # If the channel is known but the package is not in the index, it
@@ -380,6 +362,8 @@ class Index(UserDict):
                 if hasattr(key, "subdir") and key.subdir != subdir_data.channel.subdir:
                     continue
                 precs.extend(subdir_data.query(key))
+        if self.exclude_newer_policy.active:
+            return list(self.exclude_newer_policy.filter_records(precs))
         return precs
 
     def _update_from_prefix(
@@ -388,14 +372,8 @@ class Index(UserDict):
         prefix_prec = self.prefix_data.get(key.name, None) if self.prefix_data else None
         if prefix_prec and prefix_prec == prec:
             if prec:
-                if prec.channel == prefix_prec.channel:
-                    link = prefix_prec.get("link") or EMPTY_LINK
-                    prec = PrefixRecord.from_objects(prec, prefix_prec, link=link)
-                else:
-                    prefix_channel = prefix_prec.channel
-                    prefix_channel._Channel__canonical_name = prefix_channel.url()
-                    del prefix_prec._PackageRecord__pkey
-                    prec = prefix_prec
+                link = prefix_prec.get("link") or EMPTY_LINK
+                prec = PrefixRecord.from_objects(prec, prefix_prec, link=link)
             else:
                 prec = prefix_prec
         return prec
@@ -453,6 +431,17 @@ class Index(UserDict):
             inst.__dict__["_data"] = self.__dict__["_data"].copy()
         return inst
 
+    def copy(self) -> Self:
+        """Lazy shallow copy that does not realize unrealized package records.
+
+        Overrides ``UserDict.copy``, which reads ``self.data`` and calls
+        ``update`` and therefore forces
+        ``Index._realize()`` — constructing a PackageRecord for every package
+        of every channel — even though ``__copy__`` preserves unrealized
+        state. See conda/conda-build#4961.
+        """
+        return self.__copy__()
+
 
 class ReducedIndex(Index):
     """Index that contains a subset of available packages.
@@ -479,6 +468,7 @@ class ReducedIndex(Index):
         prefix: PathType | PrefixData | None = None,
         repodata_fn: str | None = context.repodata_fns[-1],
         use_system: bool = False,
+        exclude_newer_policy: ExcludeNewerPolicy | None = None,
     ) -> None:
         """Initialize a new reduced index.
 
@@ -496,6 +486,7 @@ class ReducedIndex(Index):
             prefix,
             repodata_fn,
             use_system,
+            exclude_newer_policy or context.exclude_newer_policy,
         )
         self.specs = specs
         self._derive_reduced_index()
@@ -505,17 +496,23 @@ class ReducedIndex(Index):
         return f"<{self.__class__.__name__}(spec={self.specs}, channels=[{channels}])>"
 
     def _derive_reduced_index(self) -> None:
-        records = IndexedSet()
+        records = {}
         collected_names = set()
         collected_track_features = set()
         pending_names = set()
         pending_track_features = set()
+        cache_records = (
+            groupby_to_dict(lambda record: record.name, self.cache_entries)
+            if self.use_cache
+            else {}
+        )
 
         def push_specs(*specs: MatchSpec | str) -> None:
             """
             Add a package name or track feature from a MatchSpec to the pending set.
 
-            :param spec: The MatchSpec to process.
+            Args:
+                *specs: The MatchSpecs to process.
             """
             for spec in map(MatchSpec, specs):
                 name = spec.get_raw_value("name")
@@ -529,9 +526,10 @@ class ReducedIndex(Index):
 
         def push_records(*records: PackageRecord) -> None:
             """
-            Process a package record to collect its dependencies and features.
+            Process package records to collect their dependencies and features.
 
-            :param record: The package record to process.
+            Args:
+                *records: The package records to process.
             """
             for record in records:
                 try:
@@ -564,8 +562,12 @@ class ReducedIndex(Index):
                 # new_records = SubdirData.query_all(
                 #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
                 # )
-                new_records = self._retrieve_all_from_channels(spec)
-                push_records(*new_records)
+                new_records = dict.fromkeys(self._retrieve_all_from_channels(spec))
+                for record in new_records:
+                    push_records(record)
+                for record in cache_records.get(name, ()):
+                    if record not in new_records:
+                        push_records(record)
                 records.update(new_records)
 
             while pending_track_features:
@@ -575,8 +577,13 @@ class ReducedIndex(Index):
                 # new_records = SubdirData.query_all(
                 #     spec, channels=channels, subdirs=subdirs, repodata_fn=repodata_fn
                 # )
-                new_records = self._retrieve_all_from_channels(spec)
-                push_records(*new_records)
+                new_records = dict.fromkeys(self._retrieve_all_from_channels(spec))
+                for record in new_records:
+                    push_records(record)
+                for records_for_name in cache_records.values():
+                    for record in records_for_name:
+                        if record not in new_records and spec.match(record):
+                            push_records(record)
                 records.update(new_records)
 
         self._data = {rec: rec for rec in records}
@@ -602,33 +609,23 @@ def dist_str_in_index(index: dict[Any, Any], dist_str: str) -> bool:
     """
     Check if a distribution string matches any package in the index.
 
-    :param index: The package index.
-    :param dist_str: The distribution string to match against the index.
-    :return: True if there is a match; False otherwise.
+    Args:
+        index: The package index.
+        dist_str: The distribution string to match against the index.
+
+    Returns:
+        True if there is a match; False otherwise.
     """
     match_spec = MatchSpec.from_dist_str(dist_str)
     return any(match_spec.match(prec) for prec in index.values())
-
-
-@deprecated("25.3", "26.3", addendum="Use `conda.core.Index.reload` instead.")
-def _supplement_index_with_system(index: dict[PackageRecord, PackageRecord]) -> None:
-    """
-    Loads and populates virtual package records from conda plugins
-    and adds them to the provided index, unless there is a naming
-    conflict.
-    :param index: The package index to supplement.
-    """
-    if isinstance(index, Index):
-        return
-    for package in context.plugin_manager.get_virtual_package_records():
-        index[package] = package
 
 
 def get_archspec_name() -> str | None:
     """
     Determine the architecture specification name for the current environment.
 
-    :return: The architecture name if available, otherwise None.
+    Returns:
+        The architecture name if available, otherwise None.
     """
     from ..base.context import _arch_names, non_x86_machines
 
@@ -639,7 +636,7 @@ def get_archspec_name() -> str | None:
     elif target_arch == "zos":
         return None
     elif target_arch.isdigit():
-        machine = _arch_names[int(target_arch)]
+        machine = _arch_names[target_arch]
     else:
         return None
 
@@ -651,32 +648,3 @@ def get_archspec_name() -> str | None:
         import archspec.cpu
 
         return str(archspec.cpu.host())
-
-
-@deprecated(
-    "26.3",
-    "26.9",
-    addendum="Use `conda.models.channel.all_channel_urls(context.channels)` instead.",
-)
-def calculate_channel_urls(
-    channel_urls: tuple[str] = (),
-    prepend: bool = True,
-    platform: str | None = None,
-    use_local: bool = False,
-) -> list[str]:
-    """
-    Calculate the full list of channel URLs to use based on the given parameters.
-
-    :param channel_urls: Initial list of channel URLs.
-    :param prepend: Whether to prepend default channels to the list.
-    :param platform: The target platform for the channels.
-    :param use_local: Whether to include the local channel.
-    :return: The calculated list of channel URLs.
-    """
-    if use_local:
-        channel_urls = ["local"] + list(channel_urls)
-    if prepend:
-        channel_urls += context.channels
-
-    subdirs = (platform, "noarch") if platform is not None else context.subdirs
-    return all_channel_urls(channel_urls, subdirs=subdirs)

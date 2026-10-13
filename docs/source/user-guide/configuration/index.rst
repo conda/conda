@@ -19,7 +19,7 @@ Configuration
 The following pages have information on how conda can be customized further through
 configuration.
 
-.. glossary::
+.. nav-glossary::
 
     :doc:`Using the .condarc conda configuration file <use-condarc>`
         Learn how to use a settings file (``.condarc``) to override defaults and maintain

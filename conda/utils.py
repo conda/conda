@@ -12,6 +12,7 @@ from os import environ
 from os.path import abspath, basename, dirname, isfile, join
 from pathlib import Path
 from shutil import which
+from typing import TYPE_CHECKING
 
 from . import CondaError
 from .auxlib.compat import Utf8NamedTemporaryFile, shlex_split_unicode
@@ -19,44 +20,17 @@ from .common.compat import isiterable, on_win
 from .common.url import path_to_url
 from .deprecations import deprecated
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
 log = logging.getLogger(__name__)
-
-
-@deprecated(
-    "25.3",
-    "26.3",
-    addendum="Use `conda.common.path.unix_path_to_win` instead.",
-)
-def unix_path_to_win(path, root_prefix=""):
-    """Convert a path or :-separated string of paths into a Windows representation
-    Does not add cygdrive.  If you need that, set root_prefix to "/cygdrive"
-    """
-    if len(path) > 1 and (";" in path or (path[1] == ":" and path.count(":") == 1)):
-        # already a windows path
-        return path.replace("/", "\\")
-    path_re = root_prefix + r'(/[a-zA-Z]/(?:(?![:\s]/)[^:*?"<>])*)'
-
-    def _translation(found_path):
-        group = found_path.group(0)
-        return "{}:{}".format(
-            group[len(root_prefix) + 1],
-            group[len(root_prefix) + 2 :].replace("/", "\\"),
-        )
-
-    translation = re.sub(path_re, _translation, path)
-    translation = re.sub(
-        ":([a-zA-Z]):\\\\", lambda match: ";" + match.group(0)[1] + ":\\", translation
-    )
-    return translation
-
-
-deprecated.constant("25.3", "26.3", "unix_path_to_win", unix_path_to_win)
-del unix_path_to_win
 
 
 def human_bytes(n):
     """
     Return the number of bytes n in more human readable form.
+
+    Note: Uses SI prefixes (KB, MB, GB) instead of binary prefixes (KiB, MiB, GiB).
 
     Examples:
         >>> human_bytes(42)
@@ -88,6 +62,7 @@ urlpath = url_path = path_to_url
 
 
 @cache
+@deprecated("26.9", "27.3")
 def sys_prefix_unfollowed():
     """Since conda is installed into non-root environments as a symlink only
     and because sys.prefix follows symlinks, this function can be used to
@@ -115,10 +90,11 @@ def quote_for_shell(*arguments):
     For POSIX uses `shlex.join`, for Windows uses a custom implementation to properly escape
     metacharacters.
 
-    :param arguments: Arguments to quote.
-    :type arguments: list of str
-    :return: Quoted arguments.
-    :rtype: str
+    Args:
+        arguments: Arguments to quote.
+
+    Returns:
+        Quoted arguments.
     """
     # [backport] Support passing in a list of strings or args of string.
     if len(arguments) == 1 and isiterable(arguments[0]):
@@ -158,6 +134,7 @@ else:
 # Ensures arguments are a tuple or a list. Strings are converted
 # by shlex_split_unicode() which is bad; we warn about it or else
 # we assert (and fix the code).
+@deprecated("26.9", "27.3")
 def massage_arguments(arguments, errors="assert"):
     # For reference and in-case anything breaks ..
     # .. one of the places (run_command in conda_env/utils.py) this
@@ -201,9 +178,21 @@ def wrap_subprocess_call(
     prefix,
     dev_mode,
     debug_wrapper_scripts,
-    arguments,
+    arguments: Sequence[str],
 ):
-    arguments = massage_arguments(arguments)
+    # Ensure arguments is a tuple of strings
+    if not isiterable(arguments):
+        raise TypeError("`arguments` must be iterable")
+    arguments = tuple(map(str, arguments))
+
+    if dev_mode:
+        deprecated.topic(
+            "27.3",
+            "27.9",
+            topic="`conda.utils.wrap_subprocess_call(dev_mode)`",
+            addendum="Set `PYTHONPATH` to the conda source root instead.",
+        )
+
     script_caller = None
     multiline = False
     if len(arguments) == 1 and "\n" in arguments[0]:
@@ -354,9 +343,11 @@ def get_comspec():
 
     Ensures COMSPEC envvar is set to cmd.exe, if not attempt to find it.
 
-    :raises KeyError: COMSPEC is undefined and cannot be found.
-    :returns: COMSPEC value.
-    :rtype: str
+    Raises:
+        KeyError: COMSPEC is undefined and cannot be found.
+
+    Returns:
+        COMSPEC value.
     """
     if basename(environ.get("COMSPEC", "")).lower() != "cmd.exe":
         for comspec in (
@@ -378,6 +369,11 @@ def get_comspec():
     return environ["COMSPEC"]
 
 
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `Path.mkdir(parents=True, exist_ok=True)` instead.",
+)
 def ensure_dir_exists(func):
     """
     Ensures that the directory exists for functions returning

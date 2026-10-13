@@ -972,11 +972,3 @@ class DictSafeMixin:
         for k in F:
             self[k] = F[k]
 
-
-deprecated.constant(
-    "26.3",
-    "26.9",
-    "EntityEncoder",
-    json.CondaJSONEncoder,
-    addendum="Use `conda.common.serialize.json.CondaJSONEncoder` instead.",
-)

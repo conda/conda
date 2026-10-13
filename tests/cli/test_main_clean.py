@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
-from logging import WARN
+from datetime import UTC, datetime
+from logging import WARNING
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -12,10 +12,13 @@ import pytest
 
 from conda.base.constants import (
     CONDA_LOGS_DIR,
-    CONDA_PACKAGE_EXTENSIONS,
     CONDA_TEMP_EXTENSIONS,
+    PACKAGE_CACHE_MAGIC_FILE,
+    PARTIAL_EXTENSION,
 )
-from conda.cli.main_clean import _get_size
+from conda.base.context import context, reset_context
+from conda.cli.main_clean import _get_size, find_pkgs
+from conda.common.compat import on_win
 from conda.core.subdir_data import create_cache_dir
 from conda.gateways.logging import set_log_level
 
@@ -35,7 +38,7 @@ def _get_tars(pkgs_dir: str | Path) -> list[Path]:
     return [
         file
         for file in Path(pkgs_dir).iterdir()
-        if file.is_file() and file.name.endswith(CONDA_PACKAGE_EXTENSIONS)
+        if file.is_file() and context.plugin_manager.has_package_extension(file.name)
     ]
 
 
@@ -71,6 +74,14 @@ def has_pkg(name: str, contents: Iterable[str | Path]) -> bool:
     return any(Path(content).name.startswith(f"{name}-") for content in contents)
 
 
+@pytest.fixture(autouse=True)
+def known_prefixes(mocker: MockerFixture):
+    return mocker.patch(
+        "conda.core.envs_manager.list_all_known_prefixes",
+        return_value=[],
+    )
+
+
 # conda clean --force-pkgs-dirs
 def test_clean_force_pkgs_dirs(
     clear_cache,
@@ -96,6 +107,35 @@ def test_clean_force_pkgs_dirs(
 
 
 # conda clean --packages
+def test_clean_packages_without_candidates_does_not_scan_prefixes(
+    tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
+):
+    get_softlinked_package_dirs = mocker.patch(
+        "conda.core.package_cache_data.get_softlinked_package_dirs"
+    )
+
+    assert find_pkgs()["pkg_sizes"] == {}
+    get_softlinked_package_dirs.assert_not_called()
+
+
+def test_clean_packages_matches_softlinks_with_samefile(
+    tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
+):
+    package_dir = tmp_pkgs_dir / "package-1.0-0"
+    (package_dir / "info").mkdir(parents=True)
+    (package_dir / "file.txt").touch()
+    mocker.patch(
+        "conda.core.package_cache_data.get_softlinked_package_dirs",
+        return_value={Path("/different/spelling/package-1.0-0")},
+    )
+    samefile = mocker.patch.object(Path, "samefile", return_value=True)
+
+    assert find_pkgs()["pkg_sizes"] == {str(tmp_pkgs_dir): {}}
+    samefile.assert_called_once()
+
+
 def test_clean_and_packages(
     clear_cache,
     test_recipes_channel: Path,
@@ -130,6 +170,47 @@ def test_clean_and_packages(
     assert not has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
 
 
+@pytest.mark.skipif(on_win, reason="creating symlinks may require elevated privileges")
+@pytest.mark.parametrize("clean_arg", ("--packages", "--all"))
+@pytest.mark.parametrize(
+    "softlink_env_var",
+    ("CONDA_ALWAYS_SOFTLINK", "CONDA_ALLOW_SOFTLINKS"),
+)
+def test_clean_packages_preserves_known_softlinked_environment(
+    clear_cache,
+    test_recipes_channel: Path,
+    conda_cli: CondaCLIFixture,
+    tmp_env: TmpEnvFixture,
+    tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    known_prefixes,
+    clean_arg: str,
+    softlink_env_var: str,
+):
+    pkg = "small-executable"
+    mocker.patch("conda.core.link.hardlink_supported", return_value=False)
+    monkeypatch.setenv(softlink_env_var, "true")
+    reset_context()
+
+    with tmp_env(pkg) as prefix:
+        activate_script = (
+            prefix / "etc" / "conda" / "activate.d" / "small_executable.sh"
+        )
+        assert activate_script.is_symlink()
+        known_prefixes.return_value = [str(prefix)]
+
+        conda_cli("clean", clean_arg, "--yes")
+
+        assert activate_script.exists()
+        assert has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
+
+        conda_cli("remove", "--prefix", prefix, pkg, "--yes")
+        conda_cli("clean", clean_arg, "--yes")
+
+        assert not has_pkg(pkg, _get_pkgs(tmp_pkgs_dir))
+
+
 # conda clean --tarballs
 def test_clean_tarballs(
     clear_cache,
@@ -156,6 +237,36 @@ def test_clean_tarballs(
 
     # tarball is still removed
     assert not has_pkg(pkg, _get_tars(tmp_pkgs_dir))
+
+
+# conda clean --tarballs (partial downloads)
+def test_clean_tarballs_partial(
+    conda_cli: CondaCLIFixture,
+    tmp_pkgs_dir: Path,
+):
+    """Partial downloads are incomplete tarballs suffixed with .partial.
+
+    These are created during interrupted downloads and should be cleaned up
+    by `conda clean --tarballs`. See #15634.
+    """
+    # package cache is empty
+    magic_file = tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE
+    assert set(tmp_pkgs_dir.iterdir()) == {magic_file}
+
+    # create fake partial downloads
+    extensions = context.plugin_manager.get_package_extractors().keys()
+    partial_paths = {
+        tmp_pkgs_dir / f"fake-package-1.0-0{extension}{PARTIAL_EXTENSION}"
+        for extension in extensions
+    }
+    for path in partial_paths:
+        path.touch()
+    assert set(tmp_pkgs_dir.iterdir()) == {magic_file, *partial_paths}
+
+    # partials removed
+    stdout, _, _ = conda_cli("clean", "--tarballs", "--yes", "--json")
+    json.loads(stdout)  # assert valid json
+    assert set(tmp_pkgs_dir.iterdir()) == {magic_file}
 
 
 # conda clean --index-cache
@@ -256,7 +367,7 @@ def test_clean_logfiles(
         # mimic logfiles being created
         logs_dir = Path(tmp_pkgs_dir, CONDA_LOGS_DIR)
         logs_dir.mkdir(parents=True, exist_ok=True)
-        path = logs_dir / f"{datetime.now(timezone.utc):%Y%m%d-%H%M%S-%f}.log"
+        path = logs_dir / f"{datetime.now(UTC):%Y%m%d-%H%M%S-%f}.log"
         path.touch()
 
         # logfiles exist
@@ -332,7 +443,7 @@ def test_clean_all(
     assert not has_pkg(pkg, tars)
     assert not cache
 
-    set_log_level(WARN)  # reset verbosity
+    set_log_level(WARNING)  # reset verbosity
 
 
 # conda clean --all --verbose
@@ -372,7 +483,7 @@ def test_clean_all_mock_lstat(
         assert has_pkg(pkg, tars)
         assert cache
 
-    set_log_level(WARN)  # reset verbosity
+    set_log_level(WARNING)  # reset verbosity
 
 
 # _get_size unittest, valid file

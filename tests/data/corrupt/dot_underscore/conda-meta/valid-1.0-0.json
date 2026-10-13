@@ -1,0 +1,9 @@
+{
+  "name": "valid",
+  "version": "1.0",
+  "build": "0",
+  "build_number": 0,
+  "channel": "defaults",
+  "subdir": "noarch",
+  "fn": "valid-1.0-0.tar.bz2"
+}

@@ -14,19 +14,21 @@ from logging import getLogger
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..common.constants import NULL
+    from ..deprecations import deprecated
     from .actions import NullCountAction
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import add_parser_prefix, add_parser_verbose
 
-    summary = "Run an executable in a conda environment."
+    summary = BUILTIN_SUBCOMMANDS["run"]["help"]
     description = summary
     epilog = dals(
         """
-        Example::
+        Example:
 
         $ conda create -y -n my-python-env python=3
         $ conda run -n my-python-env python --version
 
-        Use '--' to separate `conda run`'s options from the executable's options::
+        Use '--' to separate `conda run`'s options from the executable's options:
 
         $ conda run -n my-python-env -- python -v
         $ conda run -v -n my-python-env -- tar -tvf file.tar
@@ -46,7 +48,12 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
 
     p.add_argument(
         "--dev",
-        action=NullCountAction,
+        action=deprecated.action(
+            "26.9",
+            "27.3",
+            NullCountAction,
+            addendum="Set `PYTHONPATH` to the conda source root instead.",
+        ),
         help="Sets `CONDA_EXE` to `python -m conda`, assuming the current "
         "working directory contains the root of conda development sources. "
         "This is mainly for use during tests where we test new conda sources "
@@ -140,7 +147,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if response.rc != 0:
         log = getLogger(__name__)
         log.error(
-            f"`conda run {' '.join(args.executable_call)}` failed. (See above for error)"
+            "`conda run %s` failed. (See above for error)",
+            " ".join(args.executable_call),
         )
 
     # remove script
@@ -148,6 +156,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         rm_rf(script)
     else:
         log = getLogger(__name__)
-        log.warning(f"CONDA_TEST_SAVE_TEMPS :: retaining main_run script {script}")
+        log.warning("CONDA_TEST_SAVE_TEMPS :: retaining main_run script %s", script)
 
     return response.rc

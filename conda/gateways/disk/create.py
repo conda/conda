@@ -8,16 +8,17 @@ import tempfile
 import warnings as _warnings
 from errno import EACCES, EPERM, EROFS
 from logging import getLogger
-from os.path import dirname, isdir, isfile, join, splitext
+from os.path import isdir, isfile, join
 from shutil import copyfileobj, copystat
 
 from ... import CondaError
 from ...auxlib.ish import dals
-from ...base.constants import CONDA_PACKAGE_EXTENSION_V1, PACKAGE_CACHE_MAGIC_FILE
+from ...base.constants import PACKAGE_CACHE_MAGIC_FILE
 from ...base.context import context
-from ...common.compat import on_linux, on_win
+from ...common.compat import on_win
 from ...common.constants import TRACE
-from ...common.path import ensure_pad, expand, win_path_double_escape, win_path_ok
+from ...common.path import expand, win_path_ok
+from ...common.path.python import is_valid_import_path
 from ...common.serialize import json
 from ...deprecations import deprecated
 from ...exceptions import (
@@ -28,7 +29,7 @@ from ...exceptions import (
 )
 from ...models.enums import LinkType
 from . import mkdir_p
-from .delete import path_is_clean, rm_rf
+from .delete import rm_rf
 from .link import islink, lexists, link, readlink, symlink
 from .permissions import make_executable
 from .update import touch
@@ -82,7 +83,13 @@ class TemporaryDirectory:
 
 
 log = getLogger(__name__)
-stdoutlog = getLogger("conda.stdoutlog")
+deprecated.constant(
+    "26.9",
+    "27.3",
+    "stdoutlog",
+    getLogger("conda.stdoutlog"),
+    addendum="Use `conda.gateways.streams.stdoutlog` instead.",
+)
 
 # in __init__.py to help with circular imports
 mkdir_p = mkdir_p
@@ -122,6 +129,11 @@ def write_as_json_to_file(file_path, obj):
 
 
 def create_python_entry_point(target_full_path, python_full_path, module, func):
+    if not is_valid_import_path(module):
+        raise ValueError("'module' is not a valid Python import path")
+    if not is_valid_import_path(func):
+        raise ValueError("'func' is not a valid Python import path")
+
     if lexists(target_full_path):
         maybe_raise(
             BasicClobberError(
@@ -156,102 +168,17 @@ def create_python_entry_point(target_full_path, python_full_path, module, func):
     return target_full_path
 
 
-@deprecated("26.3", "26.9")
-def create_application_entry_point(
-    source_full_path, target_full_path, python_full_path
-):
-    # source_full_path: where the entry point file points to
-    # target_full_path: the location of the new entry point file being created
-    if lexists(target_full_path):
-        maybe_raise(
-            BasicClobberError(
-                source_path=None,
-                target_path=target_full_path,
-                context=context,
-            ),
-            context,
-        )
-
-    entry_point = application_entry_point_template % {
-        "source_full_path": win_path_double_escape(source_full_path),
-    }
-    if not isdir(dirname(target_full_path)):
-        mkdir_p(dirname(target_full_path))
-    with open(target_full_path, "w") as fo:
-        if " " in python_full_path:
-            python_full_path = ensure_pad(python_full_path, '"')
-        fo.write(f"#!{python_full_path}\n")
-        fo.write(entry_point)
-    make_executable(target_full_path)
-
-
-@deprecated("26.3", "26.9")
-class ProgressFileWrapper:
-    def __init__(self, fileobj, progress_update_callback):
-        self.progress_file = fileobj
-        self.progress_update_callback = progress_update_callback
-        self.progress_file_size = max(1, os.fstat(fileobj.fileno()).st_size)
-        self.progress_max_pos = 0
-
-    def __getattr__(self, name):
-        return getattr(self.progress_file, name)
-
-    def __setattr__(self, name, value):
-        if name.startswith("progress_"):
-            super().__setattr__(name, value)
-        else:
-            setattr(self.progress_file, name, value)
-
-    def read(self, size=-1):
-        data = self.progress_file.read(size)
-        self.progress_update()
-        return data
-
-    def progress_update(self):
-        pos = max(self.progress_max_pos, self.progress_file.tell())
-        pos = min(pos, self.progress_file_size)
-        self.progress_max_pos = pos
-        rel_pos = pos / self.progress_file_size
-        self.progress_update_callback(rel_pos)
-
-
+@deprecated(
+    "26.9",
+    "27.3",
+    addendum="Use `conda.base.context.context.plugin_manager.extract_package` instead.",
+)
 def extract_tarball(
     tarball_full_path, destination_directory=None, progress_update_callback=None
 ):
-    import conda_package_handling.api
+    from ...plugins.package_extractors.conda import extract_conda_or_tarball
 
-    if destination_directory is None:
-        if tarball_full_path[-8:] == CONDA_PACKAGE_EXTENSION_V1:
-            destination_directory = tarball_full_path[:-8]
-        else:
-            destination_directory = tarball_full_path.splitext()[0]
-    log.debug("extracting %s\n  to %s", tarball_full_path, destination_directory)
-
-    # the most common reason this happens is due to hard-links, windows thinks
-    #    files in the package cache are in-use. rm_rf should have moved them to
-    #    have a .conda_trash extension though, so it's ok to just write into
-    #    the same existing folder.
-    if not path_is_clean(destination_directory):
-        log.debug(
-            "package folder %s was not empty, but we're writing there.",
-            destination_directory,
-        )
-
-    conda_package_handling.api.extract(
-        tarball_full_path, dest_dir=destination_directory
-    )
-
-    if hasattr(conda_package_handling.api, "THREADSAFE_EXTRACT"):
-        return  # indicates conda-package-handling 2.x, which implements --no-same-owner
-
-    if on_linux and os.getuid() == 0:  # pragma: no cover
-        # When extracting as root, tarfile will by restore ownership
-        # of extracted files.  However, we want root to be the owner
-        # (our implementation of --no-same-owner).
-        for root, dirs, files in os.walk(destination_directory):
-            for fn in files:
-                p = join(root, fn)
-                os.lchown(p, 0, 0)
+    return extract_conda_or_tarball(tarball_full_path, destination_directory)
 
 
 def make_menu(prefix, file_path, remove=False):
@@ -271,7 +198,11 @@ def make_menu(prefix, file_path, remove=False):
             root_prefix=context.root_prefix,
         )
     except Exception:
-        stdoutlog.error("menuinst Exception", exc_info=True)
+        from traceback import format_exc
+
+        from ...gateways.streams import stdoutlog
+
+        stdoutlog(f"menuinst Exception\n{format_exc()}")
 
 
 def create_hard_link_or_copy(src, dst):
@@ -312,23 +243,12 @@ def _do_softlink(src, dst):
         symlink(src, dst)
 
 
-@deprecated("26.3", "26.9")
-def create_fake_executable_softlink(src, dst):
-    if not on_win:
-        raise RuntimeError("Only runs on Windows.")
-    src_root, _ = splitext(src)
-    # TODO: this open will clobber, consider raising
-    with open(dst, "w") as f:
-        f.write(f'@echo off\ncall "{src_root}" %*\n')
-    return dst
-
-
 def copy(src, dst):
     # on unix, make sure relative symlinks stay symlinks
     if not on_win and islink(src):
         src_points_to = readlink(src)
-        if not src_points_to.startswith("/"):
-            # copy relative symlinks as symlinks
+        if not src_points_to.startswith("/") or isdir(src):
+            # copy relative symlinks and symlinks to directories as symlinks
             log.log(TRACE, "soft linking %s => %s", src, dst)
             symlink(src_points_to, dst)
             return
@@ -363,7 +283,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         if lexists(dst) and not isdir(dst):
             if not force:
                 maybe_raise(BasicClobberError(src, dst, context), context)
-            log.info(f"file exists, but clobbering for directory: {dst!r}")
+            log.info("file exists, but clobbering for directory: %r", dst)
             rm_rf(dst)
         mkdir_p(dst)
         return
@@ -377,7 +297,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
     if lexists(dst):
         if not force:
             maybe_raise(BasicClobberError(src, dst, context), context)
-        log.info(f"file exists, but clobbering: {dst!r}")
+        log.info("file exists, but clobbering: %r", dst)
         rm_rf(dst)
 
     if link_type == LinkType.hardlink:

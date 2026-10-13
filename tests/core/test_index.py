@@ -3,21 +3,16 @@
 from __future__ import annotations
 
 import copy
-from contextlib import nullcontext
 from logging import getLogger
 from typing import TYPE_CHECKING
 
 import pytest
 
 import conda
-from conda.base.constants import DEFAULTS_CHANNEL_NAME
 from conda.base.context import context, non_x86_machines
 from conda.common.compat import on_linux, on_mac, on_win
-from conda.core import index
 from conda.core.index import (
     Index,
-    calculate_channel_urls,
-    check_allowlist,
     dist_str_in_index,
 )
 from conda.core.prefix_data import PrefixData
@@ -155,20 +150,124 @@ def test_get_index_platform(platform: str) -> None:
         assert platform_in_record(platform, record), (platform, record.url)
 
 
+@pytest.fixture
+def bare_and_subdir_url_records(
+    tmp_path: Path,
+) -> tuple[PrefixRecord, PackageRecord]:
+    record_kwargs = dict(
+        name="foo",
+        version="1.0",
+        build="0",
+        build_number=0,
+        subdir="linux-64",
+    )
+    prefix_record = PrefixRecord.from_objects(
+        channel="http://localhost:8080/my-channel",  # bare URL, no subdir
+        **record_kwargs,
+        link={"source": str(tmp_path), "type": 1},
+    )
+    repodata_record = PackageRecord.from_objects(
+        channel="http://localhost:8080/my-channel/linux-64",  # explicit subdir
+        **record_kwargs,
+    )
+    return prefix_record, repodata_record
+
+
+def test_supplement_index_merges_bare_and_subdir_url_channels(
+    bare_and_subdir_url_records: tuple[PrefixRecord, PackageRecord],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Regression test for https://github.com/conda/conda/issues/15933.
+
+    Prefix and repodata records that share a canonical_name should merge, even
+    when their channels were constructed from different URL forms (bare vs
+    subdir). The old ``Channel.__eq__`` comparison included ``platform`` and
+    treated the two differently, and that corrupted ``dist_str()``.
+    """
+    prefix_record, repodata_record = bare_and_subdir_url_records
+
+    assert prefix_record.channel.platform is None
+    assert repodata_record.channel.platform == "linux-64"
+    assert (
+        prefix_record.channel.canonical_name == repodata_record.channel.canonical_name
+    )
+    assert prefix_record == repodata_record
+    assert hash(prefix_record) == hash(repodata_record)
+
+    class _FakePrefixData:
+        def iter_records(self):
+            return iter([prefix_record])
+
+    idx = Index()
+    monkeypatch.setattr(idx, "prefix_data", _FakePrefixData())
+    idx._data = {repodata_record: repodata_record}
+    idx._supplement_index_dict_with_prefix()
+
+    merged = idx._data[prefix_record]
+    assert isinstance(merged, PrefixRecord)
+    dist = merged.dist_str()
+    assert dist.count("linux-64") == 1
+    assert dist.endswith("::foo-1.0-0")
+
+
+def test_getitem_merges_bare_and_subdir_url_channels(
+    bare_and_subdir_url_records: tuple[PrefixRecord, PackageRecord],
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """
+    Regression test for https://github.com/conda/conda/issues/15933.
+
+    This is the same as the one in test_supplement_index_merges_bare_and_subdir_url_channels
+    except that it goes through ``Index.__getitem__``, so that the merge
+    runs via ``_update_from_prefix`` instead of
+    ``_supplement_index_dict_with_prefix``.
+    """
+    prefix_record, repodata_record = bare_and_subdir_url_records
+
+    class _FakePrefixData:
+        def iter_records(self):
+            return iter([prefix_record])
+
+        def get(self, name, default=None):
+            return prefix_record if name == prefix_record.name else default
+
+    idx = Index()
+    monkeypatch.setattr(idx, "prefix_data", _FakePrefixData())
+    monkeypatch.setattr(idx, "_retrieve_from_channels", lambda key: repodata_record)
+    idx.use_cache = False
+
+    merged = idx[repodata_record]
+    assert isinstance(merged, PrefixRecord)
+    dist = merged.dist_str()
+    assert dist.count("linux-64") == 1
+    assert dist.endswith("::foo-1.0-0")
+
+
 def test_dist_str_in_index(test_recipes_channel: Path) -> None:
     idx = Index((Channel(str(test_recipes_channel)),), prepend=False)
     assert not dist_str_in_index(idx.data, "test-1.4.0-0")
     assert dist_str_in_index(idx.data, "other_dependent-1.0-0")
 
 
-def test_calculate_channel_urls():
-    with pytest.deprecated_call():
-        urls = calculate_channel_urls(
-            channel_urls=[DEFAULTS_CHANNEL_NAME], use_local=False, prepend=True
-        )
+def test_copy_does_not_realize_index() -> None:
+    index = Index(prepend=False)
 
-        assert "https://repo.anaconda.com/pkgs/main/noarch" in urls
-        assert len(urls) == 6 if on_win else 4
+    copied = index.copy()
+
+    assert "_data" not in index.__dict__
+    assert "_data" not in copied.__dict__
+
+
+def test_copy_independently_copies_realized_data() -> None:
+    index = Index(prepend=False)
+    record = PackageRecord.feature("copied_feature")
+    index._data = {record: record}
+
+    copied = index.copy()
+    copied.data.clear()
+
+    assert copied.data == {}
+    assert index.data == {record: record}
 
 
 @pytest.mark.parametrize(
@@ -217,6 +316,14 @@ def test_calculate_channel_urls():
                     "build": "py35_0",
                     "build_number": 0,
                 },
+                "win-arm64": {
+                    "channel": "pkgs/main/win-arm64",
+                    "subdir": "win-arm64",
+                    "name": "aiohttp",
+                    "version": "3.14.3",
+                    "build": "py314h145397d_0",
+                    "build_number": 0,
+                },
             },
         ),
         (
@@ -262,6 +369,14 @@ def test_calculate_channel_urls():
                     "build": "py312h275cf98_0",
                     "build_number": 0,
                 },
+                "win-arm64": {
+                    "channel": "conda-forge",
+                    "subdir": "win-arm64",
+                    "name": "libmambapy",
+                    "version": "2.9.0",
+                    "build": "py314hebdb8c6_1",
+                    "build_number": 1,
+                },
             },
         ),
     ],
@@ -303,7 +418,7 @@ class TestIndex:
             version="1.0",
             build_number=0,
             build="0",
-            fn="dependent-1.0-0.tar.bz2",
+            fn="dependent-1.0-0.conda",
         )
 
     @pytest.fixture
@@ -315,7 +430,7 @@ class TestIndex:
             version="1.0",
             build_number=0,
             build="0",
-            fn="dependent-1.0-0.tar.bz2",
+            fn="dependent-1.0-0.conda",
         )
 
     @pytest.fixture
@@ -327,7 +442,7 @@ class TestIndex:
             version="2.0",
             build_number=0,
             build="0",
-            fn="dependent-2.0-0.tar.bz2",
+            fn="dependent-2.0-0.conda",
         )
 
     @pytest.fixture
@@ -449,25 +564,3 @@ class TestIndex:
             # each OS has different virtual packages
             + len(context.plugin_manager.get_virtual_package_records())
         )
-
-
-def test_check_allowlist_deprecation_warning():
-    """
-    Ensure a deprecation warning is raised for ``check_allowlist``.
-
-    Also used to ensure coverage on this code path
-    """
-    with pytest.deprecated_call():
-        check_allowlist(("defaults",))
-
-
-@pytest.mark.parametrize(
-    "function,raises",
-    [
-        ("calculate_channel_urls", None),
-    ],
-)
-def test_deprecations(function: str, raises: type[Exception] | None) -> None:
-    raises_context = pytest.raises(raises) if raises else nullcontext()
-    with pytest.deprecated_call(), raises_context:
-        getattr(index, function)()

@@ -4,12 +4,13 @@
 
 from __future__ import annotations
 
+import os
 import re
 import sys
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from itertools import chain
 from logging import getLogger
-from os.path import basename, dirname, getsize, isdir, isfile, join
+from os.path import basename, dirname, getsize, isdir, isfile, join, normpath
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -31,7 +32,6 @@ from ..common.path import (
 )
 from ..common.serialize import json
 from ..common.url import has_platform, path_to_url
-from ..deprecations import deprecated
 from ..exceptions import (
     CondaUpgradeError,
     CondaVerificationError,
@@ -46,7 +46,6 @@ from ..gateways.disk.create import (
     create_hard_link_or_copy,
     create_link,
     create_python_entry_point,
-    extract_tarball,
     make_menu,
     mkdir_p,
     write_as_json_to_file,
@@ -89,7 +88,7 @@ REPR_IGNORE_KWARGS = (
 )
 
 
-class Action:
+class Action(ABC):
     """Base class for path manipulation actions, including linking, unlinking, and others.
 
     Pre and post-transaction plugins should inherit this class to implement their
@@ -102,14 +101,14 @@ class Action:
         4. ``cleanup``
 
 
-    :param transaction_context: Mapping between target prefixes and PrefixActions
-        instances
-    :param target_prefix: Target prefix for the action
-    :param unlink_precs: Package records to be unlinked
-    :param link_precs: Package records to link
-    :param remove_specs: Specs to be removed
-    :param update_specs: Specs to be updated
-    :param neutered_specs: Specs to be neutered
+    Args:
+        transaction_context: Mapping between target prefixes and PrefixActionGroup instances.
+        target_prefix: Target prefix for the action.
+        unlink_precs: Package records to be unlinked.
+        link_precs: Package records to link.
+        remove_specs: Specs to be removed.
+        update_specs: Specs to be updated.
+        neutered_specs: Specs to be neutered.
     """
 
     _verified = False
@@ -138,9 +137,10 @@ class Action:
 
         Should set self._verified = True upon success.
 
-        :return: On failure, this function should return (not raise!) an exception
-        object. At the end of the verification run, all errors will be raised as a
-        CondaMultiError.
+        Returns:
+            On failure, this function should return (not raise!) an exception
+            object. At the end of the verification run, all errors will be raised as a
+            CondaMultiError.
         """
 
     @abstractmethod
@@ -177,28 +177,21 @@ class Action:
         return "{}({})".format(self.__class__.__name__, ", ".join(args))
 
 
-deprecated.constant(
-    "25.9",
-    "26.3",
-    "_Action",
-    Action,
-    addendum="Use `conda.core.path_actions.Action` instead.",
-)
-
-
-class PathAction(Action, metaclass=ABCMeta):
-    @abstractproperty
+class PathAction(Action):
+    @property
+    @abstractmethod
     def target_full_path(self):
         raise NotImplementedError()
 
 
-class MultiPathAction(Action, metaclass=ABCMeta):
-    @abstractproperty
+class MultiPathAction(Action):
+    @property
+    @abstractmethod
     def target_full_paths(self):
         raise NotImplementedError()
 
 
-class PrefixPathAction(PathAction, metaclass=ABCMeta):
+class PrefixPathAction(PathAction):
     def __init__(self, transaction_context, target_prefix, target_short_path):
         self.transaction_context = transaction_context
         self.target_prefix = target_prefix
@@ -222,7 +215,7 @@ class PrefixPathAction(PathAction, metaclass=ABCMeta):
 # ######################################################
 
 
-class CreateInPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
+class CreateInPrefixPathAction(PrefixPathAction):
     # All CreatePathAction subclasses must create a SINGLE new path
     #   the short/in-prefix version of that path must be returned by execute()
 
@@ -370,14 +363,28 @@ class LinkPathAction(CreateInPrefixPathAction):
         target_prefix,
         requested_link_type,
         entry_point_def,
+        source_package_infos=(),
     ):
-        source_directory = context.conda_prefix
-        source_short_path = "Scripts/conda.exe"
+        from .launchers import get_windows_launcher_stub
+
+        source_exe_path, sha256 = get_windows_launcher_stub(
+            target_prefix,
+            source_prefixes=(context.conda_prefix,),
+            source_package_infos=source_package_infos,
+        )
+        source_directory = dirname(source_exe_path)
+        source_short_path = basename(source_exe_path)
         command, _, _ = parse_entry_point_def(entry_point_def)
         target_short_path = f"Scripts/{command}.exe"
+        if not normpath(target_short_path).startswith("Scripts" + os.sep):
+            raise ValueError(
+                "target_short_path must point to Scripts/: " + target_short_path
+            )
         source_path_data = PathDataV1(
             _path=target_short_path,
             path_type=PathEnum.windows_python_entry_point_exe,
+            sha256=sha256,
+            sha256_in_prefix=sha256,
         )
         return cls(
             transaction_context,
@@ -512,6 +519,14 @@ class LinkPathAction(CreateInPrefixPathAction):
         self._verified = True
 
     def execute(self):
+        if (
+            self.source_path_data
+            and self.source_path_data.path_type
+            == PathEnum.windows_python_entry_point_exe
+        ):
+            from .launchers import verify_windows_launcher
+
+            verify_windows_launcher(self.source_full_path, self.source_path_data.sha256)
         log.log(TRACE, "linking %s => %s", self.source_full_path, self.target_full_path)
         create_link(
             self.source_full_path,
@@ -524,7 +539,9 @@ class LinkPathAction(CreateInPrefixPathAction):
     def reverse(self):
         if self._execute_successful:
             log.log(TRACE, "reversing link creation %s", self.target_prefix)
-            if not isdir(self.target_full_path):
+            if not isdir(self.target_full_path) or (
+                self.link_type != LinkType.directory and islink(self.target_full_path)
+            ):
                 rm_rf(self.target_full_path, clean_empty_parents=True)
 
 
@@ -601,14 +618,12 @@ class PrefixReplaceLinkAction(LinkPathAction):
                 len(self.prefix_placeholder),
             )
 
-        sha256_in_prefix = compute_sum(self.intermediate_path, "sha256")
-
         self.prefix_path_data = PathDataV1.from_objects(
             self.prefix_path_data,
             file_mode=self.file_mode,
             path_type=PathEnum.hardlink,
             prefix_placeholder=self.prefix_placeholder,
-            sha256_in_prefix=sha256_in_prefix,
+            # set in execute() after codesign batch flush
         )
 
         self._verified = True
@@ -617,6 +632,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
         if not self._verified:
             self.verify()
         source_path = self.intermediate_path or self.source_full_path
+        self.prefix_path_data.sha256_in_prefix = compute_sum(source_path, "sha256")
         log.log(TRACE, "linking %s => %s", source_path, self.target_full_path)
         create_link(source_path, self.target_full_path, self.link_type)
         self._execute_successful = True
@@ -765,6 +781,17 @@ class CompileMultiPycAction(MultiPathAction):
         )
         self._execute_successful = True
 
+        # Update prefix_paths_data with the file sizes now that the .pyc files exist.
+        # Note: when used via AggregateCompileMultiPycAction, this updates the
+        # aggregate's prefix_paths_data. The aggregate's execute() will separately
+        # update each individual action's data.
+        for path_data in self.prefix_paths_data:
+            pyc_full_path = join(self.target_prefix, win_path_ok(path_data._path))
+            try:
+                path_data.size_in_bytes = getsize(pyc_full_path)
+            except OSError:
+                log.log(TRACE, "could not get size for %s", pyc_full_path)
+
     def reverse(self):
         # this removes all pyc files even if they were not created
         if self._execute_successful:
@@ -782,6 +809,7 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
     """
 
     def __init__(self, *individuals, **kw):
+        self._individuals = individuals
         transaction_context = individuals[0].transaction_context
         # not used; doesn't matter
         package_info = individuals[0].package_info
@@ -799,11 +827,28 @@ class AggregateCompileMultiPycAction(CompileMultiPycAction):
             target_short_paths,
         )
 
+    def execute(self):
+        super().execute()
+        # Update each individual action's prefix_paths_data with file sizes.
+        # The manifest is written using individual actions' data, not the aggregate's.
+        for individual in self._individuals:
+            for path_data in individual.prefix_paths_data:
+                pyc_full_path = join(self.target_prefix, win_path_ok(path_data._path))
+                try:
+                    path_data.size_in_bytes = getsize(pyc_full_path)
+                except OSError:
+                    log.log(TRACE, "could not get size for %s", pyc_full_path)
+
 
 class CreatePythonEntryPointAction(CreateInPrefixPathAction):
     @classmethod
     def create_actions(
-        cls, transaction_context, package_info, target_prefix, requested_link_type
+        cls,
+        transaction_context,
+        package_info,
+        target_prefix,
+        requested_link_type,
+        source_package_infos=(),
     ):
         noarch = package_info.package_metadata and package_info.package_metadata.noarch
         if noarch is not None and noarch.type == NoarchType.python:
@@ -811,6 +856,10 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
             def this_triplet(entry_point_def):
                 command, module, func = parse_entry_point_def(entry_point_def)
                 target_short_path = f"{BIN_DIRECTORY}/{command}"
+                if not normpath(target_short_path).startswith(BIN_DIRECTORY + os.sep):
+                    raise ValueError(
+                        f"target_short_path must point to {BIN_DIRECTORY}: {target_short_path!r}"
+                    )
                 if on_win:
                     target_short_path += "-script.py"
                 return target_short_path, module, func
@@ -833,6 +882,7 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
                         target_prefix,
                         requested_link_type,
                         ep_def,
+                        source_package_infos=source_package_infos,
                     )
                     for ep_def in noarch.entry_points or ()
                 )
@@ -887,6 +937,10 @@ class CreatePythonEntryPointAction(CreateInPrefixPathAction):
         create_python_entry_point(
             self.target_full_path, python_full_path, self.module, self.func
         )
+        try:
+            self.prefix_path_data.size_in_bytes = getsize(self.target_full_path)
+        except OSError:
+            log.log(TRACE, "could not get size for %s", self.target_full_path)
         self._execute_successful = True
 
     def reverse(self):
@@ -907,7 +961,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         package_info,
         target_prefix,
         requested_link_type,
-        requested_spec,
+        requested_spec: MatchSpec | list[MatchSpec],
         all_link_path_actions,
     ):
         extracted_package_dir = package_info.extracted_package_dir
@@ -931,7 +985,7 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
         target_prefix,
         target_short_path,
         requested_link_type,
-        requested_spec,
+        requested_spec: MatchSpec | list[MatchSpec],
         all_link_path_actions,
     ):
         super().__init__(
@@ -993,11 +1047,23 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             ),
         )
 
+        if self.requested_spec:
+            if isinstance(self.requested_spec, tuple | list):
+                requested_specs = [str(spec) for spec in self.requested_spec]
+                requested_spec_str = str(MatchSpec.merge(self.requested_spec)[0])
+            else:
+                requested_spec_str = str(self.requested_spec)
+                requested_specs = (requested_spec_str,)
+        else:
+            requested_spec_str = None
+            requested_specs = ()
+
         self.prefix_record = PrefixRecord.from_objects(
             self.package_info.repodata_record,
             # self.package_info.index_json_record,
             self.package_info.package_metadata,
-            requested_spec=str(self.requested_spec),
+            requested_spec=requested_spec_str,
+            requested_specs=requested_specs,
             paths_data=paths_data,
             files=files,
             link=link,
@@ -1059,6 +1125,7 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
         self.neutered_specs = neutered_specs
 
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
+        self._execute_successful = False
 
     def execute(self):
         log.log(TRACE, "updating environment history %s", self.target_full_path)
@@ -1071,12 +1138,15 @@ class UpdateHistoryAction(CreateInPrefixPathAction):
             PrefixData(self.target_prefix).set_creation_time()
         h.update()
         h.write_specs(self.remove_specs, self.update_specs, self.neutered_specs)
+        self._execute_successful = True
 
     def reverse(self):
+        if not self._execute_successful:
+            return
         if lexists(self.hold_path):
             log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)
             backoff_rename(self.hold_path, self.target_full_path, force=True)
-        if isfile(hpath := History(self.target_prefix).path):
+        elif isfile(hpath := History(self.target_prefix).path):
             rm_rf(hpath)
 
     def cleanup(self):
@@ -1124,7 +1194,7 @@ class RegisterEnvironmentLocationAction(PathAction):
 # ######################################################
 
 
-class RemoveFromPrefixPathAction(PrefixPathAction, metaclass=ABCMeta):
+class RemoveFromPrefixPathAction(PrefixPathAction):
     def __init__(
         self, transaction_context, linked_package_data, target_prefix, target_short_path
     ):
@@ -1174,7 +1244,9 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
             backoff_rename(self.holding_full_path, self.target_full_path, force=True)
 
     def cleanup(self):
-        if not isdir(self.holding_full_path):
+        if not isdir(self.holding_full_path) or (
+            self.link_type != LinkType.directory and islink(self.holding_full_path)
+        ):
             rm_rf(self.holding_full_path, clean_empty_parents=True)
 
 
@@ -1419,10 +1491,14 @@ class ExtractPackageAction(PathAction):
         self._verified = True
 
     def execute(self, progress_update_callback=None):
-        # I hate inline imports, but I guess it's ok since we're importing from the conda.core
-        # The alternative is passing the the classes to ExtractPackageAction __init__
-        from .package_cache_data import PackageCacheData
+        self._prepare_extract()
+        context.plugin_manager.extract_package(
+            self.source_full_path,
+            self.target_full_path,
+        )
+        self._finish_extract()
 
+    def _prepare_extract(self):
         log.log(
             TRACE, "extracting %s => %s", self.source_full_path, self.target_full_path
         )
@@ -1430,11 +1506,10 @@ class ExtractPackageAction(PathAction):
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
-        extract_tarball(
-            self.source_full_path,
-            self.target_full_path,
-            progress_update_callback=progress_update_callback,
-        )
+    def _finish_extract(self):
+        # I hate inline imports, but I guess it's ok since we're importing from the conda.core
+        # The alternative is passing the the classes to ExtractPackageAction __init__
+        from .package_cache_data import PackageCacheData
 
         try:
             raw_index_json = read_index_json(self.target_full_path)

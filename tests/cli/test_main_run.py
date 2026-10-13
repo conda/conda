@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import stat
+import subprocess
 import uuid
 from logging import WARNING, getLogger
 from pathlib import Path
@@ -19,8 +20,10 @@ from conda.exceptions import (
     EnvironmentLocationNotFound,
 )
 from conda.gateways.logging import initialize_logging
-from conda.testing.integration import env_or_set, which_or_where
+from conda.testing.integration import env_or_set
 from conda.utils import wrap_subprocess_call
+
+from .. import PYTHON_SPEC
 
 if TYPE_CHECKING:
     from conda.testing.fixtures import CondaCLIFixture, TmpEnvFixture
@@ -79,12 +82,26 @@ def test_run_uncaptured(
         assert not err
 
 
-@pytest.mark.skipif(on_win, reason="cannot make readonly env on win")
-def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
+def test_run_readonly_env(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture, request):
     with tmp_env() as prefix:
         # Remove write permissions
-        current = stat.S_IMODE(os.lstat(prefix).st_mode)
-        os.chmod(prefix, current & ~stat.S_IWRITE)
+        if on_win:
+            username = os.environ.get("USERNAME")
+            subprocess.run(
+                ["icacls", str(prefix), "/deny", f"{username}:W"],
+                check=True,
+                capture_output=True,
+            )
+            request.addfinalizer(
+                lambda: subprocess.run(
+                    ["icacls", str(prefix), "/grant", f"{username}:F"],
+                    capture_output=True,
+                )
+            )
+        else:
+            current = stat.S_IMODE(os.lstat(prefix).st_mode)
+            os.chmod(prefix, current & ~stat.S_IWRITE)
+            request.addfinalizer(lambda: os.chmod(prefix, current))
 
         # Confirm we do not have write access
         with pytest.raises(PermissionError):
@@ -107,8 +124,12 @@ def test_conda_run_prefix_not_a_conda_env(tmp_path: Path, conda_cli: CondaCLIFix
         conda_cli("run", f"--prefix={tmp_path}", "echo", "hello")
 
 
-def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env() as prefix:
+def test_multiline_run_command(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("small-executable") as prefix:
         stdout, stderr, _ = conda_cli(
             "run",
             f"--prefix={prefix}",
@@ -116,11 +137,11 @@ def test_multiline_run_command(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixtur
             dals(
                 f"""
                 {env_or_set}
-                {which_or_where} conda
+                small
                 """
             ),
         )
-        assert stdout
+        assert stdout.strip().endswith("Hello!")
         assert not stderr
 
 
@@ -138,7 +159,7 @@ def test_no_newline_in_output(
     expected_stdout: str,
     expected_stderr: str,
 ):
-    with tmp_env("python") as prefix:
+    with tmp_env(PYTHON_SPEC) as prefix:
         stdout, stderr, err = conda_cli(
             "run",
             f"--prefix={prefix}",
@@ -159,6 +180,46 @@ def test_no_newline_in_output(
         pytest.param(["small", "-v", "-c", "spam"], "-v -c spam", id="no separator"),
         pytest.param(["small", "--version"], "--version", id="no known args"),
         pytest.param(["small", "-vvv"], "-vvv", id="vvv passthrough"),
+        pytest.param(
+            ["small", "--no-plugins"],
+            "--no-plugins",
+            id="no plugins passthrough without separator",
+        ),
+        pytest.param(
+            ["small", "--no-plugins", "info"],
+            "--no-plugins info",
+            id="no plugins passthrough with argument",
+        ),
+        pytest.param(
+            ["small", "--enable-plugins", "child-plugin"],
+            "--enable-plugins child-plugin",
+            id="plugins passthrough with argument",
+        ),
+        pytest.param(
+            ["small", "--enable-plugins"],
+            "--enable-plugins",
+            id="plugins passthrough without argument",
+        ),
+        pytest.param(
+            ["--", "small", "--enable-plugins=child-plugin"],
+            "--enable-plugins=child-plugin",
+            id="plugins passthrough with separator",
+        ),
+        pytest.param(
+            ["small", "--disable-plugins", "child-plugin"],
+            "--disable-plugins child-plugin",
+            id="disable plugins passthrough with argument",
+        ),
+        pytest.param(
+            ["small", "--disable-plugins"],
+            "--disable-plugins",
+            id="disable plugins passthrough without argument",
+        ),
+        pytest.param(
+            ["--", "small", "--disable-plugins=child-plugin"],
+            "--disable-plugins=child-plugin",
+            id="disable plugins passthrough with separator",
+        ),
         # with separator and conda will ignore everything after
         pytest.param(
             ["small", "--", "-v", "hello"],
@@ -181,6 +242,11 @@ def test_no_newline_in_output(
             id="double dash option",
         ),
         pytest.param(
+            ["--", "small", "--no-plugins"],
+            "--no-plugins",
+            id="no plugins passthrough",
+        ),
+        pytest.param(
             ["--", "small", "-vic", "eggs"],
             "-vic eggs",
             id="combined option",
@@ -188,6 +254,7 @@ def test_no_newline_in_output(
         pytest.param(["--", "small", "-vvv"], "-vvv", id="vvv passthrough with --"),
     ],
 )
+@pytest.mark.usefixtures("clear_plugin_manager_cache")
 def test_run_with_separator(
     request: pytest.FixtureRequest,
     test_recipes_channel: Path,

@@ -1,18 +1,20 @@
 package:
   name: dependent
-  version: 2.0
+  version: '{{ pkg_version }}'
 
 build:
   noarch: generic
+  string: "0"
 
 requirements:
   run:
-    - {{ pin_subpackage("dependency") }}
+    - '{{ pin_subpackage("dependency") }}'
 
 outputs:
   - name: dependency
     build:
       noarch: generic
+      string: "0"
 
 about:
-  summary: A generic dependent
+  summary: Depends on co-built dependency output; generic pin/remove fixture

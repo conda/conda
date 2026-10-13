@@ -1,0 +1,229 @@
+# edit this in https://github.com/conda/infrastructure
+
+name: Canary Builds
+
+on:
+  # Build canaries from PRs labeled build::review.
+  pull_request:
+    types:
+      - labeled
+
+  # Build canaries immediately on push to release branches (*.x).
+  push:
+    branches:
+      - '[0-9].*.x'  # e.g., 4.14.x
+      - '[0-9][0-9].*.x'  # e.g., 23.3.x
+
+  # Build canaries on demand
+  workflow_dispatch:
+
+  # Build canaries after a successful test workflow run on main or feature/* branches.
+  workflow_run:
+    workflows:
+      - 'Tests'
+    types:
+      - completed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  remove-build-label:
+    # Remove build::review after it runs so the label can be applied again.
+    if: >-
+      !github.event.repository.fork
+      && github.event.label.name == 'build::review'
+    runs-on: ubuntu-slim
+    steps:
+      - name: Remove build label
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          github-token: ${{ secrets.CANARY_ACTION_TOKEN }}
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: context.issue.number,
+            })
+            const buildLabel = '${{ github.event.label.name }}'
+            const labels = pullRequest.labels.map(label => label.name)
+            const hasBuildLabel = labels.includes(buildLabel)
+
+            if (hasBuildLabel) {
+                await github.rest.issues.removeLabel({
+                  ...context.repo,
+                  issue_number: context.issue.number,
+                  name: buildLabel,
+                })
+            }
+
+  build:
+    # PR label build::review, push to *.x release branches, or successful test workflow on main/feature/*.
+    if: >-
+      !github.event.repository.fork
+      && (
+        (
+          github.event_name == 'pull_request'
+          && github.event.label.name == 'build::review'
+        ) || (
+          github.event_name == 'push'
+          && endsWith(github.ref_name, '.x')
+        ) || (
+          github.event_name == 'workflow_run'
+          && github.event.workflow_run.event != 'pull_request'
+          && github.event.workflow_run.conclusion == 'success'
+          && (
+            github.event.workflow_run.head_branch == 'main'
+            || startsWith(github.event.workflow_run.head_branch, 'feature/')
+          )
+        )
+      )
+    env:
+      # Prefer workflow_run head; fallback to push/PR ref.
+      REF_NAME: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+      REF: ${{ github.event.workflow_run.head_sha || github.sha }}
+    strategy:
+      matrix:
+        include:
+          # template-files-if
+          # template-files-if
+          - runs-on: ubuntu-latest
+            subdir: linux-64
+          # template-files-endif
+          # template-files-if
+          - runs-on: ubuntu-24.04-arm
+            subdir: linux-aarch64
+          # template-files-endif
+          # template-files-if
+          # template-files-if
+          - runs-on: macos-latest
+            subdir: osx-arm64
+          # template-files-endif
+          # template-files-if
+          - runs-on: windows-latest
+            subdir: win-64
+          # template-files-endif
+          # template-files-if
+          - runs-on: windows-11-arm
+            subdir: win-arm64
+          # template-files-endif
+          # template-files-endif
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      # Clean checkout of specific git ref needed for package metadata version
+      # which needs env vars GIT_DESCRIBE_TAG, GIT_DESCRIBE_NUMBER, GIT_DESCRIBE_HASH,
+      # and optional VERSION_OVERRIDE:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.REF }}
+          clean: true
+          fetch-depth: 0
+
+      # Use Python 3.14 on Windows ARM64 and Python 3.11 elsewhere.
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.subdir == 'win-arm64' && '3.14' || '3.11' }}
+
+      - name: Detect Label
+        shell: python
+        run: |
+          import re
+          from pathlib import Path
+          from os import environ
+          from subprocess import check_output
+
+          # unless otherwise specified, commits are uploaded to the dev label
+          # e.g., `main` branch commits
+          envs = {"ANACONDA_ORG_LABEL": "dev"}
+
+          if "${{ github.event_name }}" == "pull_request":
+              # e.g., conda/conda/pr/123 -> conda-conda-pr-123
+              envs["ANACONDA_ORG_LABEL"] = "${{ github.repository }}/pr/${{ github.event.number }}"
+          elif "${{ env.REF_NAME }}".startswith("feature/"):
+              # e.g., conda/conda/feature/my-feature -> conda-conda-feature-my-feature
+              envs["ANACONDA_ORG_LABEL"] = "${{ github.repository }}/${{ env.REF_NAME }}"
+          elif re.match(r"\d+(\.\d+)+\.x", "${{ env.REF_NAME }}"):
+              # e.g., conda/conda/rc/26.5.x -> conda-conda-rc-26.5.x
+              envs["ANACONDA_ORG_LABEL"] = f"${{ github.repository }}/rc/${{ env.REF_NAME }}"
+
+              # if no releases have occurred on this branch yet then `git describe --tag`
+              # will misleadingly produce a version number relative to the last release
+              # and not relative to the current release branch, if this is the case we need
+              # to override the version with a derivative of the branch name
+
+              # override the version if `git describe --tag` does not start with the branch version
+              last_release = check_output(["git", "describe", "--tag"], text=True).strip()
+              prefix = "${{ env.REF_NAME }}"[:-1]  # without x suffix
+              if not last_release.startswith(prefix):
+                  envs["VERSION_OVERRIDE"] = f"{prefix}0"
+
+          # workaround for anaconda.org's 404 error when trying to install from a slash label
+          envs["ANACONDA_ORG_LABEL"] = envs["ANACONDA_ORG_LABEL"].replace("/", "-")
+
+          Path(environ["GITHUB_ENV"]).write_text("\n".join(f"{name}={value}" for name, value in envs.items()))
+
+      - name: Create & Upload
+        uses: conda/actions/canary-release@c8ad4261cc1d49709cb774289c68e63663bdc9d5 # v26.9.5
+        env:
+          _CONDA_BUILD_ISOLATED_ACTIVATION: 1
+        with:
+          package-name: ${{ github.event.repository.name }}
+          subdir: ${{ matrix.subdir }}
+          base-architecture: ${{ matrix.subdir == 'win-arm64' && 'x64' || '' }}
+          # template-files-if
+          conda-build-arguments: >-
+            ${{ matrix.subdir == 'win-arm64' && '--override-channels -c conda-forge' || '' }}
+          # template-files-endif
+          anaconda-org-channel: conda-canary
+          anaconda-org-label: ${{ env.ANACONDA_ORG_LABEL }}
+          anaconda-org-token: ${{ secrets.ANACONDA_ORG_CONDA_CANARY_TOKEN }}
+          # Only comment on PRs
+          comment-headline: Review build status
+          comment-token: ${{ github.event_name == 'pull_request' && secrets.CANARY_ACTION_TOKEN || '' }}
+
+  report-canary-failure:
+    needs: [build]
+    # Only main and release (*.x) branches: feature/* canaries can fail without opening issues.
+    if: >-
+      always()
+      && !github.event.repository.fork
+      && needs.build.result == 'failure'
+      && (
+        (
+          github.event_name == 'workflow_run'
+          && !startsWith(github.event.workflow_run.head_branch, 'feature/')
+        ) || (
+          github.event_name == 'push'
+          && endsWith(github.ref_name, '.x')
+        )
+      )
+    runs-on: ubuntu-slim
+    steps:
+      - name: Report canary failure
+        env:
+          GH_TOKEN: ${{ secrets.AUTO_REPORT_TEST_FAILURE }}
+          BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+        run: |
+          TITLE="${{ github.workflow }} failed \`${BRANCH}\`"
+          BODY="The ${{ github.workflow }} workflow failed on ${BRANCH} at $(date -u '+%Y-%m-%d %H:%M') UTC
+
+          Full run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          existing=$(gh issue list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            --search "\"${TITLE}\" in:title label:source::auto sort:created-desc" \
+            --limit 1 \
+            --json number \
+            --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" \
+              --repo "${{ github.repository }}" \
+              --body "$BODY"
+          else
+            gh issue create \
+              --repo "${{ github.repository }}" \
+              --title "$TITLE" \
+              --body "$BODY" \
+              --label "¡blocking!,type::bug,type::testing,source::auto"
+          fi

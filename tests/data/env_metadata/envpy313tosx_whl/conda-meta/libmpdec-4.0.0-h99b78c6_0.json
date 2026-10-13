@@ -1,0 +1,51 @@
+{
+  "build": "h99b78c6_0",
+  "build_number": 0,
+  "channel": "https://conda.anaconda.org/conda-forge/osx-arm64",
+  "constrains": [],
+  "depends": [
+    "__osx >=11.0"
+  ],
+  "extracted_package_dir": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/libmpdec-4.0.0-h99b78c6_0",
+  "features": "",
+  "files": [
+    "lib/libmpdec.4.0.0.dylib",
+    "lib/libmpdec.4.dylib"
+  ],
+  "fn": "libmpdec-4.0.0-h99b78c6_0.conda",
+  "license": "BSD-2-Clause",
+  "license_family": "BSD",
+  "link": {
+    "source": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/libmpdec-4.0.0-h99b78c6_0",
+    "type": 1
+  },
+  "md5": "7476305c35dd9acef48da8f754eedb40",
+  "name": "libmpdec",
+  "package_tarball_full_path": "/Users/jhelmus/workspace/conda/devenv/Darwin/arm64/envs/devenv-3.10-c/pkgs/libmpdec-4.0.0-h99b78c6_0.conda",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/libmpdec.4.0.0.dylib",
+        "path_type": "hardlink",
+        "sha256": "3f3cf52b2be1c1f36d1e026ea56c2478be0ca4f29bcf906f4b1dc164e6f1e24a",
+        "sha256_in_prefix": "3f3cf52b2be1c1f36d1e026ea56c2478be0ca4f29bcf906f4b1dc164e6f1e24a",
+        "size_in_bytes": 204880
+      },
+      {
+        "_path": "lib/libmpdec.4.dylib",
+        "path_type": "softlink",
+        "sha256": "3f3cf52b2be1c1f36d1e026ea56c2478be0ca4f29bcf906f4b1dc164e6f1e24a",
+        "size_in_bytes": 204880
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "None",
+  "sha256": "f7917de9117d3a5fe12a39e185c7ce424f8d5010a6f97b4333e8a1dcb2889d16",
+  "size": 69263,
+  "subdir": "osx-arm64",
+  "timestamp": 1723817629767,
+  "track_features": "",
+  "url": "https://conda.anaconda.org/conda-forge/osx-arm64/libmpdec-4.0.0-h99b78c6_0.conda",
+  "version": "4.0.0"
+}

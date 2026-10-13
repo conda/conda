@@ -14,13 +14,10 @@ from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING
 
-from boltons.setutils import IndexedSet
-
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_PACKAGE_EXTENSION_V1, REPODATA_FN
 from ..base.context import context
-from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor, dashlist
-from ..common.iterators import groupby_to_dict as groupby
+from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
 from ..common.path import url_to_path
 from ..common.serialize import json
 from ..common.url import join_url
@@ -54,6 +51,15 @@ REPODATA_HEADER_RE = b'"(_etag|_mod|_cache_control)":[ ]?"(.*?[^\\\\])"[,}\\s]'
 
 class SubdirDataType(type):
     def __call__(cls, channel: Channel, repodata_fn: str = REPODATA_FN) -> SubdirData:
+        """Return a cached or newly constructed ``SubdirData`` instance.
+
+        Args:
+            channel: The channel object.
+            repodata_fn: The name of the repodata file. Defaults to REPODATA_FN.
+
+        Returns:
+            A SubdirData instance.
+        """
         if not channel.subdir:
             raise ValueError("SubdirData requires a subdir-aware Channel.")
         if channel.package_filename:
@@ -90,7 +96,8 @@ class PackageRecordList(UserList):
     item at the given index is a PackageRecord object. If not, it converts the dictionary to a
     PackageRecord object and stores it in the data list.
 
-    :param data: The list of items
+    Args:
+        data: The list of items.
     """
 
     def __getitem__(self, i: int) -> PackageRecord:
@@ -100,11 +107,14 @@ class PackageRecordList(UserList):
         at index i is not already an instance of PackageRecord, it is converted to one and stored
         back in the data list.
 
-        :param i: An integer or slice object indicating the index or indices of the
-                  PackageRecord(s) to be returned.
-        :return: If i is a slice, returns a new instance of PackageRecordList containing the
-                 PackageRecords at the indices in i. If i is an integer, returns the PackageRecord
-                 at index i.
+        Args:
+            i: An integer or slice object indicating the index or indices of the
+               PackageRecord(s) to be returned.
+
+        Returns:
+            If i is a slice, returns a new instance of PackageRecordList containing the
+            PackageRecords at the indices in i. If i is an integer, returns the PackageRecord
+            at index i.
         """
         if isinstance(i, slice):
             return self.__class__(self.data[i])
@@ -117,15 +127,7 @@ class PackageRecordList(UserList):
 
 
 class SubdirData(metaclass=SubdirDataType):
-    """
-    A class representing the SubdirData.
-
-    This class provides functionality for managing and caching SubdirData instances.
-
-    :param channel: The channel object
-    :param repodata_fn: The name of the repodata file. Defaults to REPODATA_FN
-    :return: A SubdirData instance.
-    """
+    """Repodata for a channel subdir, with instance caching via ``SubdirDataType``."""
 
     _cache_: dict[tuple[str, str], PackageRecordList | SubdirData] = {}
 
@@ -138,7 +140,8 @@ class SubdirData(metaclass=SubdirDataType):
         unit tests to handle changes in the CONDA_USE_ONLY_TAR_BZ2 environment variable during the
         process lifetime.
 
-        :param exclude_file: A flag indicating whether to exclude file:// URLs from the cache.
+        Args:
+            exclude_file: A flag indicating whether to exclude file:// URLs from the cache.
         """
         # This should only ever be needed during unit tests, when
         # CONDA_USE_ONLY_TAR_BZ2 may change during process lifetime.
@@ -160,35 +163,32 @@ class SubdirData(metaclass=SubdirDataType):
         Execute a query against all repodata instances in the channel/subdir
         matrix.
 
-        :param package_ref_or_match_spec: A `MatchSpec` query object.  A `str`
-            will be turned into a      `MatchSpec` automatically.
-        :param channels: An iterable of urls for channels or `Channel` objects.
-            If None, will fall back to `context.channels`.
-        :param subdirs: If None, will fall back to context.subdirs.
-        :param repodata_fn: The filename of the repodata.
-        :return: A tuple of `PackageRecord` objects.
+        Args:
+            package_ref_or_match_spec: A `MatchSpec` query object. A `str`
+                will be turned into a `MatchSpec` automatically.
+            channels: An iterable of urls for channels or `Channel` objects.
+                If None, will fall back to `context.channels`.
+            subdirs: If None, will fall back to context.subdirs.
+            repodata_fn: The filename of the repodata.
+
+        Returns:
+            A tuple of `PackageRecord` objects.
         """
         # ensure that this is not called by threaded code
         create_cache_dir()
         if channels is None:
             channels = context.channels
         channel_urls = all_channel_urls(channels, subdirs=subdirs)
-        if context.offline:
-            grouped_urls = groupby(lambda url: url.startswith("file://"), channel_urls)
-            ignored_urls = grouped_urls.get(False, ())
-            if ignored_urls:
-                log.info(
-                    "Ignoring the following channel urls because mode is offline.%s",
-                    dashlist(ignored_urls),
-                )
-            channel_urls = IndexedSet(grouped_urls.get(True, ()))
 
         def subdir_query(url: str) -> tuple[PackageRecord, ...]:
             """
             Queries the SubdirData for a given URL and returns a tuple of PackageRecord objects.
 
-            :param url: The URL of the SubdirData to query.
-            :return: A tuple of PackageRecord objects representing the query results.
+            Args:
+                url: The URL of the SubdirData to query.
+
+            Returns:
+                A tuple of PackageRecord objects representing the query results.
             """
             return tuple(
                 SubdirData(Channel(url), repodata_fn=repodata_fn).query(
@@ -216,8 +216,11 @@ class SubdirData(metaclass=SubdirDataType):
         """
         A function that queries for a specific package reference or MatchSpec object.
 
-        :param package_ref_or_match_spec: The package reference or MatchSpec object to query.
-        :yields: PackageRecord objects.
+        Args:
+            package_ref_or_match_spec: The package reference or MatchSpec object to query.
+
+        Yields:
+            PackageRecord objects.
         """
         if not self._loaded:
             self.load()
@@ -250,9 +253,10 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Initializes a new instance of the SubdirData class.
 
-        :param channel: The channel object.
-        :param repodata_fn: The repodata filename.
-        :param RepoInterface: The RepoInterface class.
+        Args:
+            channel: The channel object.
+            repodata_fn: The repodata filename.
+            RepoInterface: The RepoInterface class.
         """
         if not channel.subdir:
             raise ValueError("SubdirData requires a subdir-aware Channel.")
@@ -480,10 +484,13 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Throw away the pickle if these don't all match.
 
-        :param pickled_state: The pickled state to compare against.
-        :param mod: The modification information to check.
-        :param etag: The etag to compare against.
-        :yields: Tuples of the form (check_name, pickled_value, current_value).
+        Args:
+            pickled_state: The pickled state to compare against.
+            mod: The modification information to check.
+            etag: The etag to compare against.
+
+        Yields:
+            Tuples of the form (check_name, pickled_value, current_value).
         """
         yield "_url", pickled_state.get("_url"), self.url_w_credentials
         yield "_schannel", pickled_state.get("_schannel"), self.channel.canonical_name
@@ -505,8 +512,11 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Read pickled repodata from the cache and process it.
 
-        :param state: The repodata state.
-        :return: A dictionary containing the processed pickled repodata, or None if the repodata is
+        Args:
+            state: The repodata state.
+
+        Returns:
+            A dictionary containing the processed pickled repodata, or None if the repodata is
             not pickled.
         """
         if not isinstance(state, RepodataState):
@@ -535,7 +545,8 @@ class SubdirData(metaclass=SubdirDataType):
             """
             Generate a list of checks to verify the validity of a pickled state.
 
-            :return: A list of tuples, where each tuple contains a check name, the value from the
+            Returns:
+                A list of tuples, where each tuple contains a check name, the value from the
                 pickled state, and the current value.
             """
             return self._pickle_valid_checks(_pickled_state, state.mod, state.etag)
@@ -545,7 +556,8 @@ class SubdirData(metaclass=SubdirDataType):
             Generate a generator that yields the results of checking the validity of a pickled
             state.
 
-            :yields: True if the pickled state is valid, False otherwise.
+            Yields:
+                True if the pickled state is valid, False otherwise.
             """
             for _, left, right in checks():
                 yield left == right
@@ -570,8 +582,11 @@ class SubdirData(metaclass=SubdirDataType):
 
         Process the raw repodata string and return the processed repodata.
 
-        :param raw_repodata_str: The raw repodata string.
-        :return: A dictionary containing the processed repodata.
+        Args:
+            raw_repodata_str: The raw repodata string.
+
+        Returns:
+            A dictionary containing the processed repodata.
         """
         json_obj = json.loads(raw_repodata_str or "{}")
         return self._process_raw_repodata(json_obj, state=state)
@@ -582,9 +597,12 @@ class SubdirData(metaclass=SubdirDataType):
         """
         Process the raw repodata dictionary and return the processed repodata.
 
-        :param repodata: The raw repodata dictionary.
-        :param state: The repodata state. Defaults to None.
-        :return: A dictionary containing the processed repodata.
+        Args:
+            repodata: The raw repodata dictionary.
+            state: The repodata state. Defaults to None.
+
+        Returns:
+            A dictionary containing the processed repodata.
         """
         if not isinstance(state, RepodataState):
             state = RepodataState(
@@ -709,10 +727,14 @@ class SubdirData(metaclass=SubdirDataType):
 
         This method deals with both cases and returns the appropriate value.
 
-        Get the base URL for the given endpoint.
+        Get the base URL for the given repodata.
 
-        :param endpoint: The endpoint for which the base URL is needed.
-        :return: The base URL corresponding to the provided endpoint.
+        Args:
+            repodata: The parsed repodata.json payload.
+            with_credentials: Whether to include credentials in the returned URL.
+
+        Returns:
+            The base URL corresponding to the provided repodata.
         """
         maybe_base_url = repodata.get("info", {}).get("base_url")
         if maybe_base_url:  # repodata defines base_url field
@@ -742,3 +764,116 @@ class SubdirData(metaclass=SubdirDataType):
         if with_credentials:
             return self.url_w_credentials
         return self.url_w_subdir
+
+
+def _search_package_via_shards(
+    spec: MatchSpec,
+    channel_urls: tuple[str, ...] | list[str],
+    subdirs: tuple[str, ...] | list[str],
+) -> tuple[PackageRecord, ...]:
+    from .._private.shards.shards import Shards, fetch_channels
+    from .._private.shards.subset import RepodataSubset
+    from ..base.context import context
+    from ..models.channel import Channel, all_channel_urls
+    from ..models.records import PackageRecord
+
+    if channel_urls is None:
+        channel_urls = context.channels
+    channel_urls = all_channel_urls(channel_urls, subdirs=subdirs)
+    channels = {
+        channel_url or "": Channel.from_url(channel_url) for channel_url in channel_urls
+    }
+
+    subset_dict = fetch_channels(channels, require_shards=False) or {}
+
+    if not spec.get_exact_value("name"):
+        packages: set[str] = set()
+        for shard_base in subset_dict.values():
+            if shard_base is not None:
+                packages.update(shard_base.package_names)
+
+        raw_name = spec.get_raw_value("name")
+        if raw_name == "*" and any(
+            isinstance(shard_base, Shards) for shard_base in subset_dict.values()
+        ):
+            from ..exceptions import CondaValueError
+
+            raise CondaValueError(
+                "Cannot search for bare '*'. Please include package name in search."
+            )  # TODO improve error message
+        name_only = MatchSpec(raw_name)  # type: ignore[assign]
+        # Avoid constructing a PackageRecord for every name in the shard index.
+        name_matcher = name_only._match_components.get("name")
+        root_packages = [
+            name
+            for name in packages
+            if name_matcher is None or name_matcher.match(name)
+        ]
+    else:
+        root_packages = [spec.name]
+
+    subset = RepodataSubset((*subset_dict.values(),), repodata_version=3, depth=0)
+    subset.reachable(root_packages)
+
+    records = []
+    for channel, shard in subset_dict.items():
+        for section_tuple, record in shard.iter_records_v3():
+            # If conda if only using tar_bz2 packages, skip any sections that
+            # are not called "packages"
+            if context.use_only_tar_bz2 and section_tuple[1] != "packages":
+                continue
+
+            record_data = {"subdir": channels[channel].subdir, **record}
+
+            # For repodata v1, the filename is the section key. Repodata v3
+            # stores it in the record instead.
+            if section_tuple[1] in ["packages", "packages.conda"]:
+                record_data["fn"] = section_tuple[0]
+            record_data.setdefault("url", join_url(shard.base_url, record_data["fn"]))
+            rec = PackageRecord(channel=channel, **record_data)
+            if spec.match(rec):
+                records.append(rec)
+    return records
+
+
+def _search_package(
+    spec: MatchSpec,
+    channel_urls: tuple[str, ...] | list[str],
+    subdirs: tuple[str, ...] | list[str],
+    repodata_fn: str = REPODATA_FN,
+) -> tuple[PackageRecord, ...]:
+    from ..core.subdir_data import SubdirData
+    from ..models.version import VersionOrder
+
+    return sorted(
+        SubdirData.query_all(spec, channel_urls, subdirs, repodata_fn),
+        key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
+    )
+
+
+def query_all(
+    match_spec: MatchSpec,
+    channels: Iterable[Channel | str] | None = None,
+    subdirs: Iterable[str] | None = None,
+    repodata_fn: str = REPODATA_FN,
+) -> tuple[PackageRecord, ...]:
+    """
+    Execute a query against all repodata instances in the channel/subdir
+    matrix. Will try to load data from shards if conda is configured to use
+    shards and the channel provides sharded repodata. If not, will fall back
+    to providing data from monolithic repodata.
+
+    Args:
+        match_spec: A `MatchSpec` query object.
+        channels: An iterable of urls for channels or `Channel` objects.
+            If None, will fall back to `context.channels`.
+        subdirs: If None, will fall back to context.subdirs.
+        repodata_fn: The filename of the repodata.
+
+    Returns:
+        A tuple of `PackageRecord` objects.
+    """
+    if context.repodata_use_shards:
+        return _search_package_via_shards(match_spec, channels, subdirs)
+    else:
+        return _search_package(match_spec, channels, subdirs, repodata_fn)

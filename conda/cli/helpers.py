@@ -10,11 +10,13 @@ from argparse import (
     SUPPRESS,
     Action,
     BooleanOptionalAction,
+    _AppendAction,
     _HelpAction,
     _StoreAction,
-    _StoreTrueAction,
 )
 from typing import TYPE_CHECKING
+
+from ..deprecations import deprecated
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, _ArgumentGroup, _MutuallyExclusiveGroup
@@ -104,13 +106,19 @@ def add_parser_create_install_update(p, prefix_required=False):
     # Add the file kwarg. We don't use {action="store", nargs='*'} as we don't
     # want to gobble up all arguments after --file.
     p.add_argument(
-        # "-f",  # FUTURE: 26.3: Enable this after deprecating alias in --force
+        "-f",
         "--file",
         default=[],
         action="append",
-        help="Read package versions from the given file. Repeated file "
-        "specifications can be passed (e.g. --file=file1 --file=file2).",
+        help=(
+            "Read environment or package specs from a file. The format is "
+            "detected from the filename or contents. Which formats are "
+            "supported depends on the installed plugins (see the epilog for "
+            "the list available here). Custom filenames require --format. "
+            "May be repeated (e.g. --file=file1 --file=file2)."
+        ),
     )
+    add_parser_environment_specifier(p)
     p.add_argument(
         "packages",
         metavar="package_spec",
@@ -190,6 +198,7 @@ def add_parser_prefix_to_group(m: _MutuallyExclusiveGroup) -> None:
 
 
 def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
+    from ..base.context import context
     from ..common.constants import NULL
 
     output_and_prompt_options = p.add_argument_group(
@@ -204,6 +213,10 @@ def add_parser_json(p: ArgumentParser) -> _ArgumentGroup:
     output_and_prompt_options.add_argument(
         "--console",
         default=NULL,
+        action=LazyChoicesAction,
+        choices_func=lambda: sorted(
+            backend.name for backend in context.plugin_manager.get_reporter_backends()
+        ),
         help="Select the backend to use for normal output rendering.",
     )
     add_parser_verbose(output_and_prompt_options)
@@ -298,12 +311,17 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
             "conda config --describe repodata_fns."
         ),
     )
+    # jlap and lock experimental features are deprecated but are left in so older scripts will still work.
     channel_customization_options.add_argument(
         "--experimental",
-        action="append",
+        action=deprecated.action(
+            "26.9",
+            "27.3",
+            _AppendAction,
+            addendum="Deprecated: jlap and lock no longer supported.",
+        ),
         choices=["jlap", "lock"],
-        help="jlap: Download incremental package index data from repodata.jlap; implies 'lock'. "
-        "lock: use locking when reading, updating index (repodata.json) cache. Now enabled.",
+        help="Deprecated: jlap and lock no longer supported.  These options will have no effect.",
     )
     channel_customization_options.add_argument(
         "--no-lock",
@@ -317,6 +335,13 @@ def add_parser_channels(p: ArgumentParser) -> _ArgumentGroup:
         dest="repodata_use_zst",
         default=NULL,
         help="Check for/do not check for repodata.json.zst. Enabled by default.",
+    )
+    channel_customization_options.add_argument(
+        "--repodata-use-shards",
+        action=BooleanOptionalAction,
+        dest="repodata_use_shards",
+        default=NULL,
+        help="Use sharded repodata if available. Enabled by default.",
     )
     return channel_customization_options
 
@@ -375,6 +400,18 @@ def add_parser_solver_mode(p: ArgumentParser) -> _ArgumentGroup:
         dest="ignore_pinned",
         default=NULL,
         help="Ignore pinned file.",
+    )
+    solver_mode_options.add_argument(
+        "--exclude-newer",
+        dest="exclude_newer",
+        default=NULL,
+        metavar="DURATION_OR_DATE",
+        help="Exclude packages published more recently than the given "
+        "duration (e.g. 7d, 3d12h, 1w) or date (e.g. 2026-04-01, "
+        "2026-04-01T12:00:00Z). Date-only values use the start of the next "
+        "UTC day. Supply 0 for no delay, using the current time as the cutoff. "
+        "Channel and per-package overrides can be set via channel_settings and "
+        "exclude_newer_package in .condarc.",
     )
     return solver_mode_options
 
@@ -497,22 +534,9 @@ def add_parser_networking(p: ArgumentParser) -> _ArgumentGroup:
 
 def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
     from ..common.constants import NULL
-    from ..deprecations import deprecated
 
     package_install_options = p.add_argument_group(
         "Package Linking and Install-time Options"
-    )
-    package_install_options.add_argument(
-        "-f",
-        dest="force",
-        action=deprecated.action(
-            "25.9",
-            "26.3",
-            _StoreTrueAction,
-            addendum="Use `--force` instead.",
-        ),
-        default=NULL,
-        help=SUPPRESS,
     )
     package_install_options.add_argument(
         "--force",
@@ -546,6 +570,13 @@ def add_parser_package_install_options(p: ArgumentParser) -> _ArgumentGroup:
         help="Install shortcuts only for this package name. Can be used several times.",
         dest="shortcuts_only",
     )
+    package_install_options.add_argument(
+        "--clobber",
+        action="store_true",
+        default=NULL,
+        help="Allow clobbering (i.e. overwriting) of overlapping file paths "
+        "within packages and suppress related warnings.",
+    )
     return package_install_options
 
 
@@ -567,21 +598,36 @@ def add_parser_default_packages(p: ArgumentParser) -> None:
     )
 
 
-def add_parser_platform(parser):
-    from ..base.constants import KNOWN_SUBDIRS
+def add_parser_platform(
+    parser: ArgumentParser | _ArgumentGroup,
+    *,
+    help: str | None = None,
+    known_subdirs_only: bool = True,
+) -> None:
+    from ..base.context import context
     from ..common.constants import NULL
 
+    help = (
+        help
+        or (
+            "Use packages built for this platform. "
+            "The new environment will be configured to remember this choice. "
+        )
+    ).strip()
     parser.add_argument(
         "--subdir",
         "--platform",
         default=NULL,
         dest="subdir",
-        choices=[s for s in KNOWN_SUBDIRS if s != "noarch"],
+        choices=(
+            sorted(context.known_subdirs - {"noarch"}) if known_subdirs_only else None
+        ),
         metavar="SUBDIR",
-        help="Use packages built for this platform. "
-        "The new environment will be configured to remember this choice. "
-        "Should be formatted like 'osx-64', 'linux-32', 'win-64', and so on. "
-        "Defaults to the current (native) platform.",
+        help=(
+            f"{help}{' ' if help else ''}"
+            f"Should be formatted like 'osx-64', 'linux-32', 'win-64', and so on. "
+            f"Defaults to the current (native) platform."
+        ),
     )
 
 
@@ -621,10 +667,28 @@ def add_parser_environment_specifier(p: ArgumentParser) -> None:
     p.add_argument(
         "--environment-specifier",
         "--env-spec",  # for brevity
+        action=deprecated.action(
+            "26.9",
+            "27.3",
+            LazyChoicesAction,
+            addendum="Use the `--format` flag instead.",
+        ),
+        choices_func=context.plugin_manager.get_environment_specifiers,
+        default=NULL,
+    )
+
+    p.add_argument(
+        "--format",
+        dest="environment_specifier",
         action=LazyChoicesAction,
         choices_func=context.plugin_manager.get_environment_specifiers,
         default=NULL,
-        help="(EXPERIMENTAL) Specify the environment specifier plugin to use.",
+        metavar="FORMAT",
+        help=(
+            "Override auto-detection of the input file's format. See "
+            "`conda export --help` for the formats available in your "
+            "installation. Aliases are interchangeable with canonical names."
+        ),
     )
 
 
