@@ -22,6 +22,7 @@ Authors are sorted alphabetically.
 * Almar Klein
 * Amelio Vazquez-Reina
 * Amir Mohammadi
+* Andre
 * Andrea Ghensi
 * Andreas Girgensohn
 * Andrew Achkar
@@ -105,6 +106,7 @@ Authors are sorted alphabetically.
 * Dan Lovell
 * Dan Meador
 * Dan Yeaw
+* Daniel
 * Daniel Bast
 * Daniel Ching
 * Daniel Holth
@@ -223,6 +225,7 @@ Authors are sorted alphabetically.
 * Josh Mayer
 * Juan Luis Cano Rodríguez
 * Juan Nunez-Iglesias
+* Julien Jerphanion
 * Julien Schueller
 * Justin Wood (Callek)
 * Justus Schwabedal
@@ -313,6 +316,7 @@ Authors are sorted alphabetically.
 * Mihir Rege
 * Mika Fischer
 * Mike Croucher
+* Mike Taves
 * MinRK
 * Minh Phan
 * Monius
@@ -384,6 +388,7 @@ Authors are sorted alphabetically.
 * Sam Davis
 * Sam Haese
 * Sam Nicholls
+* Samartha
 * Samson Yeung
 * Samuel Debionne
 * Samuel Walters-Nevet
@@ -492,6 +497,7 @@ Authors are sorted alphabetically.
 * oinizan
 * ovz
 * padeoe
+* paperbenni
 * peter1000
 * pre-commit CI
 * saraneem

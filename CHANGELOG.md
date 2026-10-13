@@ -1,5 +1,30 @@
 [//]: # (current developments)
 
+## 26.9.2 (2026-10-08)
+
+### Bug fixes
+
+* Fix `conda run` selecting the active environment instead of the requested target when conda-build is installed. (#16811 via #16821)
+* Fix `AttributeError: 'PackageRecord' object has no attribute 'extras'` when solving from channels whose repodata uses extra_depends by adding `extra_depends` to `PackageRecord` and ignoring the `extras` selector during record matching. (#16822 via #16823)
+
+### Contributors
+
+* @danyeaw
+* @jezdez
+* @kenodegard
+
+
+## 26.9.1 (2026-10-02)
+
+### Bug fixes
+
+* Keep cached package archive paths consistent with their recorded filenames and checksums when both archive formats are present. Restore the fix from conda 26.7.3 that was missing in 26.9.0. (#9674 via #16793)
+
+### Contributors
+
+* @jezdez
+
+
 ## 26.9.0 (2026-09-29)
 
 ### Enhancements
