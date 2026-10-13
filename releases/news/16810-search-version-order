@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Fix `conda search` output ordering for sharded repodata to sort package versions by `VersionOrder` instead of lexicographical order. (#16810)

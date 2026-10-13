@@ -554,3 +554,119 @@ def test_search_no_channels_configured(mocker, conda_cli: CondaCLIFixture):
     error_message = str(exc.value)
     assert "No channels are configured" in error_message
     assert "numpy" in error_message
+
+
+def test_search_version_ordering_display(
+    conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch
+):
+    """
+    Ensure conda search displays packages ordered by VersionOrder instead of lexicographical order.
+    Covers default table output, --info, --json, multiple builds, and package grouping.
+    """
+    from unittest.mock import MagicMock
+
+    versions = ["1.11.5", "1.14.0", "1.3.0", "1.9.4"]
+    fake_shard = MagicMock()
+    fake_shard.package_names = ["maturin", "otherpkg"]
+    fake_shard.base_url = "https://example.com"
+    fake_shard.iter_records_v3.return_value = [
+        (
+            (f"maturin-{v}-0.conda", "packages.conda"),
+            {"name": "maturin", "version": v, "build": "0", "build_number": 0},
+        )
+        for v in versions
+    ] + [
+        (
+            ("maturin-1.3.0-1.conda", "packages.conda"),
+            {"name": "maturin", "version": "1.3.0", "build": "1", "build_number": 1},
+        ),
+        (
+            ("otherpkg-2.0.0-0.conda", "packages.conda"),
+            {"name": "otherpkg", "version": "2.0.0", "build": "0", "build_number": 0},
+        ),
+    ]
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    reset_context()
+
+    monkeypatch.setattr(
+        "conda._private.shards.shards.fetch_channels",
+        lambda *args, **kwargs: {"https://example.com/noarch": fake_shard},
+    )
+    monkeypatch.setattr(
+        "conda._private.shards.subset.RepodataSubset.reachable",
+        lambda *args, **kwargs: None,
+    )
+
+    # 1. Default table output
+    stdout, stderr, code = conda_cli(
+        "search",
+        "maturin",
+        "--override-channels",
+        "-c",
+        "https://example.com/noarch",
+    )
+    assert code == 0, stderr
+    lines = [
+        line.split()
+        for line in stdout.strip().splitlines()
+        if line and not line.startswith("#")
+    ]
+    found_versions = [parts[1] for parts in lines if parts[0] == "maturin"]
+    assert found_versions == ["1.3.0", "1.3.0", "1.9.4", "1.11.5", "1.14.0"]
+    # Verify build tie-breaker order for multiple builds
+    builds_1_3 = [
+        parts[2] for parts in lines if parts[0] == "maturin" and parts[1] == "1.3.0"
+    ]
+    assert builds_1_3 == ["0", "1"]
+
+    # 2. JSON output mode
+    stdout_json, stderr_json, code_json = conda_cli(
+        "search",
+        "maturin",
+        "--json",
+        "--override-channels",
+        "-c",
+        "https://example.com/noarch",
+    )
+    assert code_json == 0, stderr_json
+    parsed = json.loads(stdout_json)
+    assert [r["version"] for r in parsed["maturin"]] == [
+        "1.3.0",
+        "1.3.0",
+        "1.9.4",
+        "1.11.5",
+        "1.14.0",
+    ]
+
+    # 3. --info output mode
+    stdout_info, stderr_info, code_info = conda_cli(
+        "search",
+        "maturin",
+        "--info",
+        "--override-channels",
+        "-c",
+        "https://example.com/noarch",
+    )
+    assert code_info == 0, stderr_info
+    info_versions = re.findall(r"^version\s*:\s*(.+)$", stdout_info, re.MULTILINE)
+    assert info_versions == ["1.3.0", "1.3.0", "1.9.4", "1.11.5", "1.14.0"]
+
+    # 4. Wildcard search with multiple packages
+    stdout_wild, stderr_wild, code_wild = conda_cli(
+        "search",
+        "*turin*",
+        "--json",
+        "--override-channels",
+        "-c",
+        "https://example.com/noarch",
+    )
+    assert code_wild == 0, stderr_wild
+    parsed_wild = json.loads(stdout_wild)
+    assert [r["version"] for r in parsed_wild["maturin"]] == [
+        "1.3.0",
+        "1.3.0",
+        "1.9.4",
+        "1.11.5",
+        "1.14.0",
+    ]
