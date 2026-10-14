@@ -23,13 +23,15 @@ from conda.base.context import context
 from conda.core.subdir_data import SubdirData
 from conda.gateways.connection.session import get_session
 from conda.gateways.repodata import (
+    FORMAT_JSON,
+    FORMAT_SHARDS,
     _add_http_value_to_dict,
     conda_http_errors,
 )
 from conda.models.channel import Channel
 
 from ..zstd import capped_decompress
-from . import cache
+from . import cache, decompression
 from .misc import (
     _is_http_error_most_400_codes,
     _safe_urljoin_with_slash,
@@ -48,21 +50,7 @@ if TYPE_CHECKING:
 
     from conda.gateways.repodata import RepodataCache
 
-    from .typing import RepodataDict, ShardDict, ShardsIndexDict
-
-ZSTD_MAX_SHARD_SIZE = (
-    2**20 * 16
-)  # maximum size necessary when compressed data has no size header
-
-
-ZSTD_MAX_SHARD_INDEX_SIZE = (
-    2**23 * 16
-)  # maximum size necessary when compressed data has no size header
-
-
-# For reference, the largest shard "conda-forge/linux-64/vim" is 2608283 bytes
-# or < 2**19*5 decompressed (486155 bytes compressed); the index is 575219 bytes
-# decompressed (514039 bytes compressed) and is mostly uncompressible hash data.
+    from .typing import PackageRecordDict, RepodataDict, ShardDict, ShardsIndexDict
 
 
 class ShardFetch:
@@ -177,8 +165,10 @@ class ShardFetch:
 
         # Decompress and save record
         results[fetch_result.package] = msgpack.loads(
-            capped_decompress(
-                fetch_result.compressed_shard, max_output_size=ZSTD_MAX_SHARD_SIZE
+            decompression.decompress_shard(
+                fetch_result.compressed_shard,
+                url=shards.url,
+                package=fetch_result.package,
             )
         )
         self.shard_cache.insert(fetch_result)
@@ -215,6 +205,23 @@ class ShardFetch:
                     shard_fetch._fetched = True
 
 
+def _iter_shard_records(
+    shard: ShardDict, repodata_version: int = 1
+) -> Iterable[PackageRecordDict]:
+    """
+    Yield every package record in a shard: classic ``packages``,
+    ``packages.conda``, and (when ``repodata_version >= 3``) all ``v3`` groups.
+    """
+    for record in shard["packages"].values():
+        yield record
+    for record in shard["packages.conda"].values():
+        yield record
+    if repodata_version >= 3 and (v3_data := shard.get("v3")):
+        for group in v3_data.values():
+            for record in group.values():
+                yield record
+
+
 def shard_mentioned_packages(
     shard: ShardDict,
     extra: Iterable[str] = (),
@@ -224,10 +231,14 @@ def shard_mentioned_packages(
     """
     Return all dependency names mentioned in a shard, not including the shard's
     own package name.
+
+    Callers are responsible for calling
+    ``conda._private.shards.misc.filter_redundant_packages`` on ``shard`` first if
+    "prefer .conda over .tar.bz2" semantics are required; `conda._private.shards.subset`
+    already does this for every shard before invoking this function.
     """
     unique_specs: set[str] = set()
-
-    def _yield_record(record):
+    for record in _iter_shard_records(shard, repodata_version):
         ensure_hex_hash(record)  # otherwise we could do this at serialization
         for spec in record.get("depends", ()):
             if spec not in unique_specs:
@@ -235,16 +246,54 @@ def shard_mentioned_packages(
                 name = spec_to_package_name(spec)
                 if name is not None:
                     yield name  # not much improvement from only yielding unique names
-
-    for record in shard["packages"].values():
-        yield from _yield_record(record)
-    for record in shard["packages.conda"].values():
-        yield from _yield_record(record)
-    if repodata_version >= 3 and (v3_data := shard.get("v3")):
-        for group in v3_data.values():
-            for record in group.values():
-                yield from _yield_record(record)
     yield from extra
+
+
+def shard_extra_depends_packages(
+    shard: ShardDict,
+    extras: Iterable[str],
+    spec_to_package_name=spec_to_package_name,
+    repodata_version: int = 1,
+) -> Iterable[str]:
+    """
+    Return dependency names mentioned in the CEP 44 ``extra_depends`` groups
+    named by ``extras``, across every record (all builds/versions) in
+    ``shard``.
+
+    This only looks at ``extra_depends`` groups attached directly to records
+    in this shard (i.e. extras requested for *this* package, typically because
+    it was named in a root/user-requested MatchSpec, e.g.
+    ``httpx[extras=cli]``). It does not recurse into ``extras=[...]`` that may
+    appear nested inside individual dependency spec strings elsewhere in the
+    graph; that is out of scope here.
+
+    Unions ``extra_depends`` across all builds/versions present in the shard
+    rather than trying to match the specific version a MatchSpec requested,
+    matching the "overgenerous" traversal philosophy documented in
+    ``conda._private.shards.subset`` (already true of ``depends`` traversal,
+    which does not filter by version either).
+
+    Callers are responsible for calling
+    ``conda._private.shards.misc.filter_redundant_packages`` on ``shard`` first if
+    "prefer .conda over .tar.bz2" semantics are required; `conda._private.shards.subset`
+    already does this for every shard before invoking this function.
+    """
+    unique_specs: set[str] = set()
+    wanted = set(extras)
+    if not wanted:
+        return
+
+    for record in _iter_shard_records(shard, repodata_version):
+        extra_depends = record.get("extra_depends")
+        if not extra_depends:
+            continue
+        for extra_name in wanted:
+            for spec in extra_depends.get(extra_name, ()):
+                if spec not in unique_specs:
+                    unique_specs.add(spec)
+                    name = spec_to_package_name(spec)
+                    if name is not None:
+                        yield name
 
 
 class ShardBase(abc.ABC):
@@ -332,12 +381,17 @@ class ShardBase(abc.ABC):
 
     def iter_records(self) -> Iterable[tuple[str, dict]]:
         """
-        Yield (filename, record) tuples for all packages in visited shards.
+        Yield (key, record) tuples for all packages in visited shards,
+        including v3 records.
+
+        For classic packages, *key* is the filename. For v3 packages, *key* is
+        the shard key (not necessarily the download filename; see
+        ``record["fn"]``).
+
+        Prefer :meth:`iter_records_v3` when section information is needed.
         """
-        for (filename, section), record in self.iter_records_v3():
-            if section not in ("packages", "packages.conda"):
-                continue
-            yield filename, record
+        for (key, _), record in self.iter_records_v3():
+            yield key, record
 
     def iter_records_v3(self) -> Iterable[tuple[tuple[str, str], dict]]:
         """
@@ -357,7 +411,7 @@ class ShardBase(abc.ABC):
             for package_group in ("packages", "packages.conda"):
                 for key, record in shard.get(package_group, {}).items():
                     yield (key, package_group), record
-            # v3 packages (iter_records() method depends on these coming last)
+            # v3 packages
             for section_name, group in shard.get("v3", {}).items():
                 v3_section = f"v3.{section_name}"
                 for key, record in group.items():
@@ -390,6 +444,13 @@ class ShardLike(ShardBase):
             for package, record in group.items():
                 name = record["name"]
                 shards[name][group_name][package] = record
+
+        for section_name, group in repodata.get("v3", {}).items():
+            for key, record in group.items():
+                name = record["name"]
+                shards[name].setdefault("v3", {}).setdefault(section_name, {})[key] = (
+                    record
+                )
 
         # defaultdict behavior no longer wanted
         self.shards: dict[str, ShardDict] = dict(shards)  # type: ignore
@@ -622,6 +683,17 @@ def _repodata_shards(url, cache: RepodataCache) -> bytes:
 # shards as not supported; otherwise, we will check again next time.
 
 
+def _shards_from_bytes(shards_data: bytes, shards_index_url: str) -> Shards:
+    """Helper func to generate shards from shards byte data"""
+    shards_index: ShardsIndexDict = msgpack.loads(
+        capped_decompress(
+            shards_data,
+            max_output_size=decompression.ZSTD_MAX_SHARD_INDEX_SIZE,
+        )
+    )  # type: ignore
+    return Shards(shards_index, shards_index_url)
+
+
 def fetch_shards_index(sd: SubdirData) -> Shards | None:
     """
     Check a SubdirData's URL for shards.
@@ -658,11 +730,11 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
         pass
 
     cache_state = repo_cache.state
+    shards_index_url = f"{sd.url_w_credentials}/{REPODATA_SHARDS_FN}"
 
-    if cache_state.should_check_format("shards"):
+    if cache_state.should_check_format(FORMAT_SHARDS):
         # look for shards index
         shards_data = None
-        shards_index_url = f"{sd.url_w_credentials}/{REPODATA_SHARDS_FN}"
 
         if not repo_cache.cache_path_shards.exists():
             # avoid 304 not modified if we don't have the file
@@ -677,7 +749,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
         if shards_data is None:
             try:
                 shards_data = _repodata_shards(shards_index_url, repo_cache)
-                cache_state.set_has_format("shards", True)
+                cache_state.set_has_format(FORMAT_SHARDS, True)
                 # this will also set state["refresh_ns"] = time.time_ns(); we could
                 # call cache.refresh() if we got a 304 instead:
                 repo_cache.save(shards_data)
@@ -685,7 +757,7 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
                 # repodata_shards converts HTTP errors to conda errors.
                 # fetch repodata.json / repodata.json.zst instead
                 if _is_http_error_most_400_codes(err.status_code):
-                    cache_state.set_has_format("shards", False)
+                    cache_state.set_has_format(FORMAT_SHARDS, False)
                 repo_cache.refresh()
             except conda.exceptions.CondaHTTPError as err:
                 # repodata_shards converts HTTP errors to conda errors.
@@ -697,18 +769,35 @@ def fetch_shards_index(sd: SubdirData) -> Shards | None:
                         err._caused_by.response.status_code
                     )
                 ):
-                    cache_state.set_has_format("shards", False)
+                    cache_state.set_has_format(FORMAT_SHARDS, False)
+                repo_cache.refresh()
+
+        # Use cached on-disk shards data in case re-fetch fails above or classic repodata.json is missing
+        if shards_data is None and repo_cache.cache_path_shards.exists():
+            has_shards, checked = cache_state.has_format(FORMAT_SHARDS)
+            shards_still_ok = checked is not None and has_shards
+            classic_absent = not cache_state.should_check_format(FORMAT_JSON)
+            if shards_still_ok or classic_absent:
+                with repo_cache.lock("r+"):
+                    shards_data = repo_cache.cache_path_shards.read_bytes()
+                cache_state.set_has_format(FORMAT_SHARDS, True)
                 repo_cache.refresh()
 
         if shards_data:
-            # basic parse (move into caller?)
-            shards_index: ShardsIndexDict = msgpack.loads(
-                capped_decompress(
-                    shards_data, max_output_size=ZSTD_MAX_SHARD_INDEX_SIZE
-                )
-            )  # type: ignore
-            shards = Shards(shards_index, shards_index_url)
-            return shards
+            return _shards_from_bytes(shards_data, shards_index_url)
+
+    # classic known absent + shard cache exists + should_check_format(FORMAT_SHARDS) marked False
+    if (
+        not cache_state.should_check_format(FORMAT_JSON)
+        and repo_cache.cache_path_shards.exists()
+    ):
+        with repo_cache.lock("r+"):
+            shards_data = repo_cache.cache_path_shards.read_bytes()
+        has_shards, _ = cache_state.has_format(FORMAT_SHARDS)
+        if not has_shards:
+            cache_state.set_has_format(FORMAT_SHARDS, True)
+            repo_cache.refresh()
+        return _shards_from_bytes(shards_data, shards_index_url)
 
     return None
 
@@ -769,18 +858,21 @@ def batch_retrieve_from_network(wanted: list[ShardFetch]):
     ShardFetch.fetch_batch(wanted)
 
 
-def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] | None:
+def fetch_channels(
+    url_to_channel: dict[str, Channel], *, require_shards: bool = True
+) -> dict[str, ShardBase] | None:
     """
     Args:
         url_to_channel: not modified, must already be expanded to subdirs.
+        require_shards: Return None unless at least one channel provides shards.
 
     Attempt to fetch the sharded index first and then fall back to retrieving a
     monolithic `repodata.json` file.
 
     Returns:
-        A dict mapping channel URLs to `Shard` or `ShardLike` objects. None if
-        no channels have shards. This dict preserves the key order of the input
-        `url_to_channel`.
+        A dict mapping channel URLs to `Shard` or `ShardLike` objects. If
+        `require_shards` is true, return None when no channels have shards.
+        This dict preserves the key order of the input `url_to_channel`.
     """
     # copy incoming dict to retain order:
     channel_data: dict[str, ShardBase | None] = {url: None for url in url_to_channel}
@@ -808,18 +900,24 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             else:
                 non_sharded_channels.append((channel_url, Channel(channel_url)))
 
-        if all(value is None for value in channel_data.values()):
+        if require_shards and all(value is None for value in channel_data.values()):
             return None  # caller should interpret this as falling back to the older code path
 
         # Latency penalty launching these requests here instead of when we
         # non_sharded_channels.append(), but we want to leave a fallback to the
         # non-sharded path open.
+
         for channel_url, _ in non_sharded_channels:
-            futures_non_sharded[
-                executor.submit(
-                    SubdirData(Channel(channel_url)).repo_fetch.fetch_latest_parsed
-                )
-            ] = channel_url
+            sd = subdir_data[channel_url]
+            cache = sd.repo_fetch.repo_cache
+            cache.load_state()
+
+            # Skip classic when has_repodata_json is False until
+            # CHECK_ALTERNATE_FORMAT_INTERVAL (should_check_format) expires
+            if cache.state.should_check_format(FORMAT_JSON):
+                futures_non_sharded[
+                    executor.submit(sd.repo_fetch.fetch_latest_parsed)
+                ] = channel_url
 
         for future in concurrent.futures.as_completed(futures_non_sharded):
             channel_url = futures_non_sharded[future]

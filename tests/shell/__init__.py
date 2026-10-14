@@ -6,7 +6,7 @@ import os
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
-from os.path import dirname
+from os.path import dirname, join
 from shutil import which
 from signal import SIGINT
 from typing import TYPE_CHECKING, overload
@@ -18,7 +18,7 @@ from pexpect.popen_spawn import PopenSpawn
 from conda import CONDA_PACKAGE_ROOT, CONDA_SOURCE_ROOT
 from conda.activate import activator_map
 from conda.common.compat import on_win
-from conda.common.path import unix_path_to_win, win_path_to_unix
+from conda.common.path import BIN_DIRECTORY, unix_path_to_win, win_path_to_unix
 from conda.utils import quote_for_shell
 
 if TYPE_CHECKING:
@@ -30,17 +30,9 @@ if TYPE_CHECKING:
     T = TypeVar("T")
 
 
-# Here, by removing --dev you can try weird situations that you may want to test, upgrade paths
-# and the like? What will happen is that the conda being run and the shell scripts it's being run
-# against will be essentially random and will vary over the course of activating and deactivating
-# environments. You will have absolutely no idea what's going on as you change code or scripts and
-# encounter some different code that ends up being run (some of the time). You will go slowly mad.
-# No, you are best off keeping --dev on the end of these. For sure, if conda bundled its own tests
-# module then we could remove --dev if we detect we are being run in that way.
-dev_arg = "--dev"
-activate = f" activate {dev_arg} "
-deactivate = f" deactivate {dev_arg} "
-install = f" install {dev_arg} "
+activate = " activate "
+deactivate = " deactivate "
+install = " install "
 
 
 @dataclass
@@ -88,7 +80,7 @@ class InteractiveShellType(type):
     SHELLS: dict[str, dict] = {
         "posix": {
             "activator": "posix",
-            "init_command": f'eval "$({EXE_UNIX} -m conda shell.posix hook {dev_arg})"',
+            "init_command": f'eval "$({EXE_UNIX} -m conda shell.posix hook)"',
             "print_env_var": 'echo "$%s"',
         },
         "bash": {
@@ -99,25 +91,17 @@ class InteractiveShellType(type):
         "ash": {"base_shell": "posix"},
         "dash": {"base_shell": "posix"},
         "zsh": {"base_shell": "posix"},
-        # It should be noted here that we use the latest hook with whatever conda.exe is installed
-        # in sys.prefix (and we will activate all of those PATH entries).  We will set PYTHONPATH
-        # though, so there is that.  What I'm getting at is that this is a huge mixup and a mess.
+        # Hook from the checkout; CONDA_EXE is the conda launcher in sys.prefix.
+        # PYTHONPATH (set in InteractiveShell) makes that launcher import the checkout,
+        # matching dev/start.bat.
         "cmd.exe": {
             "activator": "cmd.exe",
-            # For non-dev-mode you'd have:
-            #            'init_command': 'set "CONDA_SHLVL=" '
-            #                            '&& @CALL {}\\shell\\condabin\\conda_hook.bat {} '
-            #                            '&& set CONDA_EXE={}'
-            #                            '&& set _CE_M='
-            #                            '&& set _CE_CONDA='
-            #                            .format(CONDA_PACKAGE_ROOT, dev_arg,
-            #                                    join(sys.prefix, "Scripts", "conda.exe")),
             "init_command": (
                 '@SET "CONDA_SHLVL=" '
-                f"&& @CALL {CONDA_PACKAGE_ROOT}\\shell\\condabin\\conda_hook.bat {dev_arg} "
-                f'&& @SET "CONDA_EXE={sys.executable}" '
-                '&& @SET "_CE_M=-m" '
-                '&& @SET "_CE_CONDA=conda"'
+                f"&& @CALL {CONDA_PACKAGE_ROOT}\\shell\\condabin\\conda_hook.bat "
+                f'&& @SET "CONDA_EXE={join(sys.prefix, BIN_DIRECTORY, "conda.exe")}" '
+                '&& @SET "_CE_M=" '
+                '&& @SET "_CE_CONDA="'
             ),
             "print_env_var": '@ECHO "%%%s%%"',
             "assert_env_var": r'"%s"\r?\n',
@@ -127,13 +111,13 @@ class InteractiveShellType(type):
             "activator": "csh",
             # "args": ("-v", "-x"),  # for debugging
             # unset conda alias before calling conda shell hook
-            "init_command": f'unalias conda;\neval "`{EXE_UNIX} -m conda shell.csh hook {dev_arg}`"',
+            "init_command": f'unalias conda;\neval "`{EXE_UNIX} -m conda shell.csh hook`"',
             "print_env_var": 'echo "$%s"',
         },
         "tcsh": {"base_shell": "csh"},
         "fish": {
             "activator": "fish",
-            "init_command": f"eval ({EXE_UNIX} -m conda shell.fish hook {dev_arg})",
+            "init_command": f"eval ({EXE_UNIX} -m conda shell.fish hook)",
             "print_env_var": "echo $%s",
         },
         # We don't know if the PowerShell executable is called
@@ -141,7 +125,7 @@ class InteractiveShellType(type):
         "powershell": {
             "activator": "powershell",
             "args": ("-NoProfile", "-NoLogo"),
-            "init_command": f"{EXE_WIN} -m conda shell.powershell hook --dev | Out-String | Invoke-Expression",
+            "init_command": f"{EXE_WIN} -m conda shell.powershell hook | Out-String | Invoke-Expression",
             "print_env_var": "$Env:%s",
             "get_env_var": r"\$Env:%s\r?\n([^\r\n]*)\r?\n",
             "exit_cmd": "exit",

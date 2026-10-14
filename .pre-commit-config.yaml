@@ -32,9 +32,7 @@ repos:
       - id: check-yaml
         exclude: |
           (?x)^(
-            (conda\.)?recipe/meta.yaml |
-            tests/data/recipes/font-ttf-inconsolata/meta.yaml |
-            tests/data/recipes/dependent/meta.yaml
+            (conda\.)?recipe/meta.yaml
           )
       # catch git merge/rebase problems
       - id: check-merge-conflict
@@ -68,7 +66,7 @@ repos:
       # auto format Python codes within docstrings
       - id: blacken-docs
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: c59bba8fb259db0fec2bbb77ad8ba51ea7341b56  # frozen: v0.15.20
+    rev: f12be1ebaa5351c1fc76472de98db2c3446c8253  # frozen: v0.16.10
     hooks:
       # lint & attempt to correct failures (e.g. pyupgrade)
       - id: ruff-check
@@ -84,9 +82,10 @@ repos:
         language_version: python3.14
         additional_dependencies: [pyyaml]
         pass_filenames: false
+        # README is generated from channel artifacts, not recipe sources.
         files: |
           (?x)^(
-            tests/data/recipes/.+/meta.yaml |
+            tests/data/test-recipes/.+\.(conda|tar\.bz2) |
             tests/data/recipes/generate_recipes_readme.py |
             tests/data/recipes/README.md
           )$
@@ -111,10 +110,15 @@ repos:
           (?x)^(
             .authors.yml |
             recipe/meta.yaml |
+            .github/workflows/build.yml |
+            .github/workflows/check-news.yml |
+            .github/workflows/prepare-authors.yml |
+            .github/workflows/prepare-release.yml |
+            .github/workflows/slow-tests.yml |
             tests/
           )
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 1a4bb160cab6417b3045e1b37b6b72449243e658  # frozen: 0.37.4
+    rev: 4f85d46a92dc17713078e5de73f8a13190edf6fc  # frozen: 0.38.2
     hooks:
       # verify github syntaxes
       - id: check-github-workflows

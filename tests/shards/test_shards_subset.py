@@ -41,6 +41,8 @@ from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.subdir_data import SubdirData
 from conda.models.channel import Channel
+from conda.models.match_spec import MatchSpec
+from conda.models.records import PackageRecord
 
 from .conftest import (
     CONDA_FORGE_WITH_SHARDS,
@@ -58,7 +60,7 @@ if TYPE_CHECKING:
 
     from pytest_benchmark.plugin import BenchmarkFixture
 
-    from conda._private.shards.typing import ShardDict
+    from conda._private.shards.typing import RepodataDict, ShardDict
     from conda.testing.fixtures import CondaCLIFixture
 
 
@@ -473,6 +475,105 @@ def test_query_all_sharded_search(
         )
 
 
+@pytest.mark.parametrize(
+    "search_spec,expected_created,expected_results",
+    [
+        ("*xyz*", [], set()),
+        ("bar*", ["bar"], {"bar"}),
+        ("*ar*", ["bar"], {"bar"}),
+        ("BAR*", ["bar"], {"bar"}),
+        ("^b.*$", ["bar"], {"bar"}),
+        ("bar* >1", ["bar"], set()),
+        ("bar* 1 other", ["bar"], set()),
+    ],
+)
+def test_sharded_search_constructs_only_matching_names(
+    http_server_shards,
+    search_spec,
+    expected_created,
+    expected_results,
+    monkeypatch,
+    mocker,
+    tmp_path,
+):
+    """Select names before loading shards and constructing records."""
+    from conda.core.subdir_data import query_all
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+    record_init = mocker.spy(PackageRecord, "__init__")
+    visit_shard = mocker.spy(Shards, "visit_shard")
+
+    results = query_all(MatchSpec(search_spec), [channel], subdirs=["noarch"])
+
+    assert {record.name for record in results} == expected_results
+    assert [
+        call.kwargs["name"] for call in record_init.call_args_list
+    ] == expected_created
+    assert {call.args[1] for call in visit_shard.call_args_list} == set(
+        expected_created
+    )
+
+
+@pytest.mark.parametrize("search_spec", ["pyfig", "*", None])
+def test_query_all_monolithic_v3_search(
+    search_spec,
+    http_test_server,
+    monkeypatch,
+    mocker,
+    tmp_path,
+):
+    """Search v3 records when no channel provides sharded repodata."""
+    from conda.core import subdir_data
+
+    noarch = http_test_server.directory / "noarch"
+    noarch.mkdir(parents=True)
+    (noarch / "repodata.json").write_text(
+        json.dumps(
+            {
+                "info": {"subdir": "noarch"},
+                "packages": {},
+                "packages.conda": {},
+                "v3": {
+                    "whl": {
+                        "pyfig-1.0.2-py3_none_any_0": {
+                            "name": "pyfig",
+                            "version": "1.0.2",
+                            "build": "py3_none_any_0",
+                            "build_number": 0,
+                            "fn": "pyfig-1.0.2-py3-none-any.whl",
+                            "depends": [],
+                        }
+                    }
+                },
+                "repodata_version": 3,
+            }
+        )
+    )
+    channel = Channel.from_url(http_test_server.get_url("noarch"))
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
+    reset_context()
+    classic_search = mocker.spy(subdir_data, "_search_package")
+
+    results = subdir_data.query_all(
+        MatchSpec(search_spec), [channel], subdirs=["noarch"]
+    )
+
+    classic_search.assert_not_called()
+    assert len(results) == 1
+    assert results[0].name == "pyfig"
+    assert results[0].version == "1.0.2"
+    assert results[0].build == "py3_none_any_0"
+    assert results[0].fn == "pyfig-1.0.2-py3-none-any.whl"
+    assert results[0].subdir == "noarch"
+    assert results[0].url == http_test_server.get_url(
+        "noarch/pyfig-1.0.2-py3-none-any.whl"
+    )
+
+
 class TestAddPipAsPythonDependency:
     """Tests for add_pip_as_python_dependency context setting"""
 
@@ -544,6 +645,131 @@ class TestAddPipAsPythonDependency:
         assert "python-3.10-0.conda" in filtered["packages.conda"]
 
 
+def _root_extras_repodata() -> RepodataDict:
+    """
+    Small hand-built repodata: "httpx" depends on "core-dep" and offers two
+    CEP 44 extras groups ("cli" -> "cli-dep", "http2" -> "http2-dep"), each
+    with no further dependencies of their own.
+
+    "core-dep" has its own `extras_depends` that we use to make sure we
+    don't recursively fetch all extras.
+    """
+    return {
+        "info": {"base_url": ""},
+        "packages": {},
+        "packages.conda": {
+            "httpx-0.28.0-0.conda": {
+                "name": "httpx",
+                "version": "0.28.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": ["core-dep"],
+                "extra_depends": {
+                    "cli": ["cli-dep"],
+                    "http2": ["http2-dep"],
+                },
+            },
+            "core-dep-1.0-0.conda": {
+                "name": "core-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+                "extra_depends": {
+                    "core-extra": ["core-extra-dep"],
+                },
+            },
+            "cli-dep-1.0-0.conda": {
+                "name": "cli-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+            },
+            "http2-dep-1.0-0.conda": {
+                "name": "http2-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+            },
+            "core-extra-dep-1.0-0.conda": {
+                "name": "core-extra-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+            },
+        },
+        "repodata_version": 2,
+    }  # type: ignore[typeddict-item]
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_root_extras_fetches_only_requested_group(algorithm):
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm, root_extras={"httpx": ["cli"]})
+
+    assert "httpx" in shardlike.visited
+    assert "core-dep" in shardlike.visited
+    assert "cli-dep" in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_no_root_extras_is_backward_compatible(algorithm):
+    """Omitting root_extras behaves exactly as before this feature."""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm)
+
+    assert "httpx" in shardlike.visited
+    assert "core-dep" in shardlike.visited
+    assert "cli-dep" not in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_root_extras_unknown_root_package_ignored(algorithm):
+    """root_extras for a package name absent from root_packages is a no-op."""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm, root_extras={"unrelated": ["cli"]})
+
+    assert "cli-dep" not in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_root_extras_does_not_recurse(algorithm):
+    """Ensure extras for the requested package's dependencies are not fetched"""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm, root_extras={"httpx": ["http2"]})
+
+    assert "httpx" in shardlike.visited
+    assert "core-dep" in shardlike.visited
+    assert "http2-dep" in shardlike.visited
+    assert "core-extra-dep" not in shardlike.visited
+
+
+def test_build_repodata_subset_root_extras(monkeypatch):
+    """Cover the public build_repodata_subset() API, not just RepodataSubset."""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    monkeypatch.setattr(
+        shards_subset,
+        "fetch_channels",
+        lambda channels: {shardlike.url: shardlike},
+    )
+
+    channel_data = build_repodata_subset(["httpx"], {}, root_extras={"httpx": ["cli"]})
+
+    assert channel_data is not None
+    assert "cli-dep" in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
+
+
 def clean_cache(conda_cli: CondaCLIFixture):
     """
     Clean cache and assert it completed without error except on Windows
@@ -579,61 +805,70 @@ def repodata_subset_size(channel_data):
 
 
 @pytest.mark.benchmark
-@pytest.mark.integration
+@pytest.mark.usefixtures("reset_conda_context", "temp_package_cache")
 @pytest.mark.parametrize("cache_state", ("cold", "warm"))
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
 @pytest.mark.parametrize(
-    "scenario",
-    TESTING_SCENARIOS,
-    ids=[scenario["name"] for scenario in TESTING_SCENARIOS],
+    "root_packages, expected_record_count",
+    [(["python"], 160), (["ansible", "pyyaml", "jinja2"], 1200)],
+    ids=["python", "devops"],
 )
-def test_traversal_algorithm_benchmarks(
+def test_traversal_algorithms_local_benchmark(
     benchmark: BenchmarkFixture,
     cache_state: str,
     algorithm: str,
-    scenario: dict,
+    root_packages: list[str],
+    expected_record_count: int,
+    http_server_benchmark_shards,
 ):
-    """
-    Benchmark multiple traversal algorithms for retrieving repodata shards with
-    a variety of parameter states (described below).
-
-    cache_state:
-        Either "cold" or "warm" representing shards available or not available in
-        SQLite, respectively.
-
-    algorithm:
-        Method used to fetch shards
-
-    scenario:
-        List of packages to use to create an environment
-    """
-    cache = shards_cache.ShardCache(Path(conda.gateways.repodata.create_cache_dir()))
-    if cache_state == "warm":
-        # Clean shards cache just once for "warm"; leave index cache intact.
-        cache.remove_cache()
+    """Measure traversal with fixed local shards and an empty or populated cache."""
+    channel_url, repodata = http_server_benchmark_shards
+    channel = Channel.from_url(channel_url)
+    channels = {channel.url(): channel}
 
     def setup():
-        if cache_state != "warm":
-            # For "cold", we want to clean shards cache before each round of benchmarking
-            cache.remove_cache()
+        if cache_state == "cold":
+            cache.clear_cache()
 
-        channels = [Channel(f"{scenario['channel']}/{scenario['platform']}")]
-        channel_data = fetch_channels(expand_channels(channels))
-
+        channel_data = fetch_channels(channels)
         assert channel_data is not None
-        assert len(channel_data) in (2, 4), "Expected 2 or 4 channels fetched"
-
-        subset = RepodataSubset((*channel_data.values(),))
-
+        assert len(channel_data) == 1
+        with context._override("add_pip_as_python_dependency", False):
+            subset = RepodataSubset((*channel_data.values(),))
         return (subset,), {}
 
     def target(subset: RepodataSubset):
-        with _timer(""):
-            subset.reachable(scenario["packages"], strategy=algorithm)
+        subset.reachable(root_packages, strategy=algorithm)
+        return subset
 
-    warmup_rounds = 1 if cache_state == "warm" else 0
-
-    benchmark.pedantic(target, setup=setup, rounds=1, warmup_rounds=warmup_rounds)
+    with shards_cache.ShardCache(
+        Path(conda.gateways.repodata.create_cache_dir())
+    ) as cache:
+        subset = benchmark.pedantic(
+            target, setup=setup, rounds=5, iterations=1, warmup_rounds=1
+        )
+    actual_repodata = subset.shardlikes[0].build_repodata()
+    records = {**actual_repodata["packages"], **actual_repodata["packages.conda"]}
+    package_names = {record["name"] for record in records.values()}
+    available_package_names = {
+        record["name"]
+        for group in ("packages", "packages.conda")
+        for record in repodata.get(group, {}).values()
+    }
+    dependencies = {
+        MatchSpec(dependency).name
+        for record in records.values()
+        for dependency in record.get("depends", ())
+    }
+    assert len(records) == expected_record_count
+    assert set(root_packages) <= package_names
+    assert dependencies & available_package_names <= package_names
+    for group in ("packages", "packages.conda"):
+        assert actual_repodata[group] == {
+            filename: record
+            for filename, record in repodata.get(group, {}).items()
+            if record["name"] in package_names
+        }
 
 
 @pytest.mark.parametrize(
@@ -1099,7 +1334,9 @@ def test_pipelined_uses_offline_worker(monkeypatch):
     actual_network_worker = None
 
     class RepodataSubsetRememberWorker(RepodataSubset):
-        def _reachable_pipelined(self, root_packages, network_worker, cache):
+        def _reachable_pipelined(
+            self, root_packages, network_worker, cache, root_extras=None
+        ):
             nonlocal actual_network_worker
 
             actual_network_worker = network_worker

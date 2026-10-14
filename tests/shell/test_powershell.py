@@ -12,7 +12,7 @@ import pytest
 from conda import __version__ as CONDA_VERSION
 from conda.common.compat import on_win
 
-from . import Shell, dev_arg, install
+from . import Shell, install
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -106,7 +106,7 @@ def test_powershell_basic_integration(
 
         # see tests/test-recipes/small-executable
         log.debug("## [PowerShell integration] Checking conda run.")
-        sh.sendline(f"conda run {dev_arg} small")
+        sh.sendline("conda run small")
         sh.expect_exact("Hello!")
 
         log.debug("## [PowerShell integration] Deactivating")

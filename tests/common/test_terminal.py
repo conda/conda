@@ -6,10 +6,22 @@ import pytest
 
 from conda.common.terminal import (
     force_color,
+    is_interactive_tty,
+    is_stderr_tty,
+    is_stdin_tty,
+    is_tty,
     no_color,
     should_use_color,
     term_dumb,
 )
+
+
+class FakeStream:
+    def __init__(self, isatty_value: bool):
+        self._isatty_value = isatty_value
+
+    def isatty(self) -> bool:
+        return self._isatty_value
 
 
 @pytest.mark.parametrize(
@@ -88,3 +100,58 @@ def test_should_use_color(
     monkeypatch.setattr("conda.common.terminal.is_tty", lambda: is_tty_value)
 
     assert should_use_color() is expected
+
+
+@pytest.mark.parametrize("stdout_value,expected", [(True, True), (False, False)])
+def test_is_tty_checks_only_stdout(monkeypatch, stdout_value, expected):
+    monkeypatch.setattr("sys.stdout", FakeStream(stdout_value))
+    # stdin/stderr are intentionally left as the opposite value to prove
+    # they're not consulted.
+    monkeypatch.setattr("sys.stdin", FakeStream(not stdout_value))
+    monkeypatch.setattr("sys.stderr", FakeStream(not stdout_value))
+    assert is_tty() is expected
+
+
+@pytest.mark.parametrize("stdin_value,expected", [(True, True), (False, False)])
+def test_is_stdin_tty(monkeypatch, stdin_value, expected):
+    monkeypatch.setattr("sys.stdin", FakeStream(stdin_value))
+    # stdout/stderr are intentionally left as the opposite value to prove
+    # they're not consulted.
+    monkeypatch.setattr("sys.stdout", FakeStream(not stdin_value))
+    monkeypatch.setattr("sys.stderr", FakeStream(not stdin_value))
+    assert is_stdin_tty() is expected
+
+
+@pytest.mark.parametrize("stderr_value,expected", [(True, True), (False, False)])
+def test_is_stderr_tty(monkeypatch, stderr_value, expected):
+    monkeypatch.setattr("sys.stderr", FakeStream(stderr_value))
+    # stdout/stdin are intentionally left as the opposite value to prove
+    # they're not consulted.
+    monkeypatch.setattr("sys.stdout", FakeStream(not stderr_value))
+    monkeypatch.setattr("sys.stdin", FakeStream(not stderr_value))
+    assert is_stderr_tty() is expected
+
+
+@pytest.mark.parametrize(
+    "stdout_value,stdin_value,expected",
+    [
+        (True, True, True),
+        (True, False, False),
+        (False, True, False),
+        (False, False, False),
+    ],
+)
+def test_is_interactive_tty(monkeypatch, stdout_value, stdin_value, expected):
+    monkeypatch.setattr("sys.stdout", FakeStream(stdout_value))
+    monkeypatch.setattr("sys.stdin", FakeStream(stdin_value))
+    assert is_interactive_tty() is expected
+
+
+def test_is_stdin_false_when_isatty_missing(monkeypatch):
+    monkeypatch.setattr("sys.stdin", object())
+    assert is_stdin_tty() is False
+
+
+def test_is_stderr_false_when_isatty_missing(monkeypatch):
+    monkeypatch.setattr("sys.stderr", object())
+    assert is_stderr_tty() is False

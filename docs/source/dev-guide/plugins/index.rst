@@ -57,7 +57,7 @@ by either using a ``pyproject.toml`` file (preferred) or a ``setup.py`` (legacy)
    name = "conda-example-plugin"
    version = "1.0.0"
    description = "Example conda plugin"
-   requires-python = ">=3.10"
+   requires-python = ">=3.11"
    dependencies = ["conda"]
 
    [project.entry-points."conda"]
@@ -98,6 +98,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    :maxdepth: 1
 
    auth_handlers
+   error_hints
    environment_exporters
    environment_specifiers
    exception_observers

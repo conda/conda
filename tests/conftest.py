@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import logging
+import os
 import shutil
+import sys
+import sysconfig
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -12,7 +15,7 @@ import pytest
 
 import conda
 from conda import plugins
-from conda.base.constants import APP_NAME
+from conda.base.constants import APP_NAME, KNOWN_SUBDIRS
 from conda.base.context import context, reset_context
 from conda.common.configuration import (
     Configuration,
@@ -53,9 +56,40 @@ pytest_plugins = (
 @pytest.hookimpl
 def pytest_report_header(config: pytest.Config):
     # ensuring the expected development conda is being run
-    expected = Path(__file__).parent.parent / "conda" / "__init__.py"
+    source_root = Path(__file__).parent.parent
+    expected = source_root / "conda" / "__init__.py"
     assert expected.samefile(conda.__file__)
-    return f"conda.__file__: {conda.__file__}"
+
+    # shell.X hook and wrap_subprocess_call read these from CONDA_PACKAGE_ROOT
+    from conda.activate import PosixActivator
+
+    conda_sh = PosixActivator.hook_source_path
+    expected_sh = source_root / "conda" / "shell" / "etc" / "profile.d" / "conda.sh"
+    assert expected_sh.samefile(conda_sh)
+
+    conda_bat = Path(conda.CONDA_PACKAGE_ROOT, "shell", "condabin", "conda.bat")
+    expected_bat = source_root / "conda" / "shell" / "condabin" / "conda.bat"
+    assert expected_bat.samefile(conda_bat)
+
+    if expected_subdir := os.environ.get("CONDA_TEST_SUBDIR"):
+        assert context.subdir == expected_subdir, context.subdir
+        assert context._native_subdir() == expected_subdir, sysconfig.get_platform()
+        prefix_data = PrefixData(sys.prefix)
+        assert prefix_data.get("python").subdir == expected_subdir
+        assert {record.subdir for record in prefix_data.iter_records()} <= {
+            "noarch",
+            expected_subdir,
+        }
+
+    lines = [
+        f"Python platform: {sysconfig.get_platform()}",
+        f"conda.__file__: {conda.__file__}",
+        f"conda.sh: {conda_sh}",
+        f"conda.bat: {conda_bat}",
+        f"CONDA_EXE: {os.environ.get('CONDA_EXE')}",
+        f"CONDA_BAT: {os.environ.get('CONDA_BAT')}",
+    ]
+    return lines
 
 
 @pytest.fixture
@@ -296,6 +330,7 @@ def plugin_config(mocker) -> tuple[type[Configuration], str]:
             self.plugin_manager = mocker.MagicMock()
             self.repodata_fns = ["repodata.json", "current_repodata.json"]
             self.subdir = mocker.MagicMock()
+            self.known_subdirs = frozenset(KNOWN_SUBDIRS)
             self.preview = ()
 
         @property

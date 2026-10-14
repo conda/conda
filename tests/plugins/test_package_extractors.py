@@ -86,7 +86,7 @@ def test_get_package_extractor(
 
 def test_extract_package(tmp_path: Path) -> None:
     """Test that extract_package correctly extracts a .conda package."""
-    package_path = TEST_RECIPES_CHANNEL / "noarch" / "small-executable-1.0.0-0.conda"
+    package_path = TEST_RECIPES_CHANNEL / "noarch" / "small-executable-1.0-0.conda"
     destination = tmp_path / "extracted"
 
     context.plugin_manager.extract_package(package_path, destination)

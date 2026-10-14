@@ -37,7 +37,8 @@ from .integration import PYTHON_BINARY
 
 if TYPE_CHECKING:
     import http.server
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Iterable, Iterator, Mapping
+    from typing import Any
 
     from pytest import (
         CaptureFixture,
@@ -270,20 +271,21 @@ class CondaCLIFixture:
         if self.capsys:
             self.capsys.readouterr()
 
-        # run command
-        code = None
-        with pytest.raises(raises) if raises else nullcontext() as exception:
-            code = main_subshell(*self._cast_args(argv))
-        # capture output
-        if self.capsys:
-            out, err = self.capsys.readouterr()
-        else:
-            out = err = None
+        try:
+            # run command
+            code = None
+            with pytest.raises(raises) if raises else nullcontext() as exception:
+                code = main_subshell(*self._cast_args(argv))
+            # capture output
+            if self.capsys:
+                out, err = self.capsys.readouterr()
+            else:
+                out = err = None
 
-        # restore to prior state
-        reset_context()
-
-        return out, err, exception if raises else code
+            return out, err, exception if raises else code
+        finally:
+            # restore to prior state even when the command raises unexpectedly
+            reset_context()
 
     @staticmethod
     def _cast_args(argv: tuple[PathType, ...]) -> Iterable[str]:
@@ -486,7 +488,7 @@ class TmpEnvFixture:
     @contextmanager
     def __call__(
         self,
-        *args: str,
+        *args: PathType,
         prefix: str | os.PathLike | None = None,
         name: str | None = None,
         path_prefix: str | None = None,
@@ -591,6 +593,101 @@ def session_tmp_env(
     Use this when creating a conda environment that is shared across tests.
     """
     yield TmpEnvFixture(tmp_path_factory, session_conda_cli)
+
+
+TMP_REPODATA_CHANNEL_DEFAULTS: dict[str, object] = {
+    "version": "1.0",
+    "build": "0",
+    "build_number": 0,
+    "depends": [],
+    "subdir": "noarch",
+}
+"""Defaults for synthetic records, overridable per channel or per record."""
+
+
+@dataclass
+class TmpRepodataChannelFixture:
+    path_factory: PathFactoryFixture
+
+    def __call__(
+        self,
+        packages: Iterable[Mapping[str, Any] | PackageRecord] = (),
+        *,
+        subdirs: Iterable[str] | None = None,
+        **record_defaults: Any,
+    ) -> tuple[Path, str]:
+        """Create a local channel from in-memory package metadata.
+
+        Only ``repodata.json`` files are written, without package archives.
+        Use the channel for solving and ``--dry-run`` transactions.
+
+        Args:
+            packages: Mappings (``name`` required) or ``PackageRecord`` objects.
+                Record fields override channel defaults, which override
+                ``TMP_REPODATA_CHANNEL_DEFAULTS``. Records in ``noarch`` also
+                default to ``noarch: generic``. ``fn`` sets the repodata key and
+                defaults to ``{name}-{version}-{build}.tar.bz2``.
+            subdirs: Subdirs to write, in addition to those used by records.
+                Defaults to ``noarch`` and the native subdir.
+            **record_defaults: Defaults applied to every record in the channel.
+
+        Returns:
+            The channel path and its ``file://`` URL.
+        """
+        defaults = {**TMP_REPODATA_CHANNEL_DEFAULTS, **record_defaults}
+
+        by_subdir: dict[str, dict[str, dict[str, Any]]] = {}
+        for package in packages:
+            if isinstance(package, PackageRecord):
+                # Channel-derived fields are recomputed from the new channel URL.
+                package = {
+                    field: value
+                    for field, value in package.dump().items()
+                    if field not in ("url", "channel", "schannel", "channel_name")
+                }
+            record = {**defaults, **package}
+            if record["subdir"] == "noarch":
+                record.setdefault("noarch", "generic")
+            fn = record.pop(
+                "fn", f"{record['name']}-{record['version']}-{record['build']}.tar.bz2"
+            )
+            by_subdir.setdefault(record["subdir"], {})[fn] = record
+
+        channel = self.path_factory()
+        channel.mkdir()
+        if subdirs is None:
+            subdirs = ("noarch", context.subdir)
+        for subdir in dict.fromkeys((*subdirs, *by_subdir)):
+            records = by_subdir.get(subdir, {})
+            (channel / subdir).mkdir()
+            (channel / subdir / "repodata.json").write_text(
+                json.dumps(
+                    {
+                        "info": {"subdir": subdir},
+                        "packages": {
+                            fn: record
+                            for fn, record in records.items()
+                            if fn.endswith(".tar.bz2")
+                        },
+                        "packages.conda": {
+                            fn: record
+                            for fn, record in records.items()
+                            if fn.endswith(".conda")
+                        },
+                        "repodata_version": 1,
+                    }
+                )
+            )
+
+        return channel, path_to_url(str(channel))
+
+
+@pytest.fixture
+def tmp_repodata_channel(
+    path_factory: PathFactoryFixture,
+) -> Iterator[TmpRepodataChannelFixture]:
+    """Return a function scoped factory for local metadata-only channels."""
+    yield TmpRepodataChannelFixture(path_factory)
 
 
 @dataclass
@@ -770,7 +867,7 @@ def PYTHONPATH():
 
 @pytest.fixture
 def context_testdata() -> None:
-    reset_context()
+    reset_context("")
     context._set_raw_data(
         {
             "testdata": YamlRawParameter.make_raw_parameters(

@@ -66,7 +66,7 @@ def test_yaml_error_accessible() -> None:
 
 def test_conda_yaml_representer_is_deprecated() -> None:
     """Accessing the legacy module-level class emits a deprecation warning."""
-    with pytest.deprecated_call(match="CondaYAMLRepresenter"):
+    with pytest.deprecated_call(match=r"CondaYAMLRepresenter.*27\.9"):
         cls = yaml.CondaYAMLRepresenter
 
     assert cls is not None

@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-import sys
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
@@ -496,6 +495,58 @@ def test_add_invalid_key(conda_cli: CondaCLIFixture):
         assert _read_test_condarc(rc) == CONDARC_BASE
 
 
+def test_clear_key(conda_cli: CondaCLIFixture):
+    condarc = """\
+aggressive_update_packages:
+  - ca-certificates
+  - certifi
+"""
+    with make_temp_condarc(condarc) as rc:
+        stdout, stderr, _ = conda_cli(
+            "config",
+            "--file",
+            rc,
+            "--clear",
+            "aggressive_update_packages",
+        )
+
+        assert stdout == stderr == ""
+        assert _read_test_condarc(rc) == "aggressive_update_packages: []\n"
+
+
+def test_clear_unconfigured_key(conda_cli: CondaCLIFixture):
+    with make_temp_condarc("changeps1: true\n") as rc:
+        stdout, stderr, _ = conda_cli(
+            "config",
+            "--file",
+            rc,
+            "--clear",
+            "create_default_packages",
+        )
+
+        assert stdout == stderr == ""
+        assert _read_test_condarc(rc) == (
+            "changeps1: true\ncreate_default_packages: []\n"
+        )
+
+
+def test_clear_key_invalid_parameter(conda_cli: CondaCLIFixture):
+    with make_temp_condarc("changeps1: true\n") as rc:
+        with pytest.raises(
+            CondaKeyError,
+            match=r"'changeps1': invalid parameter",
+        ):
+            conda_cli(
+                "config",
+                "--file",
+                rc,
+                "--clear",
+                "changeps1",
+            )
+
+        assert _read_test_condarc(rc) == "changeps1: true\n"
+
+
 def test_remove_key(conda_cli: CondaCLIFixture):
     key, value = "changeps1", "false"
     with make_temp_condarc(CONDARC_BASE) as rc:
@@ -866,29 +917,10 @@ def test_conda_config_validate_sslverify_truststore(
         # test that we can set ssl_verify
         conda_cli("config", f"--file={condarc}", "--set", "ssl_verify", "truststore")
 
-        # test that truststore is valid for Python 3.10+
-        with (
-            pytest.raises(
-                CustomValidationError,
-                match=(
-                    truststore_error := (
-                        "`ssl_verify: truststore` is only supported on "
-                        "Python 3.10 or later"
-                    )
-                ),
-            )
-            if sys.version_info < (3, 10)
-            else nullcontext()
-        ):
-            assert context.ssl_verify == "truststore"
+        # test that truststore is a valid value
+        assert context.ssl_verify == "truststore"
 
-        # test that truststore is a valid value for Python 3.10+
-        with (
-            pytest.raises(CustomValidationError, match=truststore_error)
-            if sys.version_info < (3, 10)
-            else nullcontext()
-        ):
-            stdout, stderr, err = conda_cli("config", "--validate")
-            assert not stdout
-            assert not stderr
-            assert not err
+        stdout, stderr, err = conda_cli("config", "--validate")
+        assert not stdout
+        assert not stderr
+        assert not err

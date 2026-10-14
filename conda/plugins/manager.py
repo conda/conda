@@ -23,6 +23,8 @@ from inspect import getmodule, isclass, signature
 from typing import TYPE_CHECKING, overload
 
 import pluggy
+from packaging.metadata import InvalidMetadata, Metadata
+from packaging.utils import canonicalize_name
 from pluggy._manager import DistFacade
 
 from .. import __version__
@@ -54,16 +56,18 @@ from . import (
 from .config import PluginConfig
 from .hookspec import CondaSpecs
 from .subcommands.doctor import health_checks
-from .types import CondaExceptionEvent
+from .types import CondaErrorHint, CondaExceptionEvent
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
     from types import TracebackType
-    from typing import Any, Literal, TypeVar, cast
+    from typing import Any, Literal, TypedDict, TypeVar, cast
 
     from pluggy import HookImpl
     from requests.auth import AuthBase
 
+    from .. import CondaError
+    from .._private.exception_guidance import GuidanceHint
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
@@ -97,7 +101,27 @@ if TYPE_CHECKING:
 
     P = TypeVar("P", bound=CondaPluginWithAliases)
 
+    class PluginInfo(TypedDict):
+        name: str
+        version: str
+        canonical_name: str
+        status: str
+        hooks: list[str]
+
+    class PluginProjectURL(TypedDict):
+        label: str
+        url: str
+
+    class PluginDetails(PluginInfo):
+        summary: str
+        license: str
+        homepage: str
+        project_urls: list[PluginProjectURL]
+
+
 log = logging.getLogger(__name__)
+
+BUILTIN_PLUGIN_PREFIX = "conda.plugins."
 
 
 @dataclass
@@ -152,6 +176,8 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def __init__(self, *args, **kwargs):
         super().__init__(APP_NAME, *args, **kwargs)
+        self.plugin_aliases: dict[str, set[str]] = {}
+        self._distribution_aliases: dict[str, set[str]] = {}
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
@@ -200,6 +226,97 @@ class CondaPluginManager(pluggy.PluginManager):
                 return f"{dist.project_name} {version}".strip()
 
         return self.get_name(plugin) or self.get_canonical_name(plugin)
+
+    def get_plugin_hook_names(self, plugin: object) -> list[str]:
+        """Return short hook names implemented by a plugin."""
+        hook_prefix = f"{self.project_name}_"
+        hook_names: list[str] = []
+        for name in dir(plugin):
+            hookimpl_opts = self.parse_hookimpl_opts(plugin, name)
+            if hookimpl_opts is None:
+                continue
+
+            hook_name = hookimpl_opts.get("specname") or name
+            if hook_name.startswith(hook_prefix):
+                hook_names.append(hook_name[len(hook_prefix) :])
+
+        return sorted(hook_names)
+
+    def get_installed_plugins(self) -> list[PluginInfo]:
+        """Return metadata for installed entry-point conda plugins."""
+        installed: dict[str, PluginInfo] = {}
+        for plugin, dist in self.list_plugin_distinfo():
+            canonical_name = self.get_name(plugin) or self.get_canonical_name(plugin)
+            if canonical_name in installed:
+                continue
+
+            installed[canonical_name] = {
+                "name": dist.project_name,
+                "version": dist.version,
+                "canonical_name": canonical_name,
+                "status": "disabled" if self.is_blocked(canonical_name) else "active",
+                "hooks": self.get_plugin_hook_names(plugin),
+            }
+
+        return sorted(installed.values(), key=lambda plugin: plugin["canonical_name"])
+
+    def get_installed_plugin_info(self, name: str) -> PluginDetails:
+        """Return detailed metadata for an installed entry-point conda plugin."""
+        requested_name = name.strip()
+        requested_normalized_name = canonicalize_name(requested_name)
+
+        for plugin, dist in self.list_plugin_distinfo():
+            canonical_name = self.get_name(plugin) or self.get_canonical_name(plugin)
+
+            lookup_names = {
+                dist.project_name,
+                canonical_name,
+                canonicalize_name(dist.project_name),
+                canonicalize_name(canonical_name),
+            }
+            if (
+                requested_name not in lookup_names
+                and requested_normalized_name not in lookup_names
+            ):
+                continue
+
+            raw_metadata = (
+                dist.read_text("METADATA")
+                or dist.read_text("PKG-INFO")
+                or dist.read_text("")
+                or ""
+            )
+            metadata = Metadata.from_email(raw_metadata, validate=False)
+            summary = ""
+            with suppress(InvalidMetadata):
+                summary = metadata.summary or ""
+            project_urls = metadata.project_urls or {}
+            homepage = metadata.home_page or next(
+                (
+                    url
+                    for label, url in project_urls.items()
+                    if label.casefold() in {"home-page", "homepage"}
+                ),
+                "",
+            )
+
+            return {
+                "name": dist.project_name,
+                "version": dist.version,
+                "canonical_name": canonical_name,
+                "status": "disabled" if self.is_blocked(canonical_name) else "active",
+                "hooks": self.get_plugin_hook_names(plugin),
+                "summary": summary,
+                "license": metadata.license or "",
+                "homepage": homepage,
+                "project_urls": [
+                    {"label": label, "url": url}
+                    for label, url in project_urls.items()
+                    if label and url
+                ],
+            }
+
+        raise CondaValueError(f"No installed conda plugin found matching '{name}'.")
 
     def register(self, plugin, name: str | None = None) -> str | None:
         """
@@ -270,12 +387,23 @@ class CondaPluginManager(pluggy.PluginManager):
                     )
                     continue
 
-                if self.register(plugin):
+                plugin_name = self.register(plugin)
+                if plugin_name:
                     # Mirror pluggy's load_setuptools_entrypoints() bookkeeping
                     # so list_plugin_distinfo() can report distributions for
                     # conda's custom entry point loader.
                     self._plugin_distinfo.append((plugin, DistFacade(dist)))
                     count += 1
+                    self.plugin_aliases.setdefault(entry_point.name, set()).add(
+                        plugin_name
+                    )
+                    if dist_name := dist.metadata.get("Name"):
+                        self.plugin_aliases.setdefault(dist_name, set()).add(
+                            plugin_name
+                        )
+                        self._distribution_aliases.setdefault(
+                            canonicalize_name(dist_name), set()
+                        ).add(plugin_name)
         return count
 
     def _hookexec(
@@ -491,7 +619,18 @@ class CondaPluginManager(pluggy.PluginManager):
             return type(
                 f"Partial{solver_plugin.backend.__name__}",
                 (solver_plugin.backend,),
-                {"__init__": new_init},
+                {
+                    "__init__": new_init,
+                    "supports_exclude_newer_global": (
+                        solver_plugin.backend.supports_exclude_newer_global
+                    ),
+                    "supports_exclude_newer_channel": (
+                        solver_plugin.backend.supports_exclude_newer_channel
+                    ),
+                    "supports_exclude_newer_package": (
+                        solver_plugin.backend.supports_exclude_newer_package
+                    ),
+                },
             )
 
         return solver_plugin.backend
@@ -625,13 +764,63 @@ class CondaPluginManager(pluggy.PluginManager):
         except BaseException:
             log.debug("invoke_exception_observers failed", exc_info=True)
 
-    def disable_external_plugins(self) -> None:
+    def disable_external_plugins(self, *, except_plugins: Iterable[str] = ()) -> None:
+        """Disable external plugins except those explicitly selected."""
+        self.disable_plugins(
+            (
+                name
+                for name, _ in self.list_name_plugin()
+                if not name.startswith(BUILTIN_PLUGIN_PREFIX)
+            ),
+            except_plugins=except_plugins,
+        )
+
+    def disable_plugins(
+        self, names: Iterable[str], *, except_plugins: Iterable[str] = ()
+    ) -> None:
+        """Disable specific plugins by name.
+
+        Accepts canonical names (e.g. ``conda_self.plugin``),
+        distribution names (e.g. ``conda-self``), or entry point names.
+        Raises :class:`PluginError` for built-in plugins and logs a warning
+        for unrecognized names. Explicit exceptions take precedence and must
+        match registered plugins.
         """
-        Disables all currently registered plugins except built-in conda plugins
-        """
-        for name, plugin in self.list_name_plugin():
-            if not name.startswith("conda.plugins.") and not self.is_blocked(name):
-                self.set_blocked(name)
+        enabled = set()
+        for target in except_plugins:
+            canonical_names = self._resolve_plugin_names(target)
+            if not canonical_names or any(
+                not self.has_plugin(canonical) for canonical in canonical_names
+            ):
+                raise PluginError(
+                    f"No registered plugin matching '{target}' found to enable. "
+                    "Make sure it is installed and loads successfully."
+                )
+            enabled.update(canonical_names)
+
+        for target in names:
+            canonical_names = self._resolve_plugin_names(target)
+            for canonical in canonical_names:
+                if canonical.startswith(BUILTIN_PLUGIN_PREFIX):
+                    raise PluginError(
+                        f"Built-in plugin '{canonical}' cannot be disabled."
+                    )
+                if canonical in enabled or self.is_blocked(canonical):
+                    continue
+                if self.has_plugin(canonical):
+                    self.set_blocked(canonical)
+                else:
+                    log.warning(
+                        "No registered plugin matching '%s' found to disable.",
+                        target,
+                    )
+
+    def _resolve_plugin_names(self, target: str) -> set[str]:
+        if target in self.plugin_aliases:
+            return self.plugin_aliases[target]
+        if self.has_plugin(target) or self.is_blocked(target):
+            return {target}
+        return self._distribution_aliases.get(canonicalize_name(target), {target})
 
     def get_subcommands(self) -> dict[str, CondaSubcommand]:
         return {
@@ -687,6 +876,51 @@ class CondaPluginManager(pluggy.PluginManager):
             hook.name: hook.value
             for hook in self.get_hook_results("request_headers", host=host, path=path)
         }
+
+    def get_error_hints(self, error: CondaError) -> tuple[GuidanceHint, ...]:
+        """
+        Return plugin-provided guidance hints for a conda error.
+
+        Each hook implementation is invoked independently so a faulty plugin
+        cannot prevent other plugins from contributing hints during error
+        rendering. Implementations are invoked in deterministic plugin-name
+        order, while preserving the hint order yielded by each plugin.
+        """
+        hook = self.hook.conda_error_hints
+        hints = []
+        for hookimpl in sorted(
+            hook.get_hookimpls(),
+            key=lambda hookimpl: str(hookimpl.plugin_name),
+        ):
+            if hookimpl.hookwrapper or hookimpl.wrapper:
+                log.debug(
+                    "Skipping wrapper implementation for `conda_error_hints`: %r",
+                    hookimpl.plugin_name,
+                )
+                continue
+
+            try:
+                kwargs = {"error": error} if "error" in hookimpl.argnames else {}
+                hook_result = hookimpl.function(**kwargs)
+                if hook_result is None:
+                    continue
+                for hint in hook_result:
+                    if isinstance(hint, CondaErrorHint):
+                        hints.append(hint)
+                    else:
+                        log.debug(
+                            "Invalid error hint from plugin %r: expected "
+                            "CondaErrorHint, got %s",
+                            hookimpl.plugin_name,
+                            type(hint).__name__,
+                        )
+            except BaseException:
+                log.debug(
+                    "Error hints plugin %r failed",
+                    hookimpl.plugin_name,
+                    exc_info=True,
+                )
+        return tuple(hints)
 
     def get_prefix_data_loaders(self) -> Iterable[CondaPrefixDataLoaderCallable]:
         for hook in self.get_hook_results("prefix_data_loaders"):
@@ -975,23 +1209,9 @@ class CondaPluginManager(pluggy.PluginManager):
         if len(found) == 1:
             return found[0]
 
-        # HACK: if there was no plugin found, try to catch all `environment.yml` plugin
-        # FUTURE: Remove this final try at using the environment.yml to read the environment
-        # file. This should be removed in "26.9" when the deprecations warning for
-        # environment.yml's that are not compliant with cep-0024 are removed.
-        try:
-            return self.get_environment_specifier_by_name(
-                source=source, name="environment.yml"
-            )
-        except (
-            PluginError,
-            CondaValueError,
-            EnvironmentSpecPluginSelectionError,
-        ) as exc:
-            # raise error if no plugins found that can read the environment file
-            raise EnvironmentSpecPluginNotDetected(
-                plugin_specs=self.get_hook_results("environment_specifiers")
-            ) from exc
+        raise EnvironmentSpecPluginNotDetected(
+            plugin_specs=self.get_hook_results("environment_specifiers")
+        )
 
     def get_environment_specifier(
         self,

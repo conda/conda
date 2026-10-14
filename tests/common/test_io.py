@@ -5,11 +5,13 @@ from __future__ import annotations
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from io import StringIO
-from logging import DEBUG, NOTSET, WARN, getLogger
+from logging import DEBUG, NOTSET, WARNING, getLogger
 
 import pytest
 
+from conda.common import io
 from conda.common.io import (
     CaptureTarget,
     ThreadLimitedThreadPoolExecutor,
@@ -65,15 +67,15 @@ def test_attach_stderr_handler():
     debug_message = "debug message 1329-485"
 
     with captured() as c:
-        attach_stderr_handler(WARN, name)
+        attach_stderr_handler(WARNING, name)
         logr.warning("test message")
         logr.debug(debug_message)
 
     assert len(logr.handlers) == 1
     assert logr.handlers[0].name == "stderr"
-    assert logr.handlers[0].level is WARN
+    assert logr.handlers[0].level is WARNING
     assert logr.level is NOTSET
-    assert logr.getEffectiveLevel() is WARN
+    assert logr.getEffectiveLevel() is WARNING
     assert c.stdout == ""
     assert "test message" in c.stderr
     assert debug_message not in c.stderr
@@ -129,3 +131,52 @@ def test_thread_limited_executor_handles_thread_limit(
                 _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
         else:
             _ = [executor.submit(time.sleep, 0.1) for _ in range(jobs)]
+
+
+@pytest.mark.parametrize(
+    "function,raises",
+    [
+        ("IS_INTERACTIVE", TypeError),
+    ],
+)
+def test_deprecations(function: str, raises: type[Exception] | None) -> None:
+    raises_context = pytest.raises(raises) if raises else nullcontext()
+    with pytest.deprecated_call(match=rf"{function}.*27\.9"), raises_context:
+        getattr(io, function)()
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="timeout() uses SIGALRM (Unix only)"
+)
+def test_timeout_returns_value():
+    assert io.timeout(5, lambda: "ok") == "ok"
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="timeout() uses SIGALRM (Unix only)"
+)
+def test_timeout_cleans_up_after_unexpected_exception():
+    """
+    If the callable raises an unexpected (non-timeout) exception, timeout()
+    must still cancel the alarm and restore the previous SIGALRM handler
+    instead of leaving the alarm armed. See
+    https://github.com/conda/conda/issues/15702.
+    """
+    import signal
+
+    def sentinel(signum, frame): ...
+
+    previous = signal.signal(signal.SIGALRM, sentinel)
+    try:
+
+        def boom():
+            raise ValueError("boom")
+
+        with pytest.raises(ValueError):
+            io.timeout(5, boom)
+
+        # the alarm must be cancelled (0 seconds remaining)
+        assert signal.alarm(0) == 0
+        assert signal.getsignal(signal.SIGALRM) is sentinel
+    finally:
+        signal.signal(signal.SIGALRM, previous)

@@ -16,10 +16,10 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     description = summary
     epilog = dals(
         """
-        Examples::
+        Examples:
 
-            conda env config vars list
-            conda env config --append channels conda-forge
+            conda env config vars list -n my_env
+            conda env config vars set MY_VAR=foo
 
         """
     )

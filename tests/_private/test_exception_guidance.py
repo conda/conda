@@ -167,6 +167,60 @@ def test_ErrorGuidance_json_no_hints() -> None:
     assert g.__json__() == {"summary": "S"}
 
 
+def test_ErrorGuidance_from_hints_deduplicates_first_wins() -> None:
+    guidance = ErrorGuidance.from_hints(
+        (
+            GuidanceHint("Core step.", "step"),
+            GuidanceHint("Plugin replacement.", "step"),
+            GuidanceHint("Plugin step.", "plugin_step"),
+        )
+    )
+
+    assert guidance is not None
+    assert guidance.hints == (
+        GuidanceHint("Core step.", "step"),
+        GuidanceHint("Plugin step.", "plugin_step"),
+    )
+
+
+def test_ErrorGuidance_with_hints_empty_returns_self() -> None:
+    guidance = ErrorGuidance(summary="S")
+
+    assert guidance.with_hints(()) is guidance
+
+
+def test_ErrorGuidance_with_hints_appends_after_existing() -> None:
+    guidance = ErrorGuidance(
+        summary="S",
+        hints=(GuidanceHint("Core step.", "core_step"),),
+    )
+
+    updated = guidance.with_hints((GuidanceHint("Plugin step.", "plugin_step"),))
+
+    assert updated is not guidance
+    assert updated.hints == (
+        GuidanceHint("Core step.", "core_step"),
+        GuidanceHint("Plugin step.", "plugin_step"),
+    )
+
+
+def test_ErrorGuidance_with_hints_compares_result_not_length() -> None:
+    guidance = ErrorGuidance(
+        hints=(
+            GuidanceHint("Core step.", "core_step"),
+            GuidanceHint("Duplicate core step.", "core_step"),
+        ),
+    )
+
+    updated = guidance.with_hints((GuidanceHint("Plugin step.", "plugin_step"),))
+
+    assert updated is not guidance
+    assert updated.hints == (
+        GuidanceHint("Core step.", "core_step"),
+        GuidanceHint("Plugin step.", "plugin_step"),
+    )
+
+
 def test_coerce_guidance_none() -> None:
     assert ErrorGuidance.coerce(None) is None
 

@@ -320,10 +320,23 @@ def test_get_module() -> None:
     assert fullname == __name__
 
 
-def test_version_fallback() -> None:
-    """Test that conda can run even if deprecations can't parse the version."""
-    deprecated = DeprecationHandler(None)  # type: ignore[arg-type]
+@pytest.mark.parametrize(
+    "version",
+    [
+        pytest.param(None, id="none"),
+        # packaging raises InvalidVersion for non-PEP 440 strings (any packaging version)
+        pytest.param("not a valid version", id="invalid-string"),
+    ],
+)
+def test_version_fallback(version: str | None) -> None:
+    """Unparseable versions fall back so conda can still run.
+
+    packaging <26 raised TypeError for non-strings (e.g. None); packaging >=26.3
+    raises InvalidVersion instead (pypa/packaging#1319). Invalid strings have
+    always raised InvalidVersion.
+    """
+    deprecated = DeprecationHandler(version)  # type: ignore[arg-type]
     assert deprecated._version_less_than("0")
     assert deprecated._version_tuple is None
-    version: Version = deprecated._version_object  # type: ignore[assignment]
-    assert version.major == version.minor == version.micro == 0
+    version_obj: Version = deprecated._version_object  # type: ignore[assignment]
+    assert version_obj.major == version_obj.minor == version_obj.micro == 0

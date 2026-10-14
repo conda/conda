@@ -122,8 +122,13 @@ in their plugin class
         def can_handle(self):
             return True
 
+        @property
         def env(self):
-            return Environment(name="random-environment", dependencies=["python", "numpy"])
+            return Environment(
+                platform=context.subdir,
+                name="random-environment",
+                requested_packages=[MatchSpec("python"), MatchSpec("numpy")],
+            )
 
 End users can bypass environment spec plugin detection and explicitly request a plugin to be used
 by configuring conda to use a particular installed plugin. This can be done by either:
@@ -148,7 +153,9 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
 
    from conda.plugins import hookimpl
    from conda.plugins.types import CondaEnvironmentSpecifier, EnvironmentSpecBase
-   from conda.env.env import Environment
+   from conda.base.context import context
+   from conda.models.environment import Environment
+   from conda.models.match_spec import MatchSpec
 
 
    class MySimpleEnvironment(BaseModel):
@@ -193,8 +200,9 @@ contain. In this example, a valid environment file is a ``.json`` file that defi
            """Returns the Environment representation of the environment spec file"""
            data = self._parse_data()
            return Environment(
+               platform=context.subdir,
                name=data.name,
-               dependencies=data.conda_deps,
+               requested_packages=[MatchSpec(dep) for dep in data.conda_deps],
            )
 
 

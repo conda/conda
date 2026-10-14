@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timezone
+import time
+from datetime import UTC, datetime
 from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -64,7 +65,7 @@ def is_notice_response_cache_expired(
     If for whatever reason we encounter an exception while parsing the individual
     messages, we assume an invalid cache and return true.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     def is_channel_notice_expired(expired_at: datetime | None) -> bool:
         """If there is no "expired_at" field present assume it is expired."""
@@ -72,9 +73,9 @@ def is_notice_response_cache_expired(
             return True
         return expired_at < now
 
-    return any(
-        is_channel_notice_expired(chn.expired_at)
-        for chn in channel_notice_response.notices
+    notices = channel_notice_response.notices
+    return not notices or any(
+        is_channel_notice_expired(chn.expired_at) for chn in notices
     )
 
 
@@ -117,7 +118,11 @@ def get_notice_response_from_cache(
     """Retrieves a notice response object from cache if it exists."""
     cache_key = ChannelNoticeResponse.get_cache_key(url, cache_dir)
 
-    if os.path.isfile(cache_key):
+    if (
+        os.path.isfile(cache_key)
+        and time.time_ns() - cache_key.stat().st_mtime_ns
+        < NOTICES_DECORATOR_DISPLAY_INTERVAL_NS
+    ):
         with open(cache_key) as fp:
             data = json.load(fp)
         chn_ntc_resp = ChannelNoticeResponse(url, name, data)

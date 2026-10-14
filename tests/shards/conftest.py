@@ -11,12 +11,14 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import http.server
+import json
 import logging
 import queue
 import socket
 import tempfile
 import threading
 import time
+from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
@@ -28,6 +30,7 @@ from conda._private import zstd
 from conda._private.shards import cache, shards, subset
 from conda.base.context import context, reset_context
 from conda.models.channel import Channel, all_channel_urls
+from conda.testing.helpers import TEST_DATA_DIR
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
@@ -408,6 +411,45 @@ def http_server_shards(tmp_path_factory) -> Iterable[str]:
     url = shard_factory.http_server_shards("http_server_shards")
     yield url
     shard_factory.clean_up_http_servers()
+
+
+@pytest.fixture(scope="session")
+def http_server_benchmark_shards(
+    tmp_path_factory,
+) -> Iterable[tuple[str, RepodataDict]]:
+    """Serve shards built from the checked-in conda-forge repodata snapshot."""
+    repodata = json.loads(
+        (Path(TEST_DATA_DIR) / "repodata" / "conda-forge_linux-64.json").read_text()
+    )
+    repository = tmp_path_factory.mktemp("benchmark_shards")
+    subdir = repository / "linux-64"
+    subdir.mkdir()
+    grouped_shards = defaultdict(lambda: {"packages": {}, "packages.conda": {}})
+    for group in ("packages", "packages.conda"):
+        for filename, record in repodata.get(group, {}).items():
+            grouped_shards[record["name"]][group][filename] = record
+
+    index = {
+        "info": {"subdir": "linux-64", "base_url": "", "shards_base_url": ""},
+        "version": 1,
+        "shards": {},
+    }
+    for name, shard in grouped_shards.items():
+        compressed = zstd.compress(msgpack.dumps(shard))
+        digest = hashlib.sha256(compressed).digest()
+        (subdir / f"{digest.hex()}.msgpack.zst").write_bytes(compressed)
+        index["shards"][name] = digest
+    (subdir / "repodata_shards.msgpack.zst").write_bytes(
+        zstd.compress(msgpack.dumps(index))
+    )
+
+    httpd = _run_test_server(str(repository))
+    host, port = httpd.socket.getsockname()[:2]
+    url_host = f"[{host}]" if ":" in host else host
+    try:
+        yield f"http://{url_host}:{port}/linux-64", repodata
+    finally:
+        httpd.shutdown()
 
 
 @pytest.fixture

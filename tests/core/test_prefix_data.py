@@ -8,7 +8,7 @@ import shutil
 import sys
 from contextlib import nullcontext
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -1063,7 +1063,7 @@ def test_timestamps(
     conda_cli: CondaCLIFixture,
     test_recipes_channel: Path,
 ):
-    start = datetime.now(tz=timezone.utc)
+    start = datetime.now(tz=UTC)
     with tmp_env(shallow=False) as prefix:
         pd = PrefixData(prefix)
         created = pd.created
@@ -1074,7 +1074,7 @@ def test_timestamps(
         second_modification = pd.last_modified
         assert created == pd.created
         assert first_modification < second_modification
-        assert start < pd.created < second_modification < datetime.now(tz=timezone.utc)
+        assert start < pd.created < second_modification < datetime.now(tz=UTC)
 
 
 @pytest.mark.skipif(not on_win, reason="Windows only")

@@ -52,13 +52,21 @@ class PrefixGraph:
         self.graph = graph = {}
         self.spec_matches: dict[PrefixRecord, dict[MatchSpec, None]]
         self.spec_matches = spec_matches = {}
+        # Index records by package name so exact-name dependencies only
+        # consider name-matching candidates. Non-exact names still scan
+        # every record. See #15971 for the before/after benchmark.
+        by_name: dict[str, list[PrefixRecord]] = {}
+        for rec in records:
+            by_name.setdefault(rec.name, []).append(rec)
         for node in records:
-            parent_match_specs = tuple(MatchSpec(d) for d in node.depends)
-            parent_nodes = {
-                rec: None
-                for rec in records
-                if any(m.match(rec) for m in parent_match_specs)
-            }
+            parent_nodes: dict[PrefixRecord, None] = {}
+            for dep in node.depends:
+                spec = MatchSpec(dep)
+                name = spec.get_exact_value("name")
+                candidates = records if name is None else by_name.get(name, ())
+                for candidate in candidates:
+                    if spec.match(candidate):
+                        parent_nodes[candidate] = None
             graph[node] = parent_nodes
             matching_specs = dict.fromkeys(s for s in specs if s.match(node))
             if matching_specs:
@@ -328,9 +336,9 @@ class PrefixGraph:
         if on_win:
             # 3. On windows, python noarch packages need an implicit dependency on conda added, if
             #    conda is in the list of packages for the environment.  Python noarch packages
-            #    that have entry points use conda's own conda.exe python entry point binary. If
-            #    conda is going to be updated during an operation, the unlink / link order matters.
-            #    See issue #6057.
+            #    that have entry points used to use conda's own conda.exe python entry point binary.
+            #    If conda is going to be updated during an operation, the unlink / link order
+            #    matters. See issue #6057.
             conda_node = next((node for node in graph if node.name == "conda"), None)
             if conda_node:
                 # add conda as a parent if python is a parent and node isn't a parent of conda

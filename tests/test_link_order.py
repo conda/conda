@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 def test_link_order_post_link_actions(
     test_recipes_channel: Path, tmp_env: TmpEnvFixture
 ):
-    with tmp_env("c_post_link_package"):
+    with tmp_env("post_link-c"):
         pass
 
 
@@ -24,5 +24,5 @@ def test_link_order_post_link_actions(
 def test_link_order_post_link_depend(
     test_recipes_channel: Path, tmp_env: TmpEnvFixture
 ):
-    with tmp_env("e_post_link_package"):
+    with tmp_env("post_link-e"):
         pass

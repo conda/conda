@@ -1341,6 +1341,63 @@ def test_channel_mangles_urls():
         assert str(Channel(url)) == expected
 
 
+def test_url_with_credentials_preserves_filename_without_platform():
+    """Channel.url() must preserve package_filename when platform is None.
+
+    Regression test for https://github.com/conda/conda/issues/16516:
+    a URL like /channel-name/notices.json has no platform subdir, so package_filename
+    is set but platform is None.  Previously url(with_credentials=True) dropped
+    the filename and appended a subdir from context.subdirs instead.
+    """
+    # notices.json — the exact reproducer from the issue
+    channel = Channel("https://conda.anaconda.org/channel-name/notices.json")
+    assert channel.name == "channel-name"
+    assert channel.platform is None
+    assert channel.package_filename == "notices.json"
+
+    # without credentials: filename is preserved, no token injected
+    assert channel.url() == "https://conda.anaconda.org/channel-name/notices.json"
+
+    # with credentials + token: token is injected and filename is still preserved
+    channel.token = "tk-12345678-abcdefgh"
+    assert (
+        channel.url(with_credentials=True)
+        == "https://conda.anaconda.org/t/tk-12345678-abcdefgh/channel-name/notices.json"
+    )
+
+    # channeldata.json without a platform subdir behaves the same way
+    channel2 = Channel("https://conda.anaconda.org/channel-name/channeldata.json")
+    assert channel2.platform is None
+    assert channel2.package_filename == "channeldata.json"
+    assert channel2.url() == "https://conda.anaconda.org/channel-name/channeldata.json"
+
+
+@pytest.mark.parametrize(
+    "filename",
+    ("repodata_shards.msgpack.zst", f"{'a' * 64}.msgpack.zst"),
+    ids=("index", "shard"),
+)
+@pytest.mark.parametrize("platform", (None, "linux-64"))
+def test_url_with_credentials_preserves_shard_filenames(
+    filename: str, platform: str | None
+) -> None:
+    """Preserve shard filenames with and without a platform (#16637)."""
+    subpath = f"{platform}/{filename}" if platform else filename
+    url = f"https://conda.anaconda.org/conda-forge/{subpath}"
+    channel = Channel(url)
+
+    assert channel.name == "conda-forge"
+    assert channel.platform == platform
+    assert channel.package_filename == filename
+    assert channel.url() == url
+
+    channel.token = "example-token"
+    assert channel.url() == url
+    assert channel.url(with_credentials=True) == (
+        f"https://conda.anaconda.org/t/example-token/conda-forge/{subpath}"
+    )
+
+
 def test_basic_multichannel():
     multichannel_name = "multichannel"
     channel1_name = "channel1"

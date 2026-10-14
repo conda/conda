@@ -30,6 +30,7 @@ Miniconda*.sh
 miniconda*.sh
 miniconda*.exe
 .pytest_cache/
+benchmark_results.json
 **/.vscode
 conda.tmp/
 *.iml

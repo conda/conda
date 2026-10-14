@@ -1,13 +1,12 @@
 package:
   name: pre_link_messages_package
-  version: 1.0.0
+  version: 1.0
 
 build:
-  number: 0
   noarch: generic
 
 about:
-  summary: Package to test prelink_message
+  summary: Package with prelink_message files shown on install
   prelink_message:
     - message-from-pkg.txt
     - message-from-pkg2.txt

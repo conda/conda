@@ -44,6 +44,7 @@ from .common.compat import on_win
 from .common.path import path_identity as _path_identity
 from .common.path import paths_equal, unix_path_to_win, win_path_to_unix
 from .common.serialize import json
+from .deprecations import deprecated
 from .exceptions import (
     ActivateHelp,
     ArgumentError,
@@ -289,10 +290,17 @@ class _Activator(metaclass=abc.ABCMeta):
             try:
                 dev_idx = remainder_args.index("--dev")
             except ValueError:
-                context.dev = False
+                pass
             else:
                 del remainder_args[dev_idx]
                 context.dev = True
+                deprecated.topic(
+                    "27.3",
+                    "27.9",
+                    topic=f"`conda {command} --dev`",
+                    addendum="Set `PYTHONPATH` to the conda source root instead.",
+                    deprecation_type=FutureWarning,
+                )
 
         if command == "activate":
             self.stack = context.auto_stack and context.shlvl <= context.auto_stack
@@ -367,6 +375,13 @@ class _Activator(metaclass=abc.ABCMeta):
         # get prior shlvl and prefix
         old_conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)
         old_conda_prefix = os.getenv("CONDA_PREFIX")
+
+        if old_conda_shlvl > 0 and not old_conda_prefix:
+            raise CondaValueError(
+                f"CONDA_SHLVL is {old_conda_shlvl} but CONDA_PREFIX is unset or empty. "
+                "Check your shell initialization and any parent process that modifies "
+                "conda environment variables."
+            )
 
         # if the prior active prefix is this prefix we are actually doing a reactivate
         if old_conda_prefix == prefix and old_conda_shlvl > 0:

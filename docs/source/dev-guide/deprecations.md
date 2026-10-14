@@ -4,6 +4,11 @@
 
 Conda abides by the Deprecation Schedule defined in [CEP 9][cep9].
 
+:::{seealso}
+For breaking changes that are *not* a public API removal — config default changes, default
+solver changes, CLI removals — see {doc}`Breaking changes <breaking-changes>`.
+:::
+
 ## What must be deprecated
 
 **Public** symbols must be deprecated before being removed.

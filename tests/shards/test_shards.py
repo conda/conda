@@ -25,6 +25,7 @@ from requests import Request, Response
 import conda.gateways.repodata
 from conda._private import zstd
 from conda._private.shards import cache as shards_cache
+from conda._private.shards import decompression as shard_decompression
 from conda._private.shards import shards
 from conda._private.shards import subset as shards_subset
 from conda._private.shards.shards import (
@@ -36,10 +37,14 @@ from conda._private.shards.shards import (
     batch_retrieve_from_cache,
     fetch_channels,
     fetch_shards_index,
+    shard_extra_depends_packages,
     shard_mentioned_packages,
 )
 from conda.base.context import context, reset_context
+from conda.cli.main import main
 from conda.core.subdir_data import SubdirData
+from conda.exceptions import ChannelError, UnavailableInvalidChannel
+from conda.gateways.repodata import FORMAT_JSON, FORMAT_SHARDS
 from conda.models.channel import Channel
 
 from .conftest import (
@@ -349,7 +354,7 @@ def test_fetch_shards_index_mark_unavailable(monkeypatch, tmp_path, error_code):
 
     repo_cache = subdir_data.repo_cache
     repo_cache.load_state()
-    assert repo_cache.state.should_check_format("shards")
+    assert repo_cache.state.should_check_format(FORMAT_SHARDS)
 
     fetch_shards_index(subdir_data)
 
@@ -357,7 +362,7 @@ def test_fetch_shards_index_mark_unavailable(monkeypatch, tmp_path, error_code):
     # fetch_shards_index gets a different repo_cache instance:
     repo_cache.state.update(json.loads(repo_cache.cache_path_state.read_text()))
     # Always check for shards if json has not been cached:
-    assert repo_cache.state.should_check_format("shards") == (
+    assert repo_cache.state.should_check_format(FORMAT_SHARDS) == (
         expect_should_check_shards or not repo_cache.cache_path_json.exists()
     )
     assert mock_session.get_count == 1
@@ -717,6 +722,152 @@ def test_shard_mentioned_packages_classic_unaffected_by_v3_flag():
     assert "v3only_dep" in with_v3
 
 
+def test_shard_extra_depends_packages_no_extra_depends_key():
+    # Records without an "extra_depends" key yield nothing, even if requested.
+    shard = {
+        "packages": {
+            "foo-1.0-0.tar.bz2": {"name": "foo", "depends": ["bar"]},
+        },
+        "packages.conda": {},
+    }
+    assert list(shard_extra_depends_packages(shard, ["cli"])) == []
+
+
+def test_shard_extra_depends_packages_no_extras_requested():
+    # Nothing requested (empty extras) yields nothing, even if extra_depends present.
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click"], "http2": ["h2"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    assert list(shard_extra_depends_packages(shard, [])) == []
+
+
+def test_shard_extra_depends_packages_single_extra():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click", "rich"], "http2": ["h2"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    names = set(shard_extra_depends_packages(shard, ["cli"]))
+    assert names == {"click", "rich"}
+
+
+def test_shard_extra_depends_packages_unrequested_extra_not_included():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click"], "http2": ["h2"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    names = set(shard_extra_depends_packages(shard, ["cli"]))
+    assert "h2" not in names
+
+
+def test_shard_extra_depends_packages_unknown_extra_name_no_error():
+    # Requesting an extra name that doesn't exist on the record is a no-op,
+    # not a KeyError.
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    assert list(shard_extra_depends_packages(shard, ["does-not-exist"])) == []
+
+
+def test_shard_extra_depends_packages_multiple_extras_union_deduplicated():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {
+                    "cli": ["click", "rich"],
+                    "http2": ["h2"],
+                    "socks": ["pysocks"],
+                },
+            },
+        },
+        "packages.conda": {},
+    }
+    names = list(shard_extra_depends_packages(shard, ["cli", "http2"]))
+    assert set(names) == {"click", "rich", "h2"}
+    # each name yielded once even if it appeared in multiple builds/records
+    assert len(names) == len(set(names))
+
+
+def test_shard_extra_depends_packages_invalid_spec_skipped():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "extra_depends": {"cli": ["click", "!!!invalid!!!"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    names = list(shard_extra_depends_packages(shard, ["cli"]))
+    assert "click" in names
+    assert None not in names
+
+
+def test_shard_extra_depends_packages_v3_gated_by_repodata_version():
+    shard = _v3_shard(
+        {
+            "whl": {
+                "httpx-0.28.0-py3_none_any_0": {
+                    "name": "httpx",
+                    "extra_depends": {"cli": ["click"]},
+                }
+            }
+        }
+    )
+    # default repodata_version=1: v3 section is not examined
+    assert list(shard_extra_depends_packages(shard, ["cli"])) == []
+    # repodata_version=3: v3 section is examined
+    assert list(shard_extra_depends_packages(shard, ["cli"], repodata_version=3)) == [
+        "click"
+    ]
+
+
+def test_shard_extra_depends_packages_across_classic_and_conda_builds():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "extra_depends": {"cli": ["click"]},
+            },
+        },
+        "packages.conda": {
+            "httpx-0.28.0-0.conda": {
+                "name": "httpx",
+                "extra_depends": {"cli": ["click", "rich"]},
+            },
+        },
+    }
+    names = set(shard_extra_depends_packages(shard, ["cli"]))
+    assert names == {"click", "rich"}
+
+
 @pytest.mark.integration
 def test_fetch_shards_channels(prepare_shards_test: None):
     """
@@ -758,6 +909,99 @@ def test_shards_cache(tmp_path: Path):
     assert (tmp_path / shards_cache.SHARD_CACHE_NAME).exists()
 
     cache.close()
+
+
+def test_shard_size_limits():
+    assert shard_decompression.ZSTD_MAX_SHARD_SIZE == 64 * 2**20
+    assert shard_decompression.ZSTD_MAX_SHARD_INDEX_SIZE == 128 * 2**20
+
+
+def test_individual_shard_output_size_limit():
+    reported_shard_size = 48_984_766
+    compressed = zstd.compress(bytes(reported_shard_size))
+
+    decompressed = shard_decompression.decompress_shard(
+        compressed,
+        url="https://example.com/noarch/shards/hash",
+        package="large-package",
+    )
+
+    assert len(decompressed) == reported_shard_size
+
+
+def test_shards_cache_size_error_context(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(shard_decompression, "ZSTD_MAX_SHARD_SIZE", 1024)
+    shard = msgpack.dumps({"payload": b"x" * 2048})
+    annotated_shard = shards_cache.AnnotatedRawShard(
+        "https://user:password@example.com/t/secret/channel/noarch/shards/hash",
+        "large-package",
+        zstd.compress(shard),
+    )
+
+    with shards_cache.ShardCache(tmp_path) as cache:
+        cache.insert(annotated_shard)
+        with pytest.raises(ChannelError) as exc_info:
+            cache.retrieve(annotated_shard.url)
+
+    message = str(exc_info.value)
+    assert "package 'large-package'" in message
+    assert "https://example.com/t/<TOKEN>/channel/noarch/shards/hash" in message
+    assert f"decompressed output is {len(shard)} bytes" in message
+    assert "output and decoder window limit: 1024 bytes" in message
+    assert "user:password" not in message
+    assert "/t/secret/" not in message
+
+
+def test_individual_shard_size_error_cli(
+    shard_factory: ShardFactory,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+):
+    channel_url = shard_factory.http_server_shards("individual_shard_size_error_cli")
+    shard_size = len(msgpack.dumps(FAKE_SHARD))
+    max_output_size = shard_size - 1
+    try:
+        with monkeypatch.context() as patch:
+            patch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+            patch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+            patch.setenv("CONDA_TOKEN", "")
+            patch.setattr(
+                shard_decompression,
+                "ZSTD_MAX_SHARD_SIZE",
+                max_output_size,
+            )
+            reset_context()
+            capsys.readouterr()
+
+            return_code = main(
+                "search",
+                "foo",
+                "--subdir",
+                "noarch",
+                "--override-channels",
+                "--channel",
+                channel_url,
+            )
+
+            _, stderr = capsys.readouterr()
+    finally:
+        reset_context()
+
+    shard_url = f"{channel_url}noarch/repodata_shards.msgpack.zst"
+    expected = (
+        "ChannelError: repodata shard for package 'foo' "
+        f"from channel '{shard_url}': "
+        f"decompressed output is {shard_size} bytes, "
+        f"which exceeds the {max_output_size} byte limit "
+        f"(output and decoder window limit: {max_output_size} bytes)"
+    )
+    assert return_code == 1
+    assert stderr.rstrip().endswith(expected)
+    assert stderr.count("ChannelError:") == 1
+    assert "Traceback" not in stderr
+    assert "ERROR REPORT" not in stderr
+    assert "An unexpected error has occurred" not in stderr
 
 
 def test_shards_cache_recovery(tmp_path: Path):
@@ -999,6 +1243,46 @@ def test_shardlike():
     assert len(repodata["packages.conda"]) == 3
 
 
+def test_shardlike_distributes_v3_packages():
+    """
+    ShardLike must distribute repodata["v3"] records into per-package shards,
+    just like "packages" and "packages.conda", so that monolithic channels
+    with only v3 records are not invisible when mixed with sharded
+    channels.
+    """
+    repodata = {
+        "info": {"subdir": "noarch", "base_url": ""},
+        "packages": {},
+        "packages.conda": {},
+        "v3": {
+            "whl": {
+                "mypkg-whl-1.0-py312_none_any_0": {
+                    "name": "mypkg-whl",
+                    "fn": "mypkg-whl-1.0-py312-none-any.whl",
+                }
+            },
+            "conda": {"foo-1.0-0": {"name": "foo", "fn": "foo-1.0-0.conda"}},
+            "tar.bz2": {"bar-1.0-0": {"name": "bar", "fn": "bar-1.0-0.tar.bz2"}},
+        },
+        "repodata_version": 3,
+    }
+
+    as_shards = ShardLike(repodata)
+
+    shard = as_shards.visit_package("mypkg-whl")
+    as_shards.visit_package("foo")
+    as_shards.visit_package("bar")
+    assert (
+        shard["v3"]["whl"]["mypkg-whl-1.0-py312_none_any_0"]["fn"]
+        == "mypkg-whl-1.0-py312-none-any.whl"
+    )
+
+    records = dict(as_shards.iter_records())
+    assert "mypkg-whl-1.0-py312_none_any_0" in records
+    assert "foo-1.0-0" in records
+    assert "bar-1.0-0" in records
+
+
 def test_iter_records_classic():
     shardlike = ShardLike(
         {
@@ -1048,6 +1332,39 @@ def test_iter_records_v3():
     assert ("mypkg-1.0-0.conda", "packages.conda") in records
     assert ("mypkg-1.0-py312_none_any_0", "v3.whl") in records
     assert records[("mypkg-1.0-py312_none_any_0", "v3.whl")]["name"] == "mypkg"
+
+
+def test_iter_records_includes_v3():
+    """iter_records must surface v3 wheels so solvers still see conda-pypi packages."""
+    shardlike = ShardLike(
+        {
+            "packages": {},
+            "packages.conda": {},
+            "info": {"base_url": ""},
+        }
+    )
+    shardlike.visit_shard(
+        "mypkg",
+        {
+            "packages": {},
+            "packages.conda": {},
+            "v3": {
+                "whl": {
+                    "mypkg-1.0-py312_none_any_0": {
+                        "name": "mypkg",
+                        "fn": "mypkg-1.0-py312-none-any.whl",
+                    }
+                },
+                "conda": {"foo-1.0-0": {"name": "foo", "fn": "foo-1.0-0.conda"}},
+            },
+        },
+    )
+    shardlike.visited["ghost"] = None
+    records = dict(shardlike.iter_records())
+    assert "mypkg-1.0-py312_none_any_0" in records
+    assert records["mypkg-1.0-py312_none_any_0"]["fn"] == "mypkg-1.0-py312-none-any.whl"
+    assert "foo-1.0-0" in records
+    assert records["foo-1.0-0"]["fn"] == "foo-1.0-0.conda"
 
 
 def test_shardlike_repr():
@@ -1205,7 +1522,8 @@ def test_shards_connections(monkeypatch):
     monkeypatch.setattr("conda._private.shards.misc.SHARDS_CONNECTIONS_DEFAULT", 7)
     assert _shards_connections() == 7
 
-    monkeypatch.setattr(context, "_repodata_threads", 4)
+    monkeypatch.setenv("CONDA_REPODATA_THREADS", "4")
+    reset_context()
     assert _shards_connections() == 4
 
 
@@ -1475,3 +1793,148 @@ def test_safe_urljoin_with_slash(base_url, relative_url, expected):
     """
     result = _safe_urljoin_with_slash(base_url, relative_url)
     assert result == expected
+
+
+@pytest.mark.parametrize("use_shards", (True, False))
+def test_classic_404_shards_only_hint_enabled(
+    http_server_shards, monkeypatch, tmp_path, use_shards
+):
+    """Test that enable shards hint shows up when shards are turned off and Unavailable channel error is raised."""
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", str(use_shards))
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+
+    with pytest.raises(UnavailableInvalidChannel) as exc_info:
+        SubdirData(channel).load()
+
+    hint = "--repodata-use-shards"
+    # raises with hint when shards disabled
+    if not use_shards:
+        assert hint in str(exc_info.value.guidance)
+    else:
+        assert exc_info.value.guidance is None
+
+
+def test_cached_shards_returned(monkeypatch, tmp_path):
+    """Test that stale cache and failed network still returns shards when classic repodata_json is unavailable"""
+
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    channel = Channel("http://localhost/mock/noarch")
+    sd = SubdirData(channel)
+    cache = sd.repo_cache
+
+    fake_index: ShardsIndexDict = {
+        "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
+        "version": 1,
+        "shards": {
+            "foo": hashlib.sha256(b"x").digest(),
+        },
+    }
+    index_bytes = zstd.compress(msgpack.dumps(fake_index))
+    cache.state.set_has_format(FORMAT_SHARDS, True)
+    cache.state.set_has_format(FORMAT_JSON, False)
+    cache.save(index_bytes)
+
+    # force stale
+    cache.refresh(refresh_ns=1)
+
+    class MockSession:
+        proxies = None
+        get_count = 0
+
+        def __call__(self, *args):
+            return self
+
+        def get(self, url, *args, **kwargs):
+            self.get_count += 1
+            request = Request("GET", url).prepare()
+            response = Response()
+            response.request = request
+            response.url = url
+            response.status_code = 500  # fail the re-fetch
+            return response
+
+    mock_session = MockSession()
+    monkeypatch.setattr(shards, "get_session", mock_session)
+
+    found = fetch_shards_index(sd)
+    assert found is not None  # cache recovery worked, not "no shards"
+    assert "foo" in found  # loaded cached index
+    assert mock_session.get_count >= 1  # network tried first
+
+
+def test_cached_shards_when_shards_check_skipped(monkeypatch, tmp_path):
+    """Return cached shards when shards check is skipped but classic is absent."""
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+
+    channel = Channel("http://localhost/mock/noarch")
+    sd = SubdirData(channel)
+    cache = sd.repo_cache
+
+    fake_index: ShardsIndexDict = {
+        "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
+        "version": 1,
+        FORMAT_SHARDS: {
+            "foo": hashlib.sha256(b"x").digest(),
+        },
+    }
+    index_bytes = zstd.compress(msgpack.dumps(fake_index))
+    cache.state.set_has_format(FORMAT_SHARDS, False)
+    cache.state.set_has_format(FORMAT_JSON, False)
+    cache.save(index_bytes)
+    cache.save(
+        "{}"
+    )  # classic cache exists; with has_shards=False, shards check stays skipped
+    cache.refresh()
+
+    assert cache.state.should_check_format(FORMAT_SHARDS) is False
+    found = fetch_shards_index(sd)
+    assert found is not None
+    assert "foo" in found  # loaded cached index
+
+
+def test_fetch_channels_skips_classic_for_shards_only_url(
+    monkeypatch, tmp_path, mocker
+):
+    """Mixed channels: do not classic-probe a URL with has_repodata_json recorded False."""
+
+    from conda.gateways.repodata import RepodataFetch
+
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+    good_url = "http://example.com/good/noarch"
+    shards_only_url = "http://example.com/shards-only/noarch"
+
+    # Same cache path fetch_channels will use for the shards-only URL
+    only_cache = SubdirData(Channel(shards_only_url)).repo_cache
+    only_cache.state.set_has_format(FORMAT_JSON, False)
+    only_cache.refresh()
+
+    # mimic fetch_shards_index behavior without http calls
+    def fake_fetch_shards_index(sd: SubdirData):
+        if sd.url_w_subdir == shards_only_url:
+            return None
+        # Successful shards result for the other URL (type only needs to be truthy)
+        return object()
+
+    monkeypatch.setattr(
+        "conda._private.shards.shards.fetch_shards_index",
+        fake_fetch_shards_index,
+    )
+
+    spy = mocker.spy(RepodataFetch, "fetch_latest_parsed")
+    result = fetch_channels(
+        {
+            good_url: Channel(good_url),
+            shards_only_url: Channel(shards_only_url),
+        }
+    )
+    assert result is not None
+    assert good_url in result
+    assert shards_only_url not in result
+    assert spy.call_count == 0  # classic must not be probed for the shards-only URL

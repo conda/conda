@@ -4,6 +4,7 @@ Authors are sorted alphabetically.
 * ARF1
 * Aaron Meurer
 * Abheek Mathur
+* Adel Kaleche
 * Adrian Freund
 * Agriya Khetarpal
 * Ahmet Deger
@@ -21,6 +22,7 @@ Authors are sorted alphabetically.
 * Almar Klein
 * Amelio Vazquez-Reina
 * Amir Mohammadi
+* Andre
 * Andrea Ghensi
 * Andreas Girgensohn
 * Andrew Achkar
@@ -63,6 +65,7 @@ Authors are sorted alphabetically.
 * Brad Erickson
 * Brad Nemanich
 * Brad S
+* Bradley Dice
 * Bradley Kreider
 * Brennan Chapman
 * Brent Pedersen
@@ -103,7 +106,9 @@ Authors are sorted alphabetically.
 * Dan Lovell
 * Dan Meador
 * Dan Yeaw
+* Daniel
 * Daniel Bast
+* Daniel Ching
 * Daniel Holth
 * Daniel Hook
 * Daniel Wehner
@@ -220,6 +225,7 @@ Authors are sorted alphabetically.
 * Josh Mayer
 * Juan Luis Cano Rodríguez
 * Juan Nunez-Iglesias
+* Julien Jerphanion
 * Julien Schueller
 * Justin Wood (Callek)
 * Justus Schwabedal
@@ -310,6 +316,7 @@ Authors are sorted alphabetically.
 * Mihir Rege
 * Mika Fischer
 * Mike Croucher
+* Mike Taves
 * MinRK
 * Minh Phan
 * Monius
@@ -381,6 +388,7 @@ Authors are sorted alphabetically.
 * Sam Davis
 * Sam Haese
 * Sam Nicholls
+* Samartha
 * Samson Yeung
 * Samuel Debionne
 * Samuel Walters-Nevet
@@ -470,13 +478,16 @@ Authors are sorted alphabetically.
 * Xuehai Pan
 * Xylar Asay-Davis
 * Yaroslav Dmytryk
+* Yuchen Fan
 * Yuval Reches
 * Yuvi Panda
 * Zach Heaton
 * Zahari
 * Zhiwei Liang
 * Zongyuan Zuo
+* btraven
 * dependabot[bot]
+* eeshsaxena
 * endolith
 * giumas
 * kanehira
@@ -486,6 +497,7 @@ Authors are sorted alphabetically.
 * oinizan
 * ovz
 * padeoe
+* paperbenni
 * peter1000
 * pre-commit CI
 * saraneem

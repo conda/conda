@@ -28,6 +28,7 @@ from ..auxlib.entity import (
     EnumField,
     IntegerField,
     ListField,
+    MapField,
     NumberField,
     StringField,
 )
@@ -93,6 +94,14 @@ class TimestampField(NumberField):
                 return int(dt_to_timestamp(isoparse(instance.date)))
             except (AttributeError, ValueError):
                 return 0
+
+
+class IndexedTimestampField(TimestampField):
+    def __get__(self, instance, instance_type):
+        try:
+            return NumberField.__get__(self, instance, instance_type)
+        except AttributeError:
+            return 0
 
 
 class Link(DictSafeMixin, Entity):
@@ -410,6 +419,9 @@ class PackageRecord(DictSafeMixin, Entity):
     constrains = ListField(str, default=())
 
     flags = ListField(str, default=(), required=False, default_in_dump=False)
+    extra_depends = MapField(
+        required=False, nullable=True, default=None, default_in_dump=False
+    )
 
     track_features = _FeaturesField(required=False, default=(), default_in_dump=False)
     features = _FeaturesField(required=False, default=(), default_in_dump=False)
@@ -436,6 +448,7 @@ class PackageRecord(DictSafeMixin, Entity):
         return self.package_type in PackageType.unmanageable_package_types()
 
     timestamp = TimestampField()
+    indexed_timestamp = IndexedTimestampField()
 
     @property
     def combined_depends(self):
@@ -606,6 +619,23 @@ class PackageCacheRecord(PackageRecord):
     def tarball_basename(self):
         """str: The basename of the local package file."""
         return basename(self.package_tarball_full_path)
+
+    def matches_metadata(self, package_ref: PackageRecord | MatchSpec) -> bool:
+        """Match available size and MD5 against the requested package.
+
+        Accept missing values and the requested package's legacy archive metadata.
+        """
+        for key in ("size", "md5"):
+            expected = package_ref.get(key)
+            if expected is None:
+                continue
+            cached = self.get(key)
+            if cached is not None and cached not in (
+                expected,
+                package_ref.get(f"legacy_bz2_{key}"),
+            ):
+                return False
+        return True
 
     def _calculate_md5sum(self):
         memoized_md5 = getattr(self, "_memoized_md5", None)

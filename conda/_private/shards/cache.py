@@ -14,8 +14,7 @@ from typing import TYPE_CHECKING
 
 import msgpack
 
-from ..zstd import capped_decompress
-from .shards import ZSTD_MAX_SHARD_SIZE
+from .decompression import decompress_shard
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -118,14 +117,9 @@ class ShardCache:
                     "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
                 )
         except sqlite3.DatabaseError as e:
-            # Python 3.11 adds sqlite_errorcode. This is meant to delete and
-            # retry on all DatabaseError for Python 3.10, but on Python 3.11+
-            # only retry on SQLITE_NOTADB. Other errors e.g. busy, locked, would
+            # Only retry on SQLITE_NOTADB. Other errors e.g. busy, locked, would
             # propagate.
-            has_errorcode = hasattr(e, "sqlite_errorcode")
-            if retry and (
-                (not has_errorcode) or (e.sqlite_errorcode == sqlite3.SQLITE_NOTADB)
-            ):
+            if retry and e.sqlite_errorcode == sqlite3.SQLITE_NOTADB:
                 log.warning("%s '%s'; remove and retry.", dburi, e)
                 try:
                     self.remove_cache()
@@ -154,10 +148,16 @@ class ShardCache:
 
     def retrieve(self, url) -> ShardDict | None:
         with self.conn as c:
-            row = c.execute("SELECT shard FROM shards WHERE url = ?", (url,)).fetchone()
+            row = c.execute(
+                "SELECT package, shard FROM shards WHERE url = ?", (url,)
+            ).fetchone()
             return (
                 msgpack.loads(
-                    capped_decompress(row["shard"], max_output_size=ZSTD_MAX_SHARD_SIZE)
+                    decompress_shard(
+                        row["shard"],
+                        url=url,
+                        package=row["package"],
+                    )
                 )
                 if row
                 else None
@@ -172,11 +172,15 @@ class ShardCache:
         if not urls:
             return {}  # this optimization does not save a noticeable amount of time.
 
-        query = f"SELECT url, shard FROM shards WHERE url IN ({','.join(('?',) * len(urls))}) ORDER BY url"
+        query = f"SELECT url, package, shard FROM shards WHERE url IN ({','.join(('?',) * len(urls))}) ORDER BY url"
         with self.conn as c:
             result: dict[str, ShardDict | None] = {
                 row["url"]: msgpack.loads(
-                    capped_decompress(row["shard"], max_output_size=ZSTD_MAX_SHARD_SIZE)
+                    decompress_shard(
+                        row["shard"],
+                        url=row["url"],
+                        package=row["package"],
+                    )
                 )
                 if row
                 else None

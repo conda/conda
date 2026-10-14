@@ -4,26 +4,35 @@
 
 from __future__ import annotations
 
+import multiprocessing
 import os
 from collections import defaultdict
-from concurrent.futures import CancelledError, ThreadPoolExecutor, as_completed
+from concurrent.futures import (
+    CancelledError,
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+    as_completed,
+)
 from errno import EACCES, ENOENT, EPERM, EROFS
 from functools import partial
 from itertools import chain
 from logging import getLogger
 from os import scandir
 from os.path import basename, dirname, getsize, join
+from pathlib import Path
 from sys import platform
 from tarfile import ReadError
 from typing import TYPE_CHECKING
 
 from .. import CondaError, CondaMultiError, conda_signal_handler
+from .._private.extract import extract_conda_package_archive
 from ..auxlib.collection import first
 from ..auxlib.decorators import memoizemethod
 from ..auxlib.entity import ValidationError
 from ..base.constants import (
     CONDA_PACKAGE_EXTENSION_V1,
     CONDA_PACKAGE_EXTENSION_V2,
+    CONDA_PACKAGE_EXTRACTOR_NAME,
     PACKAGE_CACHE_MAGIC_FILE,
 )
 from ..base.context import context
@@ -35,7 +44,7 @@ from ..common.serialize import json
 from ..common.signals import signal_handler
 from ..common.terminal import is_tty, term_dumb
 from ..common.url import path_to_url
-from ..exceptions import NotWritableError, NoWritablePkgsDirError
+from ..exceptions import NotWritableError, NoWritablePkgsDirError, PluginError
 from ..gateways.disk.create import (
     create_package_cache_directory,
     write_as_json_to_file,
@@ -50,7 +59,7 @@ from ..gateways.disk.read import (
     read_index_json_from_tarball,
     read_repodata_json,
 )
-from ..gateways.disk.test import file_path_is_writable
+from ..gateways.disk.test import file_path_is_writable, paths_on_same_device
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
 from ..reporters import get_progress_bar, get_progress_bar_context_manager
@@ -59,7 +68,6 @@ from .path_actions import CacheUrlAction, ExtractPackageAction
 
 if TYPE_CHECKING:
     from concurrent.futures import Future
-    from pathlib import Path
 
     from ..plugins.types import ProgressBarBase
 
@@ -71,8 +79,47 @@ try:
     from conda_package_handling.api import THREADSAFE_EXTRACT
 except ImportError:
     THREADSAFE_EXTRACT = False
-# On the machines we tested, extraction doesn't get any faster after 3 threads
+# The fallback thread pool is used for non-standard package extractor plugins
+# and debug mode. Built-in .conda/.tar.bz2 extraction normally runs in a
+# process pool below to avoid zstd's GIL bottleneck. See #15974.
+# On the machines we tested, extraction doesn't get any faster after 3 threads.
 EXTRACT_THREADS = min(os.cpu_count() or 1, 3) if THREADSAFE_EXTRACT else 1
+EXTRACT_PROCESSES = min(os.cpu_count() or 1, 4) if THREADSAFE_EXTRACT else 1
+EXTRACT_PROCESS_EXTENSIONS = (
+    CONDA_PACKAGE_EXTENSION_V1,
+    CONDA_PACKAGE_EXTENSION_V2,
+)
+
+
+def get_softlinked_package_dirs() -> set[Path]:
+    """Return cache directories known environments may reference through symlinks."""
+    from ..models.enums import LinkType
+    from .envs_manager import list_all_known_prefixes
+    from .prefix_data import PrefixData
+
+    prefixes = set(list_all_known_prefixes())
+    prefixes.update(
+        prefix
+        for prefix in (
+            context.root_prefix,
+            context.conda_prefix,
+            context.active_prefix,
+            context.target_prefix,
+        )
+        if prefix
+    )
+
+    package_dirs = set()
+    for prefix in prefixes:
+        prefix_data = PrefixData(prefix, interoperability=False)
+        if not prefix_data.is_environment():
+            continue
+        for record in prefix_data.iter_records():
+            link = getattr(record, "link", None)
+            # A missing link type does not rule out symlinks.
+            if link and getattr(link, "type", LinkType.softlink) == LinkType.softlink:
+                package_dirs.add(Path(link.source).resolve(strict=False))
+    return package_dirs
 
 
 class PackageCacheType(type):
@@ -258,12 +305,23 @@ class PackageCacheData(metaclass=PackageCacheType):
         )
 
     @classmethod
-    def get_entry_to_link(cls, package_ref):
-        pc_entry = next(
-            (pcrec for pcrec in cls.query_all(package_ref) if pcrec.is_extracted), None
-        )
-        if pc_entry is not None:
-            return pc_entry
+    def get_entry_to_link(cls, package_ref, target_prefix=None):
+        first_extracted = None
+        for pcrec in cls.query_all(package_ref):
+            if not pcrec.is_extracted:
+                continue
+            if first_extracted is None:
+                first_extracted = pcrec
+            if target_prefix is None:
+                return pcrec
+            # Cache roots share devices with their extracted package directories.
+            if pcrec.matches_metadata(package_ref) and paths_on_same_device(
+                dirname(pcrec.extracted_package_dir), target_prefix
+            ):
+                return pcrec
+
+        if first_extracted is not None:
+            return first_extracted
 
         # this can happen with `conda install path/to/package.tar.bz2`
         #   because dist has channel '<unknown>'
@@ -381,6 +439,14 @@ class PackageCacheData(metaclass=PackageCacheType):
         # try reading info/repodata_record.json
         try:
             repodata_record = read_repodata_json(extracted_package_dir)
+            # Both formats share an extracted directory. Keep the archive path
+            # consistent with the saved filename and checksums.
+            extracted_package_dir_basename = basename(extracted_package_dir)
+            if repodata_record.get("fn") in (
+                extracted_package_dir_basename + CONDA_PACKAGE_EXTENSION_V1,
+                extracted_package_dir_basename + CONDA_PACKAGE_EXTENSION_V2,
+            ):
+                package_tarball_full_path = join(self.pkgs_dir, repodata_record["fn"])
             package_cache_record = PackageCacheRecord.from_objects(
                 repodata_record,
                 package_tarball_full_path=package_tarball_full_path,
@@ -594,20 +660,6 @@ class ProgressiveFetchExtract:
         sha256 = pref_or_spec.get("sha256")
         size = pref_or_spec.get("size")
         md5 = pref_or_spec.get("md5")
-        legacy_bz2_size = pref_or_spec.get("legacy_bz2_size")
-        legacy_bz2_md5 = pref_or_spec.get("legacy_bz2_md5")
-
-        def pcrec_matches(pcrec):
-            matches = True
-            # sha256 is overkill for things that are already in the package cache.
-            #     It's just a quick match.
-            # if sha256 is not None and pcrec.sha256 is not None:
-            #     matches = sha256 == pcrec.sha256
-            if size is not None and pcrec.get("size") is not None:
-                matches = pcrec.size in (size, legacy_bz2_size)
-            if matches and md5 is not None and pcrec.get("md5") is not None:
-                matches = pcrec.md5 in (md5, legacy_bz2_md5)
-            return matches
 
         extracted_pcrec = next(
             (
@@ -622,7 +674,7 @@ class ProgressiveFetchExtract:
         )
         if (
             extracted_pcrec
-            and pcrec_matches(extracted_pcrec)
+            and extracted_pcrec.matches_metadata(pref_or_spec)
             and extracted_pcrec.get("url")
         ):
             return None, None
@@ -645,7 +697,7 @@ class ProgressiveFetchExtract:
         )
         if (
             pcrec_from_writable_cache
-            and pcrec_matches(pcrec_from_writable_cache)
+            and pcrec_from_writable_cache.matches_metadata(pref_or_spec)
             and pcrec_from_writable_cache.get("url")
         ):
             # extract in place
@@ -677,7 +729,9 @@ class ProgressiveFetchExtract:
         )
 
         first_writable_cache = PackageCacheData.first_writable()
-        if pcrec_from_read_only_cache and pcrec_matches(pcrec_from_read_only_cache):
+        if pcrec_from_read_only_cache and pcrec_from_read_only_cache.matches_metadata(
+            pref_or_spec
+        ):
             # we found a tarball, but it's in a read-only package cache
             # we need to link the tarball into the first writable package cache,
             #   and then extract
@@ -827,6 +881,46 @@ class ProgressiveFetchExtract:
             exceptions = []
             progress_bars = {}
             futures: list[Future] = []
+            extract_futures = {}
+            extract_actions = self.extract_actions
+            use_process_pool = (
+                bool(extract_actions) and EXTRACT_PROCESSES > 1 and not context.debug
+            )
+            if use_process_pool:
+                # Only bypass the plugin manager when every action resolves to
+                # conda's built-in extractor.
+                for extract_action in extract_actions:
+                    source_full_path = os.fspath(extract_action.source_full_path)
+                    if not source_full_path.lower().endswith(
+                        EXTRACT_PROCESS_EXTENSIONS
+                    ):
+                        use_process_pool = False
+                        break
+                    try:
+                        extractor = context.plugin_manager.get_package_extractor(
+                            source_full_path
+                        )
+                    except PluginError:
+                        use_process_pool = False
+                        break
+                    if extractor.name != CONDA_PACKAGE_EXTRACTOR_NAME:
+                        use_process_pool = False
+                        break
+
+            if use_process_pool:
+                try:
+                    extract_executor = ProcessPoolExecutor(
+                        max_workers=EXTRACT_PROCESSES,
+                        mp_context=multiprocessing.get_context("spawn"),
+                    )
+                except (OSError, NotImplementedError):
+                    log.debug(
+                        "Process pool unavailable, falling back to thread pool.",
+                        exc_info=True,
+                    )
+                    use_process_pool = False
+            if not use_process_pool:
+                extract_executor = ThreadPoolExecutor(EXTRACT_THREADS)
 
             cancelled_flag = False
 
@@ -841,7 +935,7 @@ class ProgressiveFetchExtract:
                 signal_handler(conda_signal_handler),
                 time_recorder("fetch_extract_execute"),
                 ThreadPoolExecutor(context.fetch_threads) as fetch_executor,
-                ThreadPoolExecutor(EXTRACT_THREADS) as extract_executor,
+                extract_executor,
             ):
                 for prec_or_spec, (
                     cache_action,
@@ -882,21 +976,43 @@ class ProgressiveFetchExtract:
                         prec_or_spec = completed_future.result()
 
                         cache_action, extract_action = self.paired_actions[prec_or_spec]
-                        extract_future = extract_executor.submit(
-                            do_extract_action,
-                            prec_or_spec,
-                            extract_action,
-                            progress_bars[prec_or_spec],
-                        )
-                        extract_future.add_done_callback(
-                            partial(
-                                done_callback,
-                                actions=(cache_action, extract_action),
-                                exceptions=exceptions,
-                                progress_bar=progress_bars[prec_or_spec],
-                                finish=True,
+                        progress_bar = progress_bars[prec_or_spec]
+                        actions = (cache_action, extract_action)
+                        if not extract_action:
+                            do_cleanup(actions)
+                            progress_bar.finish()
+                            progress_bar.refresh()
+                        elif use_process_pool:
+                            try:
+                                extract_action.verify()
+                                extract_action._prepare_extract()
+                                extract_future = extract_executor.submit(
+                                    extract_conda_package_archive,
+                                    extract_action.source_full_path,
+                                    extract_action.target_full_path,
+                                    ensure_picklable_errors=True,
+                                )
+                            except Exception as e:
+                                do_reverse(reversed(actions))
+                                exceptions.append(e)
+                            else:
+                                extract_futures[extract_future] = (
+                                    actions,
+                                    extract_action,
+                                    progress_bar,
+                                )
+                        else:
+                            extract_future = extract_executor.submit(
+                                do_extract_action,
+                                prec_or_spec,
+                                extract_action,
+                                progress_bar,
                             )
-                        )
+                            extract_futures[extract_future] = (
+                                actions,
+                                None,
+                                progress_bar,
+                            )
                 except BaseException as e:
                     # We are interested in KeyboardInterrupt delivered to
                     # as_completed() while waiting, or any exception raised from
@@ -910,6 +1026,24 @@ class ProgressiveFetchExtract:
                     # replace the above loop:
                     fetch_executor.shutdown(wait=False)
                     exceptions.append(e)
+                finally:
+                    for extract_future in as_completed(extract_futures):
+                        actions, process_extract_action, progress_bar = extract_futures[
+                            extract_future
+                        ]
+                        try:
+                            extract_future.result()
+                            if process_extract_action:
+                                process_extract_action._finish_extract()
+                                progress_bar.update_to(1.0)
+                        except Exception as e:
+                            log.debug("Package extraction failed.", exc_info=e)
+                            do_reverse(reversed(actions))
+                            exceptions.append(e)
+                        else:
+                            do_cleanup(actions)
+                            progress_bar.finish()
+                            progress_bar.refresh()
 
             for bar in progress_bars.values():
                 bar.close()

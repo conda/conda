@@ -4,12 +4,12 @@
 
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import cache
 from logging import (
     DEBUG,
     INFO,
-    WARN,
+    WARNING,
     Filter,
     Formatter,
     StreamHandler,
@@ -23,8 +23,8 @@ from .streams import _TOKEN_URL_PATTERN, redact_token_urls
 
 log = getLogger(__name__)
 _VERBOSITY_LEVELS = {
-    0: WARN,  # standard output
-    1: WARN,  # -v, detailed output
+    0: WARNING,  # standard output
+    1: WARNING,  # -v, detailed output
     2: INFO,  # -vv, info logging
     3: DEBUG,  # -vvv, debug logging
     4: TRACE,  # -vvvv, trace logging
@@ -131,7 +131,7 @@ class StdStreamHandler(StreamHandler):
 @cache
 def initialize_logging():
     # 'conda' gets level WARN and does not propagate to root.
-    getLogger("conda").setLevel(WARN)
+    getLogger("conda").setLevel(WARNING)
     set_conda_log_level()
 
 
@@ -173,7 +173,7 @@ def initialize_std_loggers():
     verbose_logger.propagate = False
 
 
-def set_conda_log_level(level=WARN):
+def set_conda_log_level(level=WARNING):
     attach_stderr_handler(level=level, logger_name="conda", filters=[TokenURLFilter()])
 
 
@@ -192,7 +192,7 @@ def set_all_logger_level(level=DEBUG):
 @cache
 def set_file_logging(logger_name=None, level=DEBUG, path=None):
     if path is None:
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
         path = f".conda.{timestamp}.log"
 
     conda_logger = getLogger(logger_name)

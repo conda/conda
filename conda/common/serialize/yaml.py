@@ -151,8 +151,8 @@ def __getattr__(name: str) -> Any:
 # access. Passing ``factory=`` defers ``_representer()`` (which imports
 # ``ruamel.yaml``) until the deprecated symbol is actually used.
 deprecated.constant(
-    "26.9",
     "27.3",
+    "27.9",
     "CondaYAMLRepresenter",
     factory=_representer,
     addendum=(

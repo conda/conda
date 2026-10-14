@@ -160,6 +160,26 @@ def test_too_many_arguments(
     assert "too many arguments" in excinfo.value.message
 
 
+def test_install_revision_invalid(
+    conda_cli: CondaCLIFixture,
+):
+    stdout, stderr, exc = conda_cli(
+        "install",
+        "--revision",
+        "abc",
+        raises=SystemExit,
+    )
+    assert exc.value.code == 2
+    assert "invalid int value" in stderr
+
+
+def test_get_revision_pending_deprecation():
+    from conda.cli.install import get_revision
+
+    with pytest.deprecated_call():
+        assert get_revision("1") == 1
+
+
 def test_install_revision_revert(
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,

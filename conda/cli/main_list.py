@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
     from ..base.constants import CONDA_LIST_FIELDS
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import (
         add_parser_json,
         add_parser_prefix,
@@ -31,37 +32,37 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         comma_separated_stripped,
     )
 
-    summary = "List installed packages in a conda environment."
+    summary = BUILTIN_SUBCOMMANDS["list"]["help"]
     description = summary
     epilog = dals(
         """
         Examples:
 
-        List all packages in the current environment::
+        List all packages in the current environment:
 
             conda list
 
-        List all packages in reverse order::
+        List all packages in reverse order:
 
             conda list --reverse
 
-        List all packages installed into the environment 'myenv'::
+        List all packages installed into the environment 'myenv':
 
             conda list -n myenv
 
-        List all packages that begin with the letters "py", using regex::
+        List all packages that begin with the letters "py", using regex:
 
             conda list ^py
 
-        List name and version only::
+        List name and version only:
 
             conda list --fields name,version
 
-        Save packages for future use::
+        Save packages for future use:
 
             conda list --export > package-list.txt
 
-        Reinstall packages from an export file::
+        Reinstall packages from an export file:
 
             conda create -n myenv --file package-list.txt
 

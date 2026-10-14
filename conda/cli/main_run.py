@@ -16,18 +16,19 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..common.constants import NULL
     from ..deprecations import deprecated
     from .actions import NullCountAction
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import add_parser_prefix, add_parser_verbose
 
-    summary = "Run an executable in a conda environment."
+    summary = BUILTIN_SUBCOMMANDS["run"]["help"]
     description = summary
     epilog = dals(
         """
-        Example::
+        Example:
 
         $ conda create -y -n my-python-env python=3
         $ conda run -n my-python-env python --version
 
-        Use '--' to separate `conda run`'s options from the executable's options::
+        Use '--' to separate `conda run`'s options from the executable's options:
 
         $ conda run -n my-python-env -- python -v
         $ conda run -v -n my-python-env -- tar -tvf file.tar
