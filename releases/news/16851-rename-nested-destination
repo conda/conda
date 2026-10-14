@@ -1,4 +1,4 @@
 ### Bug fixes
 
 * Reject renaming an environment into one of its own subdirectories to prevent
-  deleting both the source and destination environments.
+  deleting both the source and destination environments. (#16851)
