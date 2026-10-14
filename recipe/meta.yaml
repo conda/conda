@@ -1,7 +1,11 @@
 package:
   name: conda
-  # VERSION_OVERRIDE is used by the canary release workflow
-  version: {{ os.getenv("VERSION_OVERRIDE") or GIT_DESCRIBE_TAG }}.{{ GIT_DESCRIBE_NUMBER }}+{{ GIT_DESCRIBE_HASH }}
+  # VERSION_OVERRIDE is set by the canary release workflow to the exact
+  # version `conda.__version__` will self-report (see build.yml's "Detect
+  # Label" step), used verbatim with no extra suffix so the two always
+  # match. Falls back to the classic GIT_DESCRIBE_* composition for
+  # local/non-CI builds where it's unset.
+  version: {{ os.getenv("VERSION_OVERRIDE") or (GIT_DESCRIBE_TAG + "." + GIT_DESCRIBE_NUMBER + "+" + GIT_DESCRIBE_HASH) }}
 
 source:
   # git_url only captures committed code

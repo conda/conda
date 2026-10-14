@@ -1,0 +1,20 @@
+### Enhancements
+
+* Add `--disable-plugins` to selectively disable plugins at runtime using comma-separated names or repeated options. Keep `--no-plugins` as a boolean flag to disable all external plugins. (#15914 via #15915)
+* Add `--enable-plugins` to keep selected plugins enabled when using `--no-plugins` or `CONDA_NO_PLUGINS`, including solver plugins needed for recovery. (#15914 via #15915)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
