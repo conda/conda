@@ -31,12 +31,12 @@ def get_spec_str_from_conda_meta(
             specs.append(
                 f"{metadata['name']}={metadata['version']}={metadata['build']}"
             )
-        except KeyError as exc:
-            logger.warning(
-                "Could not build an installable MatchSpec from conda-meta record; "
-                "missing field %s. Skipping reinstall for %s.",
-                exc,
-                stem,
-            )
+        except KeyError:
             skipped.append(stem)
     return specs, skipped
+
+
+def get_name_from_conda_meta_file_name(conda_meta_filename: str):
+    """Given the name of a package conda_meta file, extract the name of the package"""
+    name_version_build_string = Path(conda_meta_filename).name.removesuffix(".json")
+    return name_version_build_string.rsplit("-", 2)[0]
