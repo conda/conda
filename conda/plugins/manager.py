@@ -121,6 +121,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+BUILTIN_PLUGIN_PREFIX = "conda.plugins."
+
 
 @dataclass
 class _HookImplWrapper:
@@ -174,6 +176,8 @@ class CondaPluginManager(pluggy.PluginManager):
 
     def __init__(self, *args, **kwargs):
         super().__init__(APP_NAME, *args, **kwargs)
+        self.plugin_aliases: dict[str, set[str]] = {}
+        self._distribution_aliases: dict[str, set[str]] = {}
         # Make the cache containers local to the instances so that the
         # reference from cache to the instance gets garbage collected with the instance
         self.get_cached_solver_backend = functools.cache(self.get_solver_backend)
@@ -383,12 +387,23 @@ class CondaPluginManager(pluggy.PluginManager):
                     )
                     continue
 
-                if self.register(plugin):
+                plugin_name = self.register(plugin)
+                if plugin_name:
                     # Mirror pluggy's load_setuptools_entrypoints() bookkeeping
                     # so list_plugin_distinfo() can report distributions for
                     # conda's custom entry point loader.
                     self._plugin_distinfo.append((plugin, DistFacade(dist)))
                     count += 1
+                    self.plugin_aliases.setdefault(entry_point.name, set()).add(
+                        plugin_name
+                    )
+                    if dist_name := dist.metadata.get("Name"):
+                        self.plugin_aliases.setdefault(dist_name, set()).add(
+                            plugin_name
+                        )
+                        self._distribution_aliases.setdefault(
+                            canonicalize_name(dist_name), set()
+                        ).add(plugin_name)
         return count
 
     def _hookexec(
@@ -749,13 +764,63 @@ class CondaPluginManager(pluggy.PluginManager):
         except BaseException:
             log.debug("invoke_exception_observers failed", exc_info=True)
 
-    def disable_external_plugins(self) -> None:
+    def disable_external_plugins(self, *, except_plugins: Iterable[str] = ()) -> None:
+        """Disable external plugins except those explicitly selected."""
+        self.disable_plugins(
+            (
+                name
+                for name, _ in self.list_name_plugin()
+                if not name.startswith(BUILTIN_PLUGIN_PREFIX)
+            ),
+            except_plugins=except_plugins,
+        )
+
+    def disable_plugins(
+        self, names: Iterable[str], *, except_plugins: Iterable[str] = ()
+    ) -> None:
+        """Disable specific plugins by name.
+
+        Accepts canonical names (e.g. ``conda_self.plugin``),
+        distribution names (e.g. ``conda-self``), or entry point names.
+        Raises :class:`PluginError` for built-in plugins and logs a warning
+        for unrecognized names. Explicit exceptions take precedence and must
+        match registered plugins.
         """
-        Disables all currently registered plugins except built-in conda plugins
-        """
-        for name, plugin in self.list_name_plugin():
-            if not name.startswith("conda.plugins.") and not self.is_blocked(name):
-                self.set_blocked(name)
+        enabled = set()
+        for target in except_plugins:
+            canonical_names = self._resolve_plugin_names(target)
+            if not canonical_names or any(
+                not self.has_plugin(canonical) for canonical in canonical_names
+            ):
+                raise PluginError(
+                    f"No registered plugin matching '{target}' found to enable. "
+                    "Make sure it is installed and loads successfully."
+                )
+            enabled.update(canonical_names)
+
+        for target in names:
+            canonical_names = self._resolve_plugin_names(target)
+            for canonical in canonical_names:
+                if canonical.startswith(BUILTIN_PLUGIN_PREFIX):
+                    raise PluginError(
+                        f"Built-in plugin '{canonical}' cannot be disabled."
+                    )
+                if canonical in enabled or self.is_blocked(canonical):
+                    continue
+                if self.has_plugin(canonical):
+                    self.set_blocked(canonical)
+                else:
+                    log.warning(
+                        "No registered plugin matching '%s' found to disable.",
+                        target,
+                    )
+
+    def _resolve_plugin_names(self, target: str) -> set[str]:
+        if target in self.plugin_aliases:
+            return self.plugin_aliases[target]
+        if self.has_plugin(target) or self.is_blocked(target):
+            return {target}
+        return self._distribution_aliases.get(canonicalize_name(target), {target})
 
     def get_subcommands(self) -> dict[str, CondaSubcommand]:
         return {

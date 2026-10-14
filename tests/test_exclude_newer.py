@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from time import time
 from typing import TYPE_CHECKING
 
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 PLATFORM = "linux-64"
 NOW = 1_700_000_000.0
 DAY = 86400
-CUTOFF = datetime.fromtimestamp(NOW - DAY, timezone.utc).isoformat()
+CUTOFF = datetime.fromtimestamp(NOW - DAY, UTC).isoformat()
 
 PKG_BASE = {
     "build": "0",
@@ -143,7 +143,7 @@ def test_exclude_newer_policy_accepts_zero_as_now(value: str | int) -> None:
 
 
 def test_exclude_newer_policy_accepts_absolute_cutoff_equal_to_now() -> None:
-    value = datetime.fromtimestamp(NOW, timezone.utc).isoformat()
+    value = datetime.fromtimestamp(NOW, UTC).isoformat()
     policy = ExcludeNewerPolicy.from_values(value, {}, now=NOW)
 
     assert policy.active
@@ -152,20 +152,20 @@ def test_exclude_newer_policy_accepts_absolute_cutoff_equal_to_now() -> None:
 
 def test_exclude_newer_policy_parses_date_as_next_utc_day() -> None:
     policy = ExcludeNewerPolicy.from_values("2026-03-30", {}, now=NOW)
-    expected = datetime(2026, 3, 31, tzinfo=timezone.utc).timestamp()
+    expected = datetime(2026, 3, 31, tzinfo=UTC).timestamp()
     assert policy.global_cutoff == expected
 
 
 def test_exclude_newer_policy_parses_rfc3339_offset() -> None:
     policy = ExcludeNewerPolicy.from_values("2020-06-15T12:00:00+02:00", {}, now=NOW)
-    expected = datetime(2020, 6, 15, 10, 0, tzinfo=timezone.utc).timestamp()
+    expected = datetime(2020, 6, 15, 10, 0, tzinfo=UTC).timestamp()
     assert policy.global_cutoff == expected
 
 
 def test_exclude_newer_policy_allows_future_absolute_timestamp() -> None:
     policy = ExcludeNewerPolicy.from_values("2099-01-01", {}, now=NOW)
     assert policy.active
-    assert policy.global_cutoff == datetime(2099, 1, 2, tzinfo=timezone.utc).timestamp()
+    assert policy.global_cutoff == datetime(2099, 1, 2, tzinfo=UTC).timestamp()
 
 
 @pytest.mark.parametrize("value", ["abc", "7x", "P", "-1"])
@@ -211,7 +211,7 @@ def test_exclude_newer_policy_does_not_use_date_as_indexed_timestamp() -> None:
     record = _record(
         "legacy-date",
         timestamp=NOW - 2 * DAY,
-        date=datetime.fromtimestamp(NOW - 60, timezone.utc).isoformat(),
+        date=datetime.fromtimestamp(NOW - 60, UTC).isoformat(),
     )
 
     assert record.indexed_timestamp == 0

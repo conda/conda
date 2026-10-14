@@ -37,6 +37,7 @@ from conda._private.shards.shards import (
     batch_retrieve_from_cache,
     fetch_channels,
     fetch_shards_index,
+    shard_extra_depends_packages,
     shard_mentioned_packages,
 )
 from conda.base.context import context, reset_context
@@ -719,6 +720,152 @@ def test_shard_mentioned_packages_classic_unaffected_by_v3_flag():
     with_v3 = list(shard_mentioned_packages(shard, repodata_version=3))
     assert "classic_dep" in with_v3
     assert "v3only_dep" in with_v3
+
+
+def test_shard_extra_depends_packages_no_extra_depends_key():
+    # Records without an "extra_depends" key yield nothing, even if requested.
+    shard = {
+        "packages": {
+            "foo-1.0-0.tar.bz2": {"name": "foo", "depends": ["bar"]},
+        },
+        "packages.conda": {},
+    }
+    assert list(shard_extra_depends_packages(shard, ["cli"])) == []
+
+
+def test_shard_extra_depends_packages_no_extras_requested():
+    # Nothing requested (empty extras) yields nothing, even if extra_depends present.
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click"], "http2": ["h2"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    assert list(shard_extra_depends_packages(shard, [])) == []
+
+
+def test_shard_extra_depends_packages_single_extra():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click", "rich"], "http2": ["h2"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    names = set(shard_extra_depends_packages(shard, ["cli"]))
+    assert names == {"click", "rich"}
+
+
+def test_shard_extra_depends_packages_unrequested_extra_not_included():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click"], "http2": ["h2"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    names = set(shard_extra_depends_packages(shard, ["cli"]))
+    assert "h2" not in names
+
+
+def test_shard_extra_depends_packages_unknown_extra_name_no_error():
+    # Requesting an extra name that doesn't exist on the record is a no-op,
+    # not a KeyError.
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    assert list(shard_extra_depends_packages(shard, ["does-not-exist"])) == []
+
+
+def test_shard_extra_depends_packages_multiple_extras_union_deduplicated():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {
+                    "cli": ["click", "rich"],
+                    "http2": ["h2"],
+                    "socks": ["pysocks"],
+                },
+            },
+        },
+        "packages.conda": {},
+    }
+    names = list(shard_extra_depends_packages(shard, ["cli", "http2"]))
+    assert set(names) == {"click", "rich", "h2"}
+    # each name yielded once even if it appeared in multiple builds/records
+    assert len(names) == len(set(names))
+
+
+def test_shard_extra_depends_packages_invalid_spec_skipped():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "extra_depends": {"cli": ["click", "!!!invalid!!!"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    names = list(shard_extra_depends_packages(shard, ["cli"]))
+    assert "click" in names
+    assert None not in names
+
+
+def test_shard_extra_depends_packages_v3_gated_by_repodata_version():
+    shard = _v3_shard(
+        {
+            "whl": {
+                "httpx-0.28.0-py3_none_any_0": {
+                    "name": "httpx",
+                    "extra_depends": {"cli": ["click"]},
+                }
+            }
+        }
+    )
+    # default repodata_version=1: v3 section is not examined
+    assert list(shard_extra_depends_packages(shard, ["cli"])) == []
+    # repodata_version=3: v3 section is examined
+    assert list(shard_extra_depends_packages(shard, ["cli"], repodata_version=3)) == [
+        "click"
+    ]
+
+
+def test_shard_extra_depends_packages_across_classic_and_conda_builds():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "extra_depends": {"cli": ["click"]},
+            },
+        },
+        "packages.conda": {
+            "httpx-0.28.0-0.conda": {
+                "name": "httpx",
+                "extra_depends": {"cli": ["click", "rich"]},
+            },
+        },
+    }
+    names = set(shard_extra_depends_packages(shard, ["cli"]))
+    assert names == {"click", "rich"}
 
 
 @pytest.mark.integration
