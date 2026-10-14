@@ -119,7 +119,7 @@ the ``.condarc`` file by the channel name "defaults."
 
 .. _conda-glossary:
 
-Conda
+conda
 =====
 
 The package and environment manager program bundled with Anaconda
@@ -130,7 +130,7 @@ your local computer.
 
 .. _conda-environment-glossary:
 
-Conda environment
+conda environment
 =================
 
 A folder or directory that contains a specific collection of
@@ -149,7 +149,7 @@ language packages. Environments can be created from:
 
 .. _conda-package-glossary:
 
-Conda package
+conda package
 =============
 
 A compressed file that contains everything that a software
@@ -161,7 +161,7 @@ manage conda packages with conda.
 
 .. _conda-repository-glossary:
 
-Conda repository
+conda repository
 ================
 
 A cloud-based repository that contains 7,500+ open-source certified

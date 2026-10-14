@@ -49,7 +49,7 @@ The following table summarizes the solvers that work with conda:
      - ``conda-libmamba-solver``
      - Current default solver
      - Planned to be replaced as the default by ``rattler``
-   * - :ref:`classic <solvers-classic>`
+   * - :ref:`pycosat <solvers-pycosat>`
      - ``conda-pycosat-solver``
      - Available as an optional plugin
      - 
@@ -69,11 +69,11 @@ The rattler solver is provided by the ``conda-rattler-solver`` package and is
 built on `rattler <https://github.com/conda/rattler>`_, a set of Rust libraries
 for working with conda packages.
 
-The rattler solver operates entirely in compiled code, which reduces overhead
-when resolving complex dependency trees. It solves environments faster than
-libmamba, with the largest improvements on large or heavily constrained
-environments. The rattler solver is currently in beta and available as an
-opt-in plugin for testing.
+The rattler solver delegates to the Rust-based rattler library for dependency
+resolution, which reduces overhead when resolving complex dependency trees. It
+solves environments faster than libmamba, with the largest improvements on
+large or heavily constrained environments. The rattler solver is currently in
+beta and available as an opt-in plugin for testing.
 
 .. TO DO: Add conda-rattler-solver GitHub documentation link
 .. (Issue: https://github.com/conda/conda-rattler-solver/issues/161)
@@ -91,17 +91,17 @@ messages that identify conflicting constraints directly.
 
 `conda-libmamba-solver documentation <https://conda.github.io/conda-libmamba-solver>`_
 
-.. _solvers-classic:
+.. _solvers-pycosat:
 
-classic
+pycosat
 -------
 
-The classic (or pycosat) solver is provided by the ``conda-pycosat-solver`` package.
-This solver has powered conda since conda's first release and is based on the ``pycosat``
-Python bindings for the PicoSAT library.
+The pycosat solver (historically known as the classic solver) is provided by
+the ``conda-pycosat-solver`` package. This solver has powered conda since conda's
+first release and is based on the ``pycosat`` Python bindings for the PicoSAT library.
 
-Choose the classic solver when backwards compatibility with existing long-lived environments is
-important and you need solve results that match the original conda behavior exactly.
+Choose the pycosat solver when backwards compatibility with existing long-lived environments
+is important and you need solve results that match the original conda behavior exactly.
 
 `conda-pycosat-solver documentation <https://conda.github.io/conda-pycosat-solver>`_
 
@@ -135,7 +135,7 @@ configuration option:
 
    conda config --set solver rattler
 
-Replace ``rattler`` with ``libmamba`` or ``classic`` to use a different solver.
+Replace ``rattler`` with ``libmamba`` or ``pycosat`` to use a different solver.
 Conda saves the setting in your ``.condarc`` file. For more information on your
 ``.condarc`` file, see :doc:`Using the .condarc conda configuration file <../configuration/use-condarc>`.
 
@@ -181,7 +181,7 @@ solver you are using:
 
 * **rattler:** `conda-rattler-solver issues <https://github.com/conda/conda-rattler-solver/issues>`_
 * **libmamba:** `conda-libmamba-solver issues <https://github.com/conda/conda-libmamba-solver/issues>`_
-* **classic:** `conda-pycosat-solver issues <https://github.com/conda/conda-pycosat-solver/issues>`_
+* **pycosat:** `conda-pycosat-solver issues <https://github.com/conda/conda-pycosat-solver/issues>`_
 
 If you aren't sure whether a problem is caused by the solver or by conda
 itself, try the same command with a different solver using the ``--solver``
