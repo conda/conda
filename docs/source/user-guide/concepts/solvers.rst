@@ -52,7 +52,7 @@ The following table summarizes the solvers that work with conda:
    * - :ref:`pycosat <solvers-pycosat>`
      - ``conda-pycosat-solver``
      - Available as an optional plugin
-     - 
+     -
 
 .. note::
 
