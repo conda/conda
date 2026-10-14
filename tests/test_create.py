@@ -45,6 +45,7 @@ from conda.common.path import (
 )
 from conda.common.serialize import json, yaml
 from conda.core.index import ReducedIndex
+from conda.core.launchers import get_windows_launcher_stub, verify_windows_launcher
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
@@ -367,6 +368,33 @@ def test_safety_checks_disabled(
         assert "has a sha256 mismatch." not in stderr
         assert not code
         assert package_is_installed(prefix, "spiffy-test-app=0.5")
+
+
+@pytest.mark.parametrize("safety_checks", ("disabled", "warn", "enabled"))
+def test_conda_launchers_metadata_with_safety_checks(
+    safety_checks: str,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+):
+    # Regression for conda/conda-launchers#35.
+    monkeypatch.setenv("CONDA_SAFETY_CHECKS", safety_checks)
+    monkeypatch.setenv("CONDA_SUBDIR", "win-64")
+    reset_context()
+
+    with tmp_env(
+        "https://conda.anaconda.org/conda-forge/noarch/"
+        "conda-launchers-24.7.1-74da2fe_gcc_5.conda"
+    ) as prefix:
+        record = PrefixData(prefix).reload().get("conda-launchers")
+        short_path = "share/conda-launchers/cli-64.exe"
+        assert short_path in record.files
+        assert all((prefix / path).is_file() for path in record.files)
+        assert {path.path for path in record.paths_data.paths} == set(record.files)
+        assert all(path.sha256 for path in record.paths_data.paths)
+
+        path, digest = get_windows_launcher_stub(prefix, source_prefixes=(prefix,))
+        assert path == str(prefix / short_path)
+        verify_windows_launcher(path, digest)
 
 
 @pytest.mark.flaky(reruns=2, condition=on_win and not in_subprocess())
