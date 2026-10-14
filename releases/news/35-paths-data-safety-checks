@@ -1,3 +1,0 @@
-### Bug fixes
-
-* Preserve installed file metadata when safety checks are disabled so Windows launcher lookup can use the checksums supplied by the package. (conda/conda-launchers#35 via #16855)
