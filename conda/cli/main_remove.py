@@ -206,15 +206,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             )
             txn = UnlinkLinkTransaction(stp)
             try:
-                handle_txn(txn, prefix, args, False, True)
-            except PackagesNotFoundError:
-                if not args.json:
-                    print(
-                        f"No packages found in {prefix}. Continuing environment removal"
-                    )
-        if not context.dry_run:
-            if not args.keep_env:
-                if not args.json:
+                if not args.keep_env and not args.json and not context.dry_run:
+                    if not txn.nothing_to_do:
+                        txn.print_transaction_summary()
                     confirm_yn(
                         f"Everything found within the environment ({prefix}), including "
                         "any conda environment configurations and any non-conda files, will "
@@ -222,6 +216,16 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                         default="no",
                         dry_run=False,
                     )
+                    handle_txn(txn, prefix, args, False, True, confirm=False)
+                else:
+                    handle_txn(txn, prefix, args, False, True)
+            except PackagesNotFoundError:
+                if not args.json:
+                    print(
+                        f"No packages found in {prefix}. Continuing environment removal"
+                    )
+        if not context.dry_run:
+            if not args.keep_env:
                 rm_rf(prefix)
                 unregister_env(prefix)
 
