@@ -1,0 +1,18 @@
+{
+  "notices": [
+    {
+      "id": "test-recipes-notice-1",
+      "message": "Example notice from the test-recipes channel.",
+      "level": "info",
+      "created_at": "2024-01-01T00:00:00+00:00",
+      "expired_at": "2099-12-31T23:59:59+00:00"
+    },
+    {
+      "id": "test-recipes-notice-2",
+      "message": "Second test-recipes notice for integration tests.",
+      "level": "warning",
+      "created_at": "2024-01-02T00:00:00+00:00",
+      "expired_at": "2099-12-31T23:59:59+00:00"
+    }
+  ]
+}
