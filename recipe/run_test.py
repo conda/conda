@@ -10,6 +10,7 @@ import struct
 import subprocess
 import sys
 from pathlib import Path
+from shutil import which
 from tempfile import TemporaryDirectory
 
 from conda.base.context import context
@@ -22,6 +23,54 @@ def test_powershell_prompt(
 ):
     hook = hook_path.read_text()
     assert "$CondaModuleArgs = @{ChangePs1 = $True}" in hook
+
+
+def test_powershell_prompt_behavior(
+    hook_path=Path(sys.prefix) / "shell/condabin/conda-hook.ps1",
+):
+    powershell = which("pwsh") or which("powershell")
+    assert powershell, "PowerShell is required for the prompt check"
+    env = {
+        **os.environ,
+        "CONDA_TEST_HOOK": str(hook_path),
+        "CONDA_CHANGEPS1": "true",
+        "CONDA_ENV_PROMPT": "({default_env})",
+        "CONDA_SHLVL": "0",
+    }
+    script = """
+$ErrorActionPreference = 'Stop'
+function global:prompt { 'custom> ' }
+& $Env:CONDA_TEST_HOOK
+foreach ($changePs1 in @('true', 'false', 'true')) {
+    $Env:CONDA_CHANGEPS1 = $changePs1
+    conda activate base
+    if ($LASTEXITCODE -ne 0 -or $Env:CONDA_SHLVL -ne '1' -or $Env:CONDA_DEFAULT_ENV -ne 'base') {
+        throw 'Base activation failed'
+    }
+    @(& prompt 6>&1) -join ''
+}
+"""
+    result = subprocess.run(
+        [
+            powershell,
+            "-NoProfile",
+            "-NonInteractive",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            script,
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "(base)custom> ",
+        "custom> ",
+        "(base)custom> ",
+    ], result.stdout
 
 
 def test_windows_arm64_upgrade():
@@ -93,5 +142,7 @@ def test_windows_arm64_upgrade():
 
 if __name__ == "__main__":
     test_powershell_prompt()
+    if sys.platform == "win32":
+        test_powershell_prompt_behavior()
     if context.subdir == "win-arm64":
         test_windows_arm64_upgrade()

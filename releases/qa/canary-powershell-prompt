@@ -4,7 +4,7 @@ PowerShell prompts in canary packages
 
 ### Why
 
-The canary builder disables prompt changes. That setting must not suppress the environment name in a user's PowerShell prompt.
+Canary packages can omit the environment name from PowerShell prompts because of the builder's configuration.
 
 ### Platforms
 
@@ -25,8 +25,8 @@ A canary package built from this change installed in an environment with `change
 
 ### Pass criteria
 
-The packaged hook shows the active environment name by default and respects changes to the user's runtime setting.
+The environment name appears with `changeps1: true` and disappears with `changeps1: false`.
 
 ### Out of scope / notes
 
-The recipe's automated check verifies the generated hook in the built package. These steps cover its behavior in an interactive Windows PowerShell session.
+Recipe checks cover the generated hook and scripted prompt output. These steps cover an interactive Windows PowerShell session.
