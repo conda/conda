@@ -1524,7 +1524,7 @@
   first_commit: 2019-08-26 04:18:04
 - name: Jannis Leidel
   email: jannis@leidel.info
-  num_commits: 275
+  num_commits: 276
   first_commit: 2021-06-07 16:46:45
   github: jezdez
 - name: Saranya Mahalingam
@@ -2584,7 +2584,7 @@
 - name: Dan Yeaw
   email: dan@yeaw.me
   github: danyeaw
-  num_commits: 39
+  num_commits: 41
   first_commit: 2025-09-26 10:42:03
 - name: Sumanth
   email: 33193748+sumanth-manchala@users.noreply.github.com
