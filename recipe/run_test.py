@@ -1,8 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-"""Check that released Windows ARM64 conda can upgrade to the built package."""
+"""Check the built package's shell integration and Windows ARM64 upgrade."""
 
-# conda-build automatically runs this extra upgrade check for canary builds.
+# conda-build automatically runs these checks for canary builds.
 # ruff: noqa: S101
 
 import os
@@ -15,6 +15,13 @@ from tempfile import TemporaryDirectory
 from conda.base.context import context
 from conda.core.prefix_data import PrefixData
 from conda.models.channel import Channel
+
+
+def test_powershell_prompt(
+    hook_path=Path(sys.prefix) / "shell/condabin/conda-hook.ps1",
+):
+    hook = hook_path.read_text()
+    assert "$CondaModuleArgs = @{ChangePs1 = $True}" in hook
 
 
 def test_windows_arm64_upgrade():
@@ -84,5 +91,7 @@ def test_windows_arm64_upgrade():
             assert run(executable, "--version").startswith("pip 26.2.1 ")
 
 
-if context.subdir == "win-arm64":
-    test_windows_arm64_upgrade()
+if __name__ == "__main__":
+    test_powershell_prompt()
+    if context.subdir == "win-arm64":
+        test_windows_arm64_upgrade()

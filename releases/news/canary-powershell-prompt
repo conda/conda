@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Restore the PowerShell environment prompt in canary packages built with `changeps1: false`.

@@ -1,0 +1,32 @@
+### Title
+
+PowerShell prompts in canary packages
+
+### Why
+
+The canary builder disables prompt changes. That setting must not suppress the environment name in a user's PowerShell prompt.
+
+### Platforms
+
+- [x] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+
+A canary package built from this change installed in an environment with `changeps1: true` and the default `env_prompt`.
+
+### Steps
+
+1. Open a fresh PowerShell session and run `& "<prefix>\shell\condabin\conda-hook.ps1"`, replacing `<prefix>` with the installation prefix.
+2. Run `conda activate base` and confirm that `(base)` appears in the prompt.
+3. Set `$Env:CONDA_CHANGEPS1 = "false"` and run `conda activate base` again. Confirm that the environment name disappears while base remains active.
+4. Set `$Env:CONDA_CHANGEPS1 = "true"` and run `conda activate base` again. Confirm that `(base)` returns.
+
+### Pass criteria
+
+The packaged hook shows the active environment name by default and respects changes to the user's runtime setting.
+
+### Out of scope / notes
+
+The recipe's automated check verifies the generated hook in the built package. These steps cover its behavior in an interactive Windows PowerShell session.
