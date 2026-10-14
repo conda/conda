@@ -586,8 +586,12 @@ def test_noarch_python_package_with_entry_points(
     entry point script, "pygmentize".
     """
     with tmp_env("pygments") as prefix:
-        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        python_record = PrefixData(prefix).get("python")
+        py_ver = get_major_minor_version(python_record.version)
+        sp_dir = (
+            python_record.python_site_packages_path
+            or get_python_site_packages_short_path(py_ver)
+        )
         py_file = sp_dir + "/pygments/__init__.py"
         pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
@@ -624,8 +628,12 @@ def test_noarch_python_package_without_entry_points(
     has no entry point scripts.
     """
     with tmp_env("itsdangerous") as prefix:
-        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        python_record = PrefixData(prefix).get("python")
+        py_ver = get_major_minor_version(python_record.version)
+        sp_dir = (
+            python_record.python_site_packages_path
+            or get_python_site_packages_short_path(py_ver)
+        )
         py_file = sp_dir + "/itsdangerous/__init__.py"
         pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
