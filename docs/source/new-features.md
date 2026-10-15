@@ -69,7 +69,7 @@ To switch back at any time:
 conda config --remove-key solver
 ```
 
-For more information on the rattler solver, see {doc}`Solvers <concepts/solvers>`.
+For more information on the rattler solver, see {doc}`Solvers </user-guide/concepts/solvers>`.
 
 [Full documentation](https://github.com/conda-incubator/conda-rattler-solver) · [Open a GitHub issue](https://github.com/conda/conda/issues) · [Join the discussion in Zulip](https://conda.zulipchat.com/)
 ::::
