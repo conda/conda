@@ -24,11 +24,11 @@ import pytest
 
 from conda._private.shards.cache import ShardCache, connect
 from conda._private.shards.misc import (
+    _ensure_hex_hash,
     _is_http_error_most_400_codes,
     _safe_urljoin_with_slash,
     _shards_connections,
     combine_batches_until_none,
-    _ensure_hex_hash,
     exception_to_queue,
     filter_redundant_packages,
     spec_to_package_name,
