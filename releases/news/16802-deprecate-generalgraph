@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* Mark `conda.models.prefix_graph.GeneralGraph` and its `breadth_first_search_by_name` method as pending deprecation, to be removed in 27.9. (#16802)
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
