@@ -1464,7 +1464,7 @@ def test_ensure_hex_hash_in_record():
             "md5": md5,
         }
 
-        updated = shards_misc.ensure_hex_hash(record)  # type: ignore
+        updated = shards_misc._ensure_hex_hash(record)  # type: ignore
         assert isinstance(updated["sha256"], str)  # type: ignore
         assert updated["sha256"] == sha256_hash.hexdigest()  # type: ignore
         assert isinstance(updated["md5"], str)  # type: ignore
@@ -1478,7 +1478,7 @@ def test_ensure_hex_hash_in_record():
 def test_ensure_hex_hash_all_hash_fields(field, convert):
     digest = bytes.fromhex("ab" * 16)
     record = {"name": "package", field: convert(digest)}
-    assert shards_misc.ensure_hex_hash(record)[field] == digest.hex()
+    assert shards_misc._ensure_hex_hash(record)[field] == digest.hex()
     assert json.loads(json.dumps(record)) == {"name": "package", field: digest.hex()}
 
 
