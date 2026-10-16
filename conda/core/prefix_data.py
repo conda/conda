@@ -21,6 +21,7 @@ from ..base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PREFIX_CREATION_TIMESTAMP_FILE,
     PREFIX_FROZEN_FILE,
+    PREFIX_LAST_ACTIVATED_FILE,
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     PREFIX_PINNED_FILE,
@@ -131,6 +132,7 @@ class PrefixData(metaclass=PrefixDataType):
         self.prefix_path: Path = Path(prefix_path)
         self._magic_file: Path = self.prefix_path / PREFIX_MAGIC_FILE
         self._frozen_file: Path = self.prefix_path / PREFIX_FROZEN_FILE
+        self._last_activated_file: Path = self.prefix_path / PREFIX_LAST_ACTIVATED_FILE
         self.__prefix_records: dict[str, PrefixRecord] | None = None
         self.__is_writable: bool | None | _Null = NULL
         self.interoperability: bool = (
@@ -246,6 +248,18 @@ class PrefixData(metaclass=PrefixDataType):
         Check whether the configured path refers to the `base` environment.
         """
         return paths_equal(str(self.prefix_path), context.root_prefix)
+
+    @property
+    def is_active(self) -> bool:
+        """Whether this prefix is the currently active environment.
+
+        Though is_active isn't an on disk characteristic of an environment, it
+        is a nice to have when assessing the state of an environment.
+        """
+        return bool(
+            context.active_prefix
+            and paths_equal(self.prefix_path, context.active_prefix)
+        )
 
     @property
     def is_writable(self) -> bool | None | _Null:
@@ -427,6 +441,20 @@ class PrefixData(metaclass=PrefixDataType):
         """
         try:
             stat = self._magic_file.stat()
+        except FileNotFoundError:
+            return None
+        else:
+            return datetime.fromtimestamp(stat.st_mtime, tz=UTC)
+
+    @property
+    def last_activated(self) -> datetime | None:
+        """
+        Returns the time when the environment was last activated, as evidenced by the
+        `conda-meta/last_activated` filesystem modification time.  If the environment
+        or file doesn't exist, returns None.
+        """
+        try:
+            stat = self._last_activated_file.stat()
         except FileNotFoundError:
             return None
         else:
