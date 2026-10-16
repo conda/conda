@@ -15,6 +15,7 @@ condarc
 solvers
 solver-state
 logging
+rendering-output
 sharded
 ```
 
@@ -48,6 +49,11 @@ sharded
 :doc:`Logging <logging>`
     The loggers and handlers used throughout conda, how they are configured,
     and how to work with them during development and debugging.
+
+:doc:`Rendering output <rendering-output>`
+    How conda displays output: the reporter backend for command results,
+    spinners, progress bars and prompts; loggers for diagnostics and warnings;
+    and exceptions for errors.
 
 :doc:`Sharded repodata <sharded>`
     How conda implements CEP-16 sharded repodata: the fetch loop, threading
