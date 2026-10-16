@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Add a "Rendering output" deep dive documenting the reporter backend as the output system for the conda CLI, with logging and error handling guidelines. (#16700 via #16843)
+
+### Other
+
+* <news item>
