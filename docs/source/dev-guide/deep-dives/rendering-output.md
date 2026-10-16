@@ -50,7 +50,7 @@ selection happens in {mod}`conda.reporters`, which looks up {attr}`context.conso
 <conda.base.context.Context.console>` and asks the plugin manager for the matching backend:
 
 * `context.json` is `True` (`--json`): the `json` backend is always used.
-* Otherwise the `console` setting (`--console` or `.condarc`) is used. It defaults to `console`.
+* Otherwise the `console` setting (`--console` or `console:` in `.condarc`) is used. It defaults to `console`.
 
 The renderer lookup is cached. If you change the setting at runtime (normally only in tests), call
 {func}`conda.base.context.reset_context`, which also clears this cache.
@@ -281,18 +281,20 @@ For the logger hierarchy and handler configuration, see {ref}`deep_dive_logging`
 A useful rule of thumb: **if the text is the answer to what the user asked, render it; if it is
 commentary about how conda got there, log it.**
 
-| Situation | Use |
-| --- | --- |
-| `conda list`, `conda info`, `conda config --show` output | Reporter (`render`) |
-| "Solving environment" status | Reporter (`get_spinner`) |
-| "Proceed ([y]/n)?" | Reporter (`confirm_yn`) |
-| Download progress | Reporter (`get_progress_bar`) |
-| "Skipping unreadable `environments.txt`" | `log.warning` |
-| "Found python 3.12 in the transaction" | `log.debug` |
-| A package failed to link | Raise an exception |
+| Situation | Use                                                |
+| --- |----------------------------------------------------|
+| `conda list`, `conda info`, `conda config --show` output | Reporter (`render`)                                |
+| "Solving environment" status | Reporter (`get_spinner`)                           |
+| "Proceed ([y]/n)?" | Reporter (`confirm_yn`)                            |
+| Download progress | Reporter (`get_progress_bar`)                      |
+| "Skipping unreadable `environments.txt`" | `log.warning`                                      |
+| "Found python 3.12 in the transaction" | `log.debug`                                        |
+| A package failed to link | Raise an exception (e.g. `CondaError` or subclass) |
 
 Logging output goes to stderr and the reporter writes to stdout. This keeps `conda list --json |
-jq` and similar pipelines clean even when warnings are emitted.
+jq` and similar pipelines clean even when warnings are emitted. Output is rendered as soon as
+either the `render` or `logging` functions are called. Raising a `CondaError` renders the error message
+as well as immediately halting program execution.
 
 (rendering_output_errors)=
 ## Errors
