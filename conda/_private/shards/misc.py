@@ -135,6 +135,27 @@ def ensure_hex_hash(record: PackageRecordDict):
     return record
 
 
+def ensure_hex_hashes(shard: ShardDict) -> ShardDict:
+    """
+    Convert the raw-bytes hash digests of every record in ``shard`` to hex, in
+    place.
+
+    Shards are msgpack, where rattler (e.g. ``rattler-index``) encodes hash
+    digests as bytes or arrays of ints; ``repodata.json`` and downstream
+    consumers expect hex strings. Calling this once as a shard is decoded keeps
+    every reader (``iter_records_v3``, ``build_repodata``, ...) free of raw
+    bytes, and avoids re-normalizing the same records on each read.
+    """
+    for record in shard.get("packages", {}).values():
+        ensure_hex_hash(record)
+    for record in shard.get("packages.conda", {}).values():
+        ensure_hex_hash(record)
+    for group in shard.get("v3", {}).values():
+        for record in group.values():
+            ensure_hex_hash(record)
+    return shard
+
+
 @functools.cache
 def spec_to_package_name(spec: str) -> str | None:
     """

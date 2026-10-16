@@ -27,6 +27,8 @@ class PackageRecordDict(TypedDict):
     build_number: int
     sha256: NotRequired[str | bytes]
     md5: NotRequired[str | bytes]
+    legacy_bz2_md5: NotRequired[str | bytes]
+    attestations_sha256: NotRequired[str | bytes]
     depends: NotRequired[list[str]]
     constrains: NotRequired[list[str]]
     extra_depends: NotRequired[dict[str, list[str]]]

@@ -36,7 +36,7 @@ from .misc import (
     _is_http_error_most_400_codes,
     _safe_urljoin_with_slash,
     _shards_connections,
-    ensure_hex_hash,
+    ensure_hex_hashes,
     spec_to_package_name,
 )
 
@@ -164,11 +164,13 @@ class ShardFetch:
             fetch_result = future.result()
 
         # Decompress and save record
-        results[fetch_result.package] = msgpack.loads(
-            decompression.decompress_shard(
-                fetch_result.compressed_shard,
-                url=shards.url,
-                package=fetch_result.package,
+        results[fetch_result.package] = ensure_hex_hashes(
+            msgpack.loads(
+                decompression.decompress_shard(
+                    fetch_result.compressed_shard,
+                    url=shards.url,
+                    package=fetch_result.package,
+                )
             )
         )
         self.shard_cache.insert(fetch_result)
@@ -239,7 +241,6 @@ def shard_mentioned_packages(
     """
     unique_specs: set[str] = set()
     for record in _iter_shard_records(shard, repodata_version):
-        ensure_hex_hash(record)  # otherwise we could do this at serialization
         for spec in record.get("depends", ()):
             if spec not in unique_specs:
                 unique_specs.add(spec)
@@ -410,12 +411,12 @@ class ShardBase(abc.ABC):
             # Classic packages
             for package_group in ("packages", "packages.conda"):
                 for key, record in shard.get(package_group, {}).items():
-                    yield (key, package_group), ensure_hex_hash(record)
+                    yield (key, package_group), record
             # v3 packages
             for section_name, group in shard.get("v3", {}).items():
                 v3_section = f"v3.{section_name}"
                 for key, record in group.items():
-                    yield (key, v3_section), ensure_hex_hash(record)
+                    yield (key, v3_section), record
 
 
 class ShardLike(ShardBase):
