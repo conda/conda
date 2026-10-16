@@ -78,17 +78,18 @@ def test_remove_all_keep_env(
         assert not path_is_clean(prefix)
 
 
+@pytest.mark.parametrize("specs", [("small-executable",), ()])
 def test_remove_all_decline_leaves_environment(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     test_recipes_channel: Path,
     monkeypatch: MonkeyPatch,
+    specs: tuple[str, ...],
 ):
     """Pressing Enter at the removal prompt leaves the environment intact."""
-    with tmp_env("small-executable") as prefix:
+    with tmp_env(*specs) as prefix:
         monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
         reset_context()
-        # Empty input selects the prompt default, which is no.
         monkeypatch.setattr("sys.stdin", StringIO("\n"))
 
         stdout, stderr, _ = conda_cli(
@@ -100,7 +101,11 @@ def test_remove_all_decline_leaves_environment(
 
         assert "non-conda files" in stdout
         assert "Proceed" not in stdout
-        assert package_is_installed(prefix, "small-executable"), stderr
+        assert not path_is_clean(prefix)
+        if specs:
+            assert package_is_installed(prefix, "small-executable"), stderr
+        else:
+            assert "No conda packages found" in stdout
 
 
 @pytest.mark.integration
