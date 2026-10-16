@@ -16,4 +16,4 @@
 
 ### Other
 
-* Convert raw-bytes hash digests in sharded repodata to hex strings once when shards are decoded, instead of re-converting records on every read. (#16868)
+* Convert raw-bytes hash digests to hex strings in memory when sharded repodata is decoded, rather than re-converting records on each read. (#16868)

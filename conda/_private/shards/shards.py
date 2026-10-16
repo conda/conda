@@ -34,6 +34,7 @@ from ..zstd import capped_decompress
 from . import cache, decompression
 from .misc import (
     _is_http_error_most_400_codes,
+    _iter_shard_records,
     _safe_urljoin_with_slash,
     _shards_connections,
     ensure_hex_hashes,
@@ -50,7 +51,7 @@ if TYPE_CHECKING:
 
     from conda.gateways.repodata import RepodataCache
 
-    from .typing import PackageRecordDict, RepodataDict, ShardDict, ShardsIndexDict
+    from .typing import RepodataDict, ShardDict, ShardsIndexDict
 
 
 class ShardFetch:
@@ -205,23 +206,6 @@ class ShardFetch:
                     shard_fetch = shard_fetches_by_pkg[(shardbase, package)]
                     shard_fetch._shard = shard
                     shard_fetch._fetched = True
-
-
-def _iter_shard_records(
-    shard: ShardDict, repodata_version: int = 1
-) -> Iterable[PackageRecordDict]:
-    """
-    Yield every package record in a shard: classic ``packages``,
-    ``packages.conda``, and (when ``repodata_version >= 3``) all ``v3`` groups.
-    """
-    for record in shard["packages"].values():
-        yield record
-    for record in shard["packages.conda"].values():
-        yield record
-    if repodata_version >= 3 and (v3_data := shard.get("v3")):
-        for group in v3_data.values():
-            for record in group.values():
-                yield record
 
 
 def shard_mentioned_packages(

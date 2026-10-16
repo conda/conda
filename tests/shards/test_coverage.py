@@ -28,7 +28,7 @@ from conda._private.shards.misc import (
     _safe_urljoin_with_slash,
     _shards_connections,
     combine_batches_until_none,
-    ensure_hex_hash,
+    _ensure_hex_hash,
     exception_to_queue,
     filter_redundant_packages,
     spec_to_package_name,
@@ -121,7 +121,7 @@ class TestMiscModule:
             "md5": b"\x03\x04\x05",
             "name": "test",
         }
-        result = ensure_hex_hash(record)
+        result = _ensure_hex_hash(record)
         assert isinstance(result["sha256"], str)
         assert isinstance(result["md5"], str)
         assert result["sha256"] == "000102"
@@ -130,14 +130,14 @@ class TestMiscModule:
     def test_ensure_hex_hash_preserves_strings(self):
         """Test ensure_hex_hash leaves string hashes unchanged"""
         record = {"sha256": "abc123", "md5": "def456"}
-        result = ensure_hex_hash(record)
+        result = _ensure_hex_hash(record)
         assert result["sha256"] == "abc123"
         assert result["md5"] == "def456"
 
     def test_ensure_hex_hash_handles_missing_hashes(self):
         """Test ensure_hex_hash with missing hash fields"""
         record = {"name": "test"}
-        result = ensure_hex_hash(record)
+        result = _ensure_hex_hash(record)
         assert result == record
 
     def test_filter_redundant_packages_use_only_tar_bz2_true(self):
@@ -1000,14 +1000,14 @@ class TestMiscModuleCompleteness:
     def test_ensure_hex_hash_single_field(self):
         """Test ensure_hex_hash with only one hash field"""
         record = {"sha256": b"\x01\x02\x03"}
-        result = ensure_hex_hash(record)
+        result = _ensure_hex_hash(record)
         assert result["sha256"] == "010203"
         assert "md5" not in result
 
     def test_ensure_hex_hash_both_fields(self):
         """Test ensure_hex_hash with both sha256 and md5"""
         record = {"sha256": b"\x01", "md5": b"\x02", "name": "pkg"}
-        result = ensure_hex_hash(record)
+        result = _ensure_hex_hash(record)
         assert result["sha256"] == "01"
         assert result["md5"] == "02"
 
