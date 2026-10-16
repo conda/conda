@@ -1462,6 +1462,43 @@ def test_ensure_hex_hash_in_record():
         assert updated["md5"] == md5_hash.hexdigest()  # type: ignore
 
 
+@pytest.mark.parametrize("convert", (bytes, list, bytes.hex))
+@pytest.mark.parametrize(
+    "field", ("sha256", "md5", "legacy_bz2_md5", "attestations_sha256")
+)
+def test_ensure_hex_hash_all_hash_fields(field, convert):
+    digest = bytes.fromhex("ab" * 16)
+    record = {"name": "package", field: convert(digest)}
+    assert shards.ensure_hex_hash(record)[field] == digest.hex()
+    assert json.loads(json.dumps(record)) == {"name": "package", field: digest.hex()}
+
+
+def test_iter_records_v3_ensures_hex_hash():
+    """Raw-bytes hashes in shards must come out JSON-serializable."""
+    shardlike = ShardLike(
+        {"packages": {}, "packages.conda": {}, "info": {"base_url": ""}}
+    )
+    raw = bytes.fromhex("ab" * 32)
+    shardlike.visit_shard(
+        "mypkg",
+        {
+            "packages": {"mypkg-1.0-0.tar.bz2": {"name": "mypkg", "md5": raw}},
+            "packages.conda": {
+                "mypkg-1.0-0.conda": {"name": "mypkg", "sha256": raw},
+            },
+            "v3": {"whl": {"mypkg-1.0-py3_none_any_0": {"attestations_sha256": raw}}},
+        },
+    )
+    records = dict(shardlike.iter_records_v3())
+    assert records[("mypkg-1.0-0.tar.bz2", "packages")]["md5"] == raw.hex()
+    assert records[("mypkg-1.0-0.conda", "packages.conda")]["sha256"] == raw.hex()
+    assert (
+        records[("mypkg-1.0-py3_none_any_0", "v3.whl")]["attestations_sha256"]
+        == raw.hex()
+    )
+    json.dumps(records[("mypkg-1.0-0.conda", "packages.conda")])
+
+
 @pytest.mark.integration
 def test_batch_retrieve_from_cache(
     prepare_shards_test: None, empty_shards_cache: shards_cache.ShardCache

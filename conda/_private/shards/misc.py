@@ -118,11 +118,17 @@ def _is_http_error_most_400_codes(status_code: str | int) -> bool:
     )
 
 
+# Record fields holding a hash digest. Shards written by rattler (e.g. by
+# ``rattler-index``) can encode these as raw bytes or arrays of ints instead of
+# the hex strings used by repodata.json.
+HASH_FIELDS = ("sha256", "md5", "legacy_bz2_md5", "attestations_sha256")
+
+
 def ensure_hex_hash(record: PackageRecordDict):
     """
     Convert bytes checksums to hex; leave unchanged if already str.
     """
-    for hash_type in "sha256", "md5":
+    for hash_type in HASH_FIELDS:
         if hash_value := record.get(hash_type):
             if not isinstance(hash_value, str):
                 record[hash_type] = bytes(hash_value).hex()

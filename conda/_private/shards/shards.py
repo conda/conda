@@ -410,12 +410,12 @@ class ShardBase(abc.ABC):
             # Classic packages
             for package_group in ("packages", "packages.conda"):
                 for key, record in shard.get(package_group, {}).items():
-                    yield (key, package_group), record
+                    yield (key, package_group), ensure_hex_hash(record)
             # v3 packages
             for section_name, group in shard.get("v3", {}).items():
                 v3_section = f"v3.{section_name}"
                 for key, record in group.items():
-                    yield (key, v3_section), record
+                    yield (key, v3_section), ensure_hex_hash(record)
 
 
 class ShardLike(ShardBase):
