@@ -108,6 +108,29 @@ def test_remove_all_decline_leaves_environment(
             assert "No conda packages found" in stdout
 
 
+def test_remove_all_yes_asks_once(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+):
+    """Answering yes shows one deletion prompt and removes the environment."""
+    with tmp_env("small-executable") as prefix:
+        monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+        reset_context()
+        monkeypatch.setattr("sys.stdin", StringIO("y\n"))
+
+        stdout, stderr, _ = conda_cli(
+            "remove",
+            f"--prefix={prefix}",
+            "--all",
+        )
+
+        assert stdout.count("(y/[n])?") == 1
+        assert "Proceed" not in stdout
+        assert path_is_clean(prefix), stderr
+
+
 @pytest.mark.integration
 @pytest.mark.usefixtures("parametrized_solver_fixture")
 def test_remove_globbed_package_names(
