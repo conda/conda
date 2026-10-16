@@ -583,6 +583,8 @@ def handle_txn(
     :param remove_op: defaults to false, boolean noting that the user is requesting to remove
                       a package from the environment
     :param defer_json_success: when true, will return the set of actions executed in dict form
+    :param confirm: defaults to true; when false, skip the transaction summary and the
+                    confirmation prompt
     """
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
