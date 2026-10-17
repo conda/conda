@@ -100,6 +100,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     else:
         dest_prefix_data = PrefixData.from_name(args.destination)
     destination = str(dest_prefix_data.prefix_path)
+    if (
+        source_prefix_data.prefix_path.resolve()
+        in dest_prefix_data.prefix_path.resolve().parents
+    ):
+        raise CondaEnvException(
+            "Cannot rename an environment to a destination inside the source environment"
+        )
     if not args.yes and dest_prefix_data.exists():
         raise CondaEnvException(
             f"The environment '{dest_prefix_data.prefix_path}' already exists. Override with --yes."
