@@ -104,6 +104,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    exception_observers
    health_checks
    package_extractors
+   package_verifiers
    post_commands
    pre_commands
    pre_transaction_actions
