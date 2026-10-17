@@ -64,6 +64,7 @@ import msgpack
 
 import conda.gateways.repodata
 from conda.base.context import context
+from conda.gateways.connection.download import download_http_errors
 
 from . import cache
 from .cache import AnnotatedRawShard
@@ -792,7 +793,7 @@ def network_fetch_thread(
             context.remote_connect_timeout_secs,
             context.remote_read_timeout_secs,
         )
-        with s.get(url, timeout=timeout) as response:
+        with download_http_errors(url), s.get(url, timeout=timeout) as response:
             response.raise_for_status()
             data = response.content
         return url, node_id, data
