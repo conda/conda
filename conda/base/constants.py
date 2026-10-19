@@ -383,6 +383,7 @@ PACKAGE_CACHE_MAGIC_FILE: Final[PathType] = "urls.txt"
 PREFIX_MAGIC_FILE: Final[PathType] = join("conda-meta", "history")
 PREFIX_FROZEN_FILE: Final[PathType] = join("conda-meta", "frozen")
 PREFIX_CREATION_TIMESTAMP_FILE: Final[PathType] = join("conda-meta", "created_at")
+PREFIX_LAST_ACTIVATED_FILE: Final[PathType] = join("conda-meta", "last_activated")
 
 PREFIX_STATE_FILE: Final[PathType] = join("conda-meta", "state")
 PREFIX_PINNED_FILE: Final[PathType] = join("conda-meta", "pinned")

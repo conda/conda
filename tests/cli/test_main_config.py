@@ -88,6 +88,26 @@ def test_config_get_missing(
     assert Path(parsed["rc_path"]) == path
     assert parsed["success"]
     assert "warnings" in parsed
+    assert not path.exists()
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        pytest.param(("--get",), id="get"),
+        pytest.param(("--get", "channels"), id="key"),
+    ],
+)
+def test_config_get_does_not_modify_file(
+    conda_cli: CondaCLIFixture,
+    args: Iterable[str],
+    path_factory: PathFactoryFixture,
+):
+    path = path_factory()
+    content = "# my settings\nchannels:\n    - conda-forge   # comment\n"
+    path.write_text(content)
+    conda_cli("config", *args, "--file", path)
+    assert path.read_text() == content
 
 
 def test_config_show_sources_json(conda_cli: CondaCLIFixture):
@@ -773,3 +793,34 @@ def test_duplicate_add_preserves_sequence_anchor(tmp_path: Path) -> None:
         "    - alpha  #!top\n"
         "  second: *shared\n"
     )
+
+
+@pytest.mark.parametrize(
+    "parameter,entry",
+    [("custom_channels", "science.v1"), ("proxy_servers", "https://example.org")],
+)
+def test_config_literal_dotted_map_key(parameter: str, entry: str) -> None:
+    config = ConfigurationFile(content={})
+    key = f"{parameter}.{entry}"
+    config.set_key(key, "https://example.net")
+
+    assert config.content == {parameter: {entry: "https://example.net"}}
+    assert config.get_key(key) == (key, "https://example.net")
+
+    config.remove_key(key)
+    assert config.content == {parameter: {}}
+
+
+def test_config_literal_map_key_precedes_nested_key() -> None:
+    config = ConfigurationFile(
+        content={"conda_build": {"foo.bar": 1, "foo": {"bar": 2}}}
+    )
+    key = "conda_build.foo.bar"
+
+    assert config.get_key(key) == (key, 1)
+    config.remove_key(key)
+    assert config.content == {"conda_build": {"foo": {"bar": 2}}}
+
+    assert config.get_key(key) == (key, 2)
+    config.remove_key(key)
+    assert config.content == {"conda_build": {"foo": {}}}

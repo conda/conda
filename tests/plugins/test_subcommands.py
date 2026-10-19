@@ -12,6 +12,7 @@ from conda import plugins
 from conda.auxlib.ish import dals
 from conda.base.context import context
 from conda.cli.conda_argparse import (
+    _PLUGIN_FREE_BUILTIN_COMMANDS,
     BUILTIN_COMMANDS,
     find_builtin_commands,
     generate_parser,
@@ -179,18 +180,23 @@ def test_cannot_override_builtin_commands(command, plugin_manager, mocker, conda
         conda_cli(command, "--help")
 
     # assertions; make sure we got the right error messages and didn't invoke the custom command
-    assert mock_log.error.mock_calls == [
-        mocker.call(
-            dals(
-                f"""
-                The plugin '{command}' is trying to override the built-in command
-                with the same name, which is not allowed.
+    expected_log_calls = (
+        []
+        if command in _PLUGIN_FREE_BUILTIN_COMMANDS
+        else [
+            mocker.call(
+                dals(
+                    f"""
+                    The plugin '{command}' is trying to override the built-in command
+                    with the same name, which is not allowed.
 
-                Please uninstall the plugin to stop seeing this error message.
-                """
+                    Please uninstall the plugin to stop seeing this error message.
+                    """
+                )
             )
-        )
-    ]
+        ]
+    )
+    assert mock_log.error.mock_calls == expected_log_calls
 
     assert mocked.mock_calls == []
 
@@ -291,6 +297,67 @@ def test_parser_no_plugins(plugin_manager):
 
     with pytest.raises(SystemExit, match="2"):
         args = parser.parse_args(["custom"])
+
+
+def test_parser_no_plugin_specific(plugin_manager):
+    """Disabling a specific plugin leaves others intact."""
+    plugin_a = SubcommandPlugin(name="alpha", summary="Alpha.")
+    plugin_b = SubcommandPlugin(name="beta", summary="Beta.")
+    assert plugin_manager.load_plugins(plugin_a) == 1
+    assert plugin_manager.load_plugins(plugin_b) == 1
+
+    parser = generate_parser()
+    args = parser.parse_args(["alpha"])
+    assert args.cmd == "alpha"
+    args = parser.parse_args(["beta"])
+    assert args.cmd == "beta"
+
+    name_a = plugin_manager.get_name(plugin_a)
+    plugin_manager.disable_plugins([name_a])
+
+    parser = generate_parser()
+
+    with pytest.raises(SystemExit, match="2"):
+        parser.parse_args(["alpha"])
+
+    args = parser.parse_args(["beta"])
+    assert args.cmd == "beta"
+
+
+@pytest.mark.parametrize("command", ("custom", "alternate"))
+def test_bare_no_plugins_preserves_enabled_command(
+    plugin_manager, conda_cli: CondaCLIFixture, command: str
+):
+    calls = []
+
+    class EnabledCommand:
+        @plugins.hookimpl
+        def conda_subcommands(self):
+            yield CondaSubcommand(
+                name="custom",
+                aliases=("alternate",),
+                summary="Custom command.",
+                action=calls.append,
+            )
+
+    class BrokenCommand:
+        @plugins.hookimpl
+        def conda_subcommands(self):
+            raise AssertionError("Disabled hooks must not run during argument parsing")
+
+    plugin_manager.register(EnabledCommand(), "enabled.plugin")
+    plugin_manager.register(BrokenCommand(), "broken.plugin")
+
+    _, stderr, rc = conda_cli(
+        "--enable-plugins=enabled.plugin",
+        "--no-plugins",
+        command,
+        "some-arg",
+        "--child-option",
+    )
+
+    assert rc is None, stderr
+    assert calls == [("some-arg", "--child-option")]
 
 
 def test_custom_plugin_not_extend_parser(

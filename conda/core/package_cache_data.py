@@ -439,6 +439,14 @@ class PackageCacheData(metaclass=PackageCacheType):
         # try reading info/repodata_record.json
         try:
             repodata_record = read_repodata_json(extracted_package_dir)
+            # Both formats share an extracted directory. Keep the archive path
+            # consistent with the saved filename and checksums.
+            extracted_package_dir_basename = basename(extracted_package_dir)
+            if repodata_record.get("fn") in (
+                extracted_package_dir_basename + CONDA_PACKAGE_EXTENSION_V1,
+                extracted_package_dir_basename + CONDA_PACKAGE_EXTENSION_V2,
+            ):
+                package_tarball_full_path = join(self.pkgs_dir, repodata_record["fn"])
             package_cache_record = PackageCacheRecord.from_objects(
                 repodata_record,
                 package_tarball_full_path=package_tarball_full_path,

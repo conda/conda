@@ -210,14 +210,14 @@ If you prefer to set up your development environment manually instead of using t
    ```{tab-item} Bash (macOS, Linux)
    ```bash
    # Install dependencies
-   $ ./devenv/bin/conda install -y -p ./devenv --override-channels -c conda-forge --file ./tests/requirements.txt --file ./tests/requirements-ci.txt python=3.13
+   $ ./devenv/bin/conda install -y -p ./devenv --override-channels -c conda-forge --file ./tests/requirements.txt --file ./tests/requirements-ci.txt python=3.14
    ```
 
 
    ```{tab-item} PowerShell (Windows)
    ```powershell
    # Install dependencies
-   > .\devenv\Scripts\conda.exe install -y -p .\devenv --override-channels -c conda-forge --file .\tests\requirements.txt --file .\tests\requirements-ci.txt python=3.13
+   > .\devenv\Scripts\conda.exe install -y -p .\devenv --override-channels -c conda-forge --file .\tests\requirements.txt --file .\tests\requirements-ci.txt python=3.14
    ```
 
    ````

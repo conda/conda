@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from argparse import SUPPRESS
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from .helpers import _ValidatePackages
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser:
     from ..auxlib.ish import dals
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import (
         add_parser_channels,
         add_parser_json,
@@ -30,7 +31,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_platform,
     )
 
-    summary = "Search for packages and display associated information using the MatchSpec format."
+    summary = BUILTIN_SUBCOMMANDS["search"]["help"]
     description = dals(
         f"""
         {summary}
@@ -261,9 +262,10 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         flex_spec = MatchSpec(spec, name=f"*{spec.name}*")
         if not context.json:
             print(f"No match found for: {spec}. Search: {flex_spec}")
-        matches = exclude_newer_policy.filter_records(
-            query_all(flex_spec, channel_urls, subdirs)
-        )
+        with get_spinner("Searching for similar names"):
+            matches = exclude_newer_policy.filter_records(
+                query_all(flex_spec, channel_urls, subdirs)
+            )
     if not matches:
         from ..exceptions import PackagesNotFoundInChannelsError
         from ..models.channel import all_channel_urls
@@ -336,7 +338,7 @@ def _pretty_record_format(record: PackageRecord) -> str:
     push_line("url", "url")
     push_line("md5", "md5")
     if record.timestamp and isinstance(record.timestamp, (int, float)):
-        date_str = datetime.fromtimestamp(record.timestamp, timezone.utc).strftime(
+        date_str = datetime.fromtimestamp(record.timestamp, UTC).strftime(
             "%Y-%m-%d %H:%M:%S %Z"
         )
         builder.append("%-12s: %s" % ("timestamp", date_str))

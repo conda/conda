@@ -39,12 +39,13 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..base.constants import CONDA_HOMEPAGE_URL
     from ..base.context import context, sys_rc_path, user_rc_path
     from ..common.constants import NULL
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import add_parser_json, add_parser_prefix_to_group
 
     escaped_user_rc_path = user_rc_path.replace("%", "%%")
     escaped_sys_rc_path = sys_rc_path.replace("%", "%%")
 
-    summary = "Modify configuration values in .condarc."
+    summary = BUILTIN_SUBCOMMANDS["config"]["help"]
     description = dals(
         f"""
         {summary}
@@ -714,7 +715,7 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
         rc_config.remove_key(key)
 
     # config.rc_keys
-    if not args.get:
+    if args.get is None:
         rc_config.write()
 
     if context.json:

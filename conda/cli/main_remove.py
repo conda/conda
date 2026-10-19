@@ -18,6 +18,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
     from ..common.constants import NULL
     from ..deprecations import deprecated
     from .actions import NullCountAction
+    from .conda_argparse import BUILTIN_SUBCOMMANDS
     from .helpers import (
         add_output_and_prompt_options,
         add_parser_channels,
@@ -29,7 +30,7 @@ def configure_parser(sub_parsers: _SubParsersAction, **kwargs) -> ArgumentParser
         add_parser_solver,
     )
 
-    summary = "Remove a list of packages from a specified conda environment. "
+    summary = BUILTIN_SUBCOMMANDS["remove"]["help"]
     description = dals(
         f"""
         {summary}
@@ -204,16 +205,9 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                 neutered_specs={},
             )
             txn = UnlinkLinkTransaction(stp)
-            try:
-                handle_txn(txn, prefix, args, False, True)
-            except PackagesNotFoundError:
-                if not args.json:
-                    print(
-                        f"No packages found in {prefix}. Continuing environment removal"
-                    )
-        if not context.dry_run:
-            if not args.keep_env:
-                if not args.json:
+            if not args.keep_env and not args.json and not context.dry_run:
+                if not txn.nothing_to_do:
+                    txn.print_transaction_summary()
                     confirm_yn(
                         f"Everything found within the environment ({prefix}), including "
                         "any conda environment configurations and any non-conda files, will "
@@ -221,6 +215,24 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
                         default="no",
                         dry_run=False,
                     )
+                    handle_txn(txn, prefix, args, False, True, confirm=False)
+                else:
+                    confirm_yn(
+                        f"No conda packages found in {prefix}.\n"
+                        "Anything else found within the environment "
+                        f"({prefix}), including any conda environment "
+                        "configurations and any non-conda files, will "
+                        "be deleted. Do you wish to continue?\n",
+                        default="no",
+                        dry_run=False,
+                    )
+            else:
+                if not txn.nothing_to_do:
+                    handle_txn(txn, prefix, args, False, True)
+                elif not args.json:
+                    print(f"No conda packages found in {prefix}.")
+        if not context.dry_run:
+            if not args.keep_env:
                 rm_rf(prefix)
                 unregister_env(prefix)
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -65,7 +65,7 @@ def is_notice_response_cache_expired(
     If for whatever reason we encounter an exception while parsing the individual
     messages, we assume an invalid cache and return true.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     def is_channel_notice_expired(expired_at: datetime | None) -> bool:
         """If there is no "expired_at" field present assume it is expired."""

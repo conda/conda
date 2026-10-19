@@ -6,6 +6,8 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import sys
+import sysconfig
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -69,7 +71,18 @@ def pytest_report_header(config: pytest.Config):
     expected_bat = source_root / "conda" / "shell" / "condabin" / "conda.bat"
     assert expected_bat.samefile(conda_bat)
 
+    if expected_subdir := os.environ.get("CONDA_TEST_SUBDIR"):
+        assert context.subdir == expected_subdir, context.subdir
+        assert context._native_subdir() == expected_subdir, sysconfig.get_platform()
+        prefix_data = PrefixData(sys.prefix)
+        assert prefix_data.get("python").subdir == expected_subdir
+        assert {record.subdir for record in prefix_data.iter_records()} <= {
+            "noarch",
+            expected_subdir,
+        }
+
     lines = [
+        f"Python platform: {sysconfig.get_platform()}",
         f"conda.__file__: {conda.__file__}",
         f"conda.sh: {conda_sh}",
         f"conda.bat: {conda_bat}",
