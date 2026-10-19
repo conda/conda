@@ -73,13 +73,14 @@ requirements:
     - conda-libmamba-solver >=26.7.0
     - conda-lockfiles >=0.2.2
     - conda-pypi >=0.13.0
-    - conda-rattler-solver >=0.2.0
+    - conda-rattler-solver
     - conda-self >=0.3.0
   run_constrained:
     - conda-build >=25.9
     # minimum version when conda-content-trust plugin is installed
     - conda-content-trust >=0.3.0
     - conda-env >=2.6
+    - conda-rattler-solver >=0.2.0
 
 test:
   imports:
