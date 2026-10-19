@@ -595,12 +595,15 @@ class ConfigurationFile:
                             security,
                             encrypted_source=(
                                 target
-                                if metadata.st_file_attributes & FILE_ATTRIBUTE_ENCRYPTED
+                                if metadata.st_file_attributes
+                                & FILE_ATTRIBUTE_ENCRYPTED
                                 else None
                             ),
                         )
                     else:
-                        fd = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
+                        fd = os.open(
+                            candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode
+                        )
                 except PermissionError:
                     if locked_source is None:
                         raise
@@ -640,6 +643,7 @@ class ConfigurationFile:
                         target,
                         text,
                         _file_version(os.fstat(stream.fileno())),
+                        security,
                     )
                     return
                 temporary = candidate
