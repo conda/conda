@@ -4,7 +4,7 @@
 
 ### Bug fixes
 
-* Preserve Windows configuration-file access controls and EFS protection before staging replacement contents. (#16708)
+* Preserve Windows configuration-file access controls and EFS protection before staging replacement contents. (#16708 via #16710)
 
 ### Deprecations
 
