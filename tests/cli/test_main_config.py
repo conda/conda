@@ -786,15 +786,20 @@ def test_config_literal_map_key_precedes_nested_key() -> None:
         ("replace", "simulated replacement failure"),
     ],
 )
+@pytest.mark.parametrize("error_type", [OSError, PermissionError])
 def test_config_write_failure_preserves_file(
-    tmp_path: Path, mocker: MockerFixture, operation: str, message: str
+    tmp_path: Path,
+    mocker: MockerFixture,
+    operation: str,
+    message: str,
+    error_type: type[OSError],
 ) -> None:
     path = tmp_path / ".condarc"
     original = "changeps1: true\n"
     path.write_text(original)
     config = ConfigurationFile(path)
     config.set_key("changeps1", False)
-    mocker.patch(f"os.{operation}", side_effect=OSError(message))
+    mocker.patch(f"os.{operation}", side_effect=error_type(message))
 
     with pytest.raises(conda.exceptions.CondaError, match=message):
         config.write()
@@ -998,6 +1003,146 @@ def test_config_write_preserves_symlink(tmp_path: Path) -> None:
 
     assert path.is_symlink()
     assert target.read_text() == "changeps1: false\n"
+
+
+@pytest.mark.skipif(
+    on_win or os.geteuid() == 0, reason="POSIX unprivileged permissions"
+)
+@pytest.mark.parametrize("symlink", [False, True])
+def test_config_write_writable_file_in_read_only_directory(
+    tmp_path: Path, symlink: bool
+) -> None:
+    directory = tmp_path / "config"
+    directory.mkdir()
+    target = directory / "condarc"
+    target.write_text("always_yes: false\n")
+    target.chmod(0o640)
+    path = tmp_path / "condarc" if symlink else target
+    if symlink:
+        path.symlink_to(target)
+    metadata = target.stat()
+    config = ConfigurationFile(path)
+    config.set_key("always_yes", True)
+
+    directory.chmod(0o555)
+    try:
+        config.write()
+        config.set_key("always_yes", False)
+        config.write()
+    finally:
+        directory.chmod(0o755)
+
+    assert target.read_text() == "always_yes: false\n"
+    assert os.path.samestat(metadata, target.stat())
+    assert S_IMODE(target.stat().st_mode) == 0o640
+    assert path.is_symlink() == symlink
+    assert list(directory.iterdir()) == [target]
+
+
+@pytest.mark.skipif(
+    on_win or os.geteuid() == 0, reason="POSIX unprivileged permissions"
+)
+@pytest.mark.parametrize("existing", [False, True])
+def test_config_write_read_only_directory_requires_writable_file(
+    tmp_path: Path, existing: bool
+) -> None:
+    path = tmp_path / "condarc"
+    original = "always_yes: false\n"
+    if existing:
+        path.write_text(original)
+        path.chmod(0o400)
+    config = ConfigurationFile(path)
+    config.set_key("always_yes", True)
+
+    tmp_path.chmod(0o555)
+    try:
+        with pytest.raises(conda.exceptions.CondaError, match="Cannot write"):
+            config.write()
+    finally:
+        tmp_path.chmod(0o755)
+
+    assert list(tmp_path.iterdir()) == ([path] if existing else [])
+    if existing:
+        assert path.read_text() == original
+
+
+@pytest.mark.skipif(
+    on_win or os.geteuid() == 0, reason="POSIX unprivileged permissions"
+)
+def test_config_write_read_only_directory_partial_failure(tmp_path: Path) -> None:
+    import sys
+    from subprocess import run
+    from textwrap import dedent
+
+    path = tmp_path / "condarc"
+    original = b"always_yes: false\n"
+    path.write_bytes(original)
+    metadata = path.stat()
+    script = dedent(
+        """\
+        import resource
+        import signal
+        import sys
+        from pathlib import Path
+
+        from conda import CondaError
+        from conda.cli.condarc import ConfigurationFile
+
+        config = ConfigurationFile(Path(sys.argv[1]))
+        config.set_key("proxy_servers.https", "https://example.org/" + "x" * 256)
+        signal.signal(signal.SIGXFSZ, signal.SIG_IGN)
+        _, hard = resource.getrlimit(resource.RLIMIT_FSIZE)
+        resource.setrlimit(resource.RLIMIT_FSIZE, (32, hard))
+        try:
+            config.write()
+        except CondaError as error:
+            # The failure must come from writing, not creating the temporary file.
+            if isinstance(error.__context__, PermissionError):
+                raise
+        else:
+            raise AssertionError("Expected the oversized configuration write to fail")
+        """
+    )
+    tmp_path.chmod(0o555)
+    try:
+        result = run(
+            [sys.executable, "-c", script, str(path)],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    finally:
+        tmp_path.chmod(0o755)
+
+    assert result.returncode == 0, result.stderr
+    assert path.read_bytes() == original
+    assert os.path.samestat(metadata, path.stat())
+    assert list(tmp_path.iterdir()) == [path]
+
+
+@pytest.mark.skipif(
+    on_win or os.geteuid() == 0, reason="POSIX unprivileged permissions"
+)
+def test_config_write_read_only_directory_restore_failure(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    path = tmp_path / "condarc"
+    path.write_text("always_yes: false\n")
+    config = ConfigurationFile(path)
+    config.set_key("always_yes", True)
+    mocker.patch(
+        "os.write", side_effect=[OSError("write failed"), OSError("restore failed")]
+    )
+
+    tmp_path.chmod(0o555)
+    try:
+        with pytest.raises(
+            conda.exceptions.CondaError,
+            match="write failed.*Restoring the original contents also failed: restore failed",
+        ):
+            config.write()
+    finally:
+        tmp_path.chmod(0o755)
 
 
 def test_config_write_refreshes_read_state(tmp_path: Path) -> None:

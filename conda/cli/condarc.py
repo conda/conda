@@ -469,7 +469,50 @@ class ConfigurationFile:
                 mode = 0o666
             else:
                 mode = 0 if on_mac else S_IMODE(metadata.st_mode)
-            fd = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
+            try:
+                fd = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
+            except PermissionError:
+                if metadata is None:
+                    raise
+                from locale import getpreferredencoding
+
+                # A writable file can live in a directory that forbids replacement.
+                # Preserve that behavior, with best-effort recovery on write errors.
+                with target.open("r+b", buffering=0) as stream:
+                    if (
+                        not os.path.samestat(metadata, os.fstat(stream.fileno()))
+                        or source_changed()
+                    ):
+                        raise CondaError(
+                            f"Cannot write to condarc file at {path}: "
+                            "file changed while writing"
+                        )
+                    original = stream.read()
+                    content = text.replace("\n", os.linesep).encode(
+                        getpreferredencoding(False)
+                    )
+
+                    def overwrite(content: bytes) -> None:
+                        stream.seek(0)
+                        if os.write(stream.fileno(), content) != len(content):
+                            raise OSError("Incomplete configuration write")
+                        stream.truncate(len(content))
+                        os.fsync(stream.fileno())
+
+                    try:
+                        overwrite(content)
+                    except OSError as error:
+                        try:
+                            overwrite(original)
+                        except OSError as restore_error:
+                            raise CondaError(
+                                f"Cannot write to condarc file at {path}: "
+                                f"{error}. Restoring the original contents also failed: "
+                                f"{restore_error}"
+                            ) from error
+                        raise
+                self._read_state = (path.absolute(), target, text)
+                return
             temporary = candidate
             with os.fdopen(fd, "w") as stream:
                 if metadata is not None:
