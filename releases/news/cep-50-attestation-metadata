@@ -1,6 +1,6 @@
 ### Enhancements
 
-* Preserve CEP 50 `attestations_sha256` metadata through classic solving, cache handling, and installed package records. Require the exact selected archive for advertised packages and reject malformed metadata even when attestation verification is disabled. Sigstore verification and native libmamba propagation require separate work. ([jezdez/conda-sigstore#31](https://github.com/jezdez/conda-sigstore/issues/31))
+* Preserve CEP 50 `attestations_sha256` metadata through classic solving, cache handling, and installed package records. Require the exact selected archive for advertised packages and reject malformed metadata even when attestation verification is disabled. Sigstore verification and native libmamba propagation require separate work. ([jezdez/conda-sigstore#31](https://github.com/jezdez/conda-sigstore/issues/31) via #16877)
 
 ### Bug fixes
 
