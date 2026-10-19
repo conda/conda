@@ -14,6 +14,8 @@ from os.path import basename, dirname, getsize, isdir, isfile, join, normpath
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+from conda_package_handling.utils import checksums
+
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION
@@ -1527,15 +1529,18 @@ class ExtractPackageAction(PathAction):
                 raise CondaError(
                     "The archive size does not match the selected package record."
                 )
-            for algorithm in ("sha256", "md5"):
-                expected = self.record_or_spec.get(algorithm)
-                if (
-                    expected
-                    and compute_sum(self.source_full_path, algorithm) != expected
-                ):
-                    raise CondaError(
-                        f"The archive {algorithm} does not match the selected package record."
-                    )
+            expected = {
+                algorithm: digest
+                for algorithm in ("sha256", "md5")
+                if (digest := self.record_or_spec.get(algorithm))
+            }
+            if expected:
+                actual = checksums(self.source_full_path, expected)
+                for algorithm, digest in zip(expected, actual):
+                    if digest != expected[algorithm]:
+                        raise CondaError(
+                            f"The archive {algorithm} does not match the selected package record."
+                        )
         log.log(
             TRACE, "extracting %s => %s", self.source_full_path, self.target_full_path
         )

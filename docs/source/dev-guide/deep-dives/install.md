@@ -413,8 +413,9 @@ cannot supply an advertisement either.
 
 Present values must contain exactly 64 lowercase hexadecimal characters. Conda
 rejects malformed metadata when loading records, even when attestation verification
-is disabled. Shards can also encode the digest as 32 bytes or an array of 32 integer
-bytes. Conda checks those types and lengths before converting them to hexadecimal.
+is disabled. For compatibility with Rattler shards, conda also accepts 32-byte
+MessagePack binary digests and converts them to hexadecimal. Integer arrays are
+rejected for this field.
 
 An advertised record requires the exact selected archive filename, format, and
 expected artifact digest when reusing the cache. A cached `.tar.bz2` equivalent
