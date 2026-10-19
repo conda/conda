@@ -168,7 +168,7 @@ def test_channels_prepend(conda_cli: CondaCLIFixture):
 
 
 def test_channels_prepend_duplicate(conda_cli: CondaCLIFixture):
-    channels_expected = _channels_as_yaml("defaults", "test")
+    channels_expected = _channels_as_yaml("defaults") + "\n  - test\n"
     with make_temp_condarc(CONDARC_BASE) as rc:
         stdout, stderr, _ = conda_cli(
             "config",
@@ -198,7 +198,7 @@ def test_channels_append(conda_cli: CondaCLIFixture):
 
 
 def test_channels_append_duplicate(conda_cli: CondaCLIFixture):
-    channels_expected = _channels_as_yaml("defaults", "test")
+    channels_expected = _channels_as_yaml("defaults") + "\n  - test\n"
     with make_temp_condarc(CONDARC_BASE) as rc:
         stdout, stderr, _ = conda_cli(
             "config",
@@ -214,7 +214,7 @@ def test_channels_append_duplicate(conda_cli: CondaCLIFixture):
 
 
 def test_channels_remove(conda_cli: CondaCLIFixture):
-    channels_expected = _channels_as_yaml("defaults")
+    channels_expected = _channels_as_yaml("defaults") + "\n"
     with make_temp_condarc(CONDARC_BASE) as rc:
         stdout, stderr, _ = conda_cli(
             "config",
