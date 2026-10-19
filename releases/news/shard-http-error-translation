@@ -1,3 +1,0 @@
-### Bug fixes
-
-* Translate pipelined repodata shard download failures into conda HTTP and SSL errors, preserving the failing shard URL and HTTP status.
