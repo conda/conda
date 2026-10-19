@@ -50,6 +50,7 @@ from conda.core.index import ReducedIndex
 from conda.core.launchers import get_windows_launcher_stub, verify_windows_launcher
 from conda.core.package_cache_data import PackageCacheData
 from conda.core.prefix_data import PrefixData
+from conda.core.subdir_data import SubdirData
 from conda.exceptions import (
     ArgumentError,
     ClobberError,
@@ -2908,6 +2909,78 @@ def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Pat
         "app",
         "engine",
     }
+
+
+@pytest.mark.parametrize("parametrized_solver_fixture", ["classic"], indirect=True)
+@pytest.mark.parametrize("current_digest", ["b" * 64, None], ids=["changed", "removed"])
+def test_install_preserves_current_attestations_sha256(
+    tmp_repodata_channel: TmpRepodataChannelFixture,
+    tmp_pkgs_dir: Path,
+    tmp_env: TmpEnvFixture,
+    mocker: MockerFixture,
+    current_digest: str | None,
+):
+    channel, channel_url = tmp_repodata_channel([{"name": "attested-package"}])
+    subdir = channel / "noarch"
+    repodata_path = subdir / "repodata.json"
+    repodata = json.loads(repodata_path.read_text())
+    filename, package = next(iter(repodata["packages"].items()))
+    archive_path = subdir / filename
+    # Only channel metadata can advertise a sidecar, even if index.json has the field.
+    metadata = {
+        "info/index.json": json.dumps(
+            {**package, "attestations_sha256": "c" * 64}
+        ).encode(),
+        "info/files": b"",
+        "info/paths.json": json.dumps({"paths_version": 1, "paths": []}).encode(),
+    }
+    with tarfile.open(archive_path, "w:bz2") as archive:
+        for path, content in metadata.items():
+            member = tarfile.TarInfo(path)
+            member.size = len(content)
+            archive.addfile(member, BytesIO(content))
+    package.update(
+        size=archive_path.stat().st_size,
+        sha256=compute_sum(archive_path, "sha256"),
+    )
+    mocker.patch(
+        "conda.gateways.connection.adapters.http.HTTPAdapter.send",
+        side_effect=AssertionError("Unexpected HTTP request"),
+    )
+
+    for digest in ("a" * 64, current_digest):
+        if digest is None:
+            package.pop("attestations_sha256")
+        else:
+            package["attestations_sha256"] = digest
+        repodata_path.write_text(json.dumps(repodata))
+        SubdirData.clear_cached_local_channel_data()
+
+        with tmp_env(
+            "--override-channels",
+            f"--channel={channel_url}",
+            "--repodata-fn=repodata.json",
+            "--no-default-packages",
+            "--offline",
+            "attested-package",
+        ) as prefix:
+            installed = PrefixData(prefix)
+            installed.reload()
+            record = installed.get("attested-package")
+            assert record.get("attestations_sha256") == digest
+            saved = json.loads(
+                (prefix / "conda-meta" / "attested-package-1.0-0.json").read_text()
+            )
+            assert saved.get("attestations_sha256") == digest
+            assert ("attestations_sha256" in saved) == (digest is not None)
+
+        cached = PackageCacheData(tmp_pkgs_dir)
+        cached.reload()
+        (cached_record,) = cached.iter_records()
+        assert Path(cached_record.package_tarball_full_path).is_file()
+        if digest == "a" * 64:
+            assert cached_record.attestations_sha256 == digest
+            archive_path.unlink()
 
 
 # https://github.com/conda/conda/issues/9124

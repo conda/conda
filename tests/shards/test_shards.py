@@ -44,7 +44,7 @@ from conda._private.shards.shards import (
 from conda.base.context import context, reset_context
 from conda.cli.main import main
 from conda.core.subdir_data import SubdirData
-from conda.exceptions import ChannelError, UnavailableInvalidChannel
+from conda.exceptions import ChannelError, CondaValueError, UnavailableInvalidChannel
 from conda.gateways.repodata import FORMAT_JSON, FORMAT_SHARDS
 from conda.models.channel import Channel
 
@@ -1476,10 +1476,59 @@ def test_ensure_hex_hash_in_record():
     "field", ("sha256", "md5", "legacy_bz2_md5", "attestations_sha256")
 )
 def test_ensure_hex_hash_all_hash_fields(field, convert):
-    digest = bytes.fromhex("ab" * 16)
+    digest = bytes.fromhex("ab" * (32 if field.endswith("sha256") else 16))
     record = {"name": "package", field: convert(digest)}
     assert shards_misc._ensure_hex_hash(record)[field] == digest.hex()
     assert json.loads(json.dumps(record)) == {"name": "package", field: digest.hex()}
+
+
+@pytest.mark.parametrize(
+    "digest",
+    [
+        pytest.param(None, id="null"),
+        pytest.param(32, id="integer-byte-count"),
+        pytest.param(2**64 - 1, id="large-integer"),
+        pytest.param(True, id="boolean"),
+        pytest.param({}, id="object"),
+        pytest.param("", id="empty-string"),
+        pytest.param("ab" * 31, id="short-string"),
+        pytest.param("AB" * 32, id="uppercase-string"),
+        pytest.param("ag" * 32, id="non-hex-string"),
+        pytest.param(b"\x00" * 31, id="short-bytes"),
+        pytest.param(b"\x00" * 33, id="long-bytes"),
+        pytest.param([0] * 31, id="short-array"),
+        pytest.param([0] * 33, id="long-array"),
+        pytest.param([False] * 32, id="boolean-array"),
+        pytest.param([-1] * 32, id="negative-array"),
+        pytest.param([256] * 32, id="out-of-range-array"),
+        pytest.param([0.5] * 32, id="float-array"),
+        pytest.param(["0"] * 32, id="string-array"),
+        pytest.param((0,) * 32, id="tuple"),
+        pytest.param(
+            "https://user:password@example.test/t/secret-token/channel?query-secret",
+            id="credential-bearing-string",
+        ),
+    ],
+)
+def test_ensure_hex_hash_rejects_invalid_attestation_digest(digest):
+    record = {
+        "name": "package",
+        "attestations_sha256": digest,
+        "url": "https://user:password@example.test/t/secret-token/channel?query-secret",
+    }
+
+    with pytest.raises(CondaValueError, match="attestations_sha256") as exc_info:
+        shards_misc._ensure_hex_hash(record)
+
+    assert "password" not in str(exc_info.value)
+    assert "secret-token" not in str(exc_info.value)
+    assert "query-secret" not in str(exc_info.value)
+
+
+def test_ensure_hex_hash_preserves_absent_attestation_digest():
+    record = {"name": "package"}
+
+    assert shards_misc._ensure_hex_hash(record) == {"name": "package"}
 
 
 def test_ensure_hex_hashes_normalizes_shard():

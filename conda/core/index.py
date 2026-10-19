@@ -9,6 +9,7 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ..base.context import context
+from ..common.constants import NULL
 from ..common.iterators import groupby_to_dict, unique
 from ..exceptions import (
     CondaKeyError,
@@ -302,7 +303,10 @@ class Index(UserDict):
                 # knows this package is installed.
                 link = prefix_record.get("link") or EMPTY_LINK
                 self._data[prefix_record] = PrefixRecord.from_objects(
-                    current_record, prefix_record, link=link
+                    current_record,
+                    prefix_record,
+                    link=link,
+                    attestations_sha256=current_record.get("attestations_sha256", NULL),
                 )
             else:
                 # If the package is not in the repodata, use the local data.
@@ -321,7 +325,9 @@ class Index(UserDict):
                 # The downloaded repodata takes priority
                 current_record = self._data[pcrec]
                 self._data[pcrec] = PackageCacheRecord.from_objects(
-                    current_record, pcrec
+                    current_record,
+                    pcrec,
+                    attestations_sha256=current_record.get("attestations_sha256", NULL),
                 )
             else:
                 self._data[pcrec] = pcrec
@@ -370,10 +376,15 @@ class Index(UserDict):
         self, key: PackageRecord, prec: PackageRecord | None
     ) -> PackageRecord | None:
         prefix_prec = self.prefix_data.get(key.name, None) if self.prefix_data else None
-        if prefix_prec and prefix_prec == prec:
+        if prefix_prec and prefix_prec == (prec if prec is not None else key):
             if prec:
                 link = prefix_prec.get("link") or EMPTY_LINK
-                prec = PrefixRecord.from_objects(prec, prefix_prec, link=link)
+                prec = PrefixRecord.from_objects(
+                    prec,
+                    prefix_prec,
+                    link=link,
+                    attestations_sha256=prec.get("attestations_sha256", NULL),
+                )
             else:
                 prec = prefix_prec
         return prec
@@ -385,7 +396,11 @@ class Index(UserDict):
             if pcrec == key:
                 if prec:
                     # The downloaded repodata takes priority
-                    return PackageCacheRecord.from_objects(prec, pcrec)
+                    return PackageCacheRecord.from_objects(
+                        prec,
+                        pcrec,
+                        attestations_sha256=prec.get("attestations_sha256", NULL),
+                    )
                 else:
                     return pcrec
         return prec

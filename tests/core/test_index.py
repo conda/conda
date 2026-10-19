@@ -59,6 +59,56 @@ def patch_pkg_cache(mocker, pkg_cache_entries):
     mocker.patch("conda.base.context.context.track_features", ("test_feature",))
 
 
+@pytest.mark.parametrize("source", ("prefix", "cache"))
+@pytest.mark.parametrize("lazy", (False, True))
+@pytest.mark.parametrize("advertisement", (None, "a" * 64))
+@pytest.mark.parametrize("current_available", (False, True))
+def test_current_repodata_controls_attestation_metadata(
+    tmp_path: Path,
+    source: str,
+    lazy: bool,
+    advertisement: str | None,
+    current_available: bool,
+) -> None:
+    current = PackageRecord(
+        name="example",
+        version="1",
+        build="0",
+        build_number=0,
+        channel="https://example.com/channel",
+        subdir="noarch",
+    )
+    if advertisement is not None:
+        current.attestations_sha256 = advertisement
+    if source == "prefix":
+        retained = PrefixRecord.from_objects(current, attestations_sha256="b" * 64)
+    else:
+        retained = PackageCacheRecord.from_objects(
+            current,
+            attestations_sha256="b" * 64,
+            package_tarball_full_path=str(tmp_path / "example-1-0.conda"),
+            extracted_package_dir=str(tmp_path / "example-1-0"),
+        )
+    index = Index(channels=(), prepend=False, use_system=False)
+    if source == "prefix":
+        index.prefix_data = PrefixData(tmp_path)
+        index.prefix_data._prefix_records.update({retained.name: retained})
+    else:
+        index._cache_entries = (retained,)
+    if lazy:
+        merged = getattr(index, f"_update_from_{source}")(
+            current, current if current_available else None
+        )
+    else:
+        index._data = {current: current} if current_available else {}
+        getattr(index, f"_supplement_index_dict_with_{source}")()
+        merged = index[current]
+    expected = advertisement if current_available else "b" * 64
+    assert merged.get("attestations_sha256") == expected
+    assert ("attestations_sha256" in merged.dump()) == (expected is not None)
+    assert retained.attestations_sha256 == "b" * 64
+
+
 def test_supplement_index_with_system() -> None:
     index = Index().system_packages
 

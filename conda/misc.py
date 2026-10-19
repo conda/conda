@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from .base.constants import EXPLICIT_MARKER
 from .base.context import context
 from .common.compat import on_mac, on_win, open_utf8
+from .common.constants import NULL
 from .common.io import dashlist
 from .common.path import expand
 from .common.url import is_url, join_url, path_to_url
@@ -33,12 +34,13 @@ from .gateways.disk.delete import rm_rf
 from .gateways.disk.link import islink, readlink, symlink
 from .models.match_spec import ChannelMatch, MatchSpec
 from .models.prefix_graph import PrefixGraph
+from .models.records import PackageCacheRecord
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from typing import Any
 
-    from .models.records import PackageCacheRecord, PackageRecord
+    from .models.records import PackageRecord
 
 
 log = getLogger(__name__)
@@ -219,7 +221,10 @@ def get_package_records_from_explicit(lines: list[str]) -> Iterable[PackageCache
     pfe.execute()
 
     # Get the package records from the cache
-    return _get_package_record_from_specs(fetch_specs)
+    return [
+        PackageCacheRecord.from_objects(record, attestations_sha256=NULL)
+        for record in _get_package_record_from_specs(fetch_specs)
+    ]
 
 
 def walk_prefix(prefix, ignore_predefined_files=True, windows_forward_slashes=True):

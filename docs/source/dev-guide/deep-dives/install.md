@@ -402,6 +402,34 @@ due to an error or because the user pressed Ctrl+C).
 
 <!-- TODO: Add "Anatomy of the conda caches" admonition-->
 
+### CEP 50 attestation metadata
+
+[CEP 50](https://conda.org/learn/ceps/cep-0050/) defines the optional
+`attestations_sha256` field in repodata. Conda preserves this sidecar digest through
+classic solving, package-cache handling, and installed `PrefixRecord` serialization.
+The selected repodata record supplies the value. If it omits the field, an older
+cached or installed value cannot fill it in. Package contents in `info/index.json`
+cannot supply an advertisement either.
+
+Present values must contain exactly 64 lowercase hexadecimal characters. Conda
+rejects malformed metadata when loading records, even when attestation verification
+is disabled. Shards can also encode the digest as 32 bytes or an array of 32 integer
+bytes. Conda checks those types and lengths before converting them to hexadecimal.
+
+An advertised record requires the exact selected archive filename, format, and
+expected artifact digest when reusing the cache. A cached `.tar.bz2` equivalent
+cannot replace a selected `.conda` archive. Conda downloads the selected archive if
+it is missing, even when verification is disabled. Offline installation fails if
+that archive is unavailable locally. The installed record retains the selected
+source URL with the advertisement.
+
+Explicit URL installs have no repodata advertisement. Their transaction records
+omit the field without clearing it from shared cache records.
+
+This record handling does not fetch sidecars, verify Sigstore signatures, or
+authorize publishers. Native libmamba and conda-libmamba-solver still need separate
+changes before this metadata survives a libmamba solve.
+
 ## Populating the prefix
 
 When all the necessary packages have been downloaded and extracted to the cache, it is time to

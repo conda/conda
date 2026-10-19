@@ -20,6 +20,7 @@ from pathlib import Path
 
 from boltons.timeutils import dt_to_timestamp, isoparse
 
+from ..auxlib import NULL
 from ..auxlib.entity import (
     BooleanField,
     ComposableField,
@@ -34,10 +35,28 @@ from ..auxlib.entity import (
 )
 from ..base.context import context
 from ..common.compat import isiterable
-from ..exceptions import PathNotFoundError
+from ..exceptions import CondaValueError, PathNotFoundError
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
 from .match_spec import MatchSpec
+
+
+class AttestationsSha256Field(StringField):
+    @staticmethod
+    def validate_digest(value: object) -> str:
+        """Validate a CEP 50 digest without coercing or exposing its input."""
+        if (
+            not isinstance(value, str)
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+        ):
+            raise CondaValueError(
+                "attestations_sha256 must contain exactly 64 lowercase hexadecimal characters"
+            )
+        return value
+
+    def box(self, instance, instance_type, val):
+        return self.validate_digest(val)
 
 
 class LinkTypeField(EnumField):
@@ -338,6 +357,9 @@ class PackageRecord(DictSafeMixin, Entity):
     )
     """The sha256 checksum of the package."""
 
+    attestations_sha256 = AttestationsSha256Field(required=False)
+    """The CEP 50 sidecar digest advertised for this package by its channel."""
+
     @property
     def channel_name(self) -> str | None:
         """str: The canonical name of the channel of this package.
@@ -514,8 +536,29 @@ class PackageRecord(DictSafeMixin, Entity):
     metadata: set[str]
 
     def __init__(self, *args, **kwargs):
+        if kwargs.get("attestations_sha256") is NULL:
+            kwargs.pop("attestations_sha256")
         super().__init__(*args, **kwargs)
         self.metadata = set()
+
+    @classmethod
+    def from_objects(cls, *objects, **override_fields):
+        # Entity skips null while looking up fields. Reject it before that lookup.
+        # An explicit NULL override prevents fallback to an older advertisement.
+        for source in (override_fields, *objects):
+            if isinstance(source, dict):
+                if "attestations_sha256" not in source:
+                    continue
+                value = source["attestations_sha256"]
+            else:
+                try:
+                    value = source.attestations_sha256
+                except AttributeError:
+                    continue
+            if value is not NULL:
+                AttestationsSha256Field.validate_digest(value)
+            break
+        return super().from_objects(*objects, **override_fields)
 
     @classmethod
     def feature(cls, feature_name) -> PackageRecord:
@@ -621,10 +664,18 @@ class PackageCacheRecord(PackageRecord):
         return basename(self.package_tarball_full_path)
 
     def matches_metadata(self, package_ref: PackageRecord | MatchSpec) -> bool:
-        """Match available size and MD5 against the requested package.
+        """Require exact archive metadata when the request advertises attestations.
 
-        Accept missing values and the requested package's legacy archive metadata.
+        Other requests may use missing values or legacy archive metadata.
         """
+        if package_ref.get("attestations_sha256") is not None:
+            if self.fn != package_ref.get("fn"):
+                return False
+            for key in ("sha256", "md5", "size"):
+                expected = package_ref.get(key)
+                if expected is not None and self.get(key) != expected:
+                    return False
+            return True
         for key in ("size", "md5"):
             expected = package_ref.get(key)
             if expected is None:

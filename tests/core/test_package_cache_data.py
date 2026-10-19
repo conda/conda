@@ -25,10 +25,17 @@ from conda.core.package_cache_data import (
     PackageRecord,
     ProgressiveFetchExtract,
 )
-from conda.core.path_actions import CacheUrlAction
+from conda.core.path_actions import (
+    CacheUrlAction,
+    CreatePrefixRecordAction,
+    ExtractPackageAction,
+)
+from conda.core.prefix_data import PrefixData
+from conda.exceptions import CondaValueError, OfflineError
 from conda.gateways.disk.create import copy
 from conda.gateways.disk.permissions import make_read_only
-from conda.gateways.disk.read import isfile, listdir, yield_lines
+from conda.gateways.disk.read import isfile, listdir, read_package_info, yield_lines
+from conda.misc import get_package_records_from_explicit
 from conda.models.enums import LinkType
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PrefixRecord
@@ -89,6 +96,196 @@ def fresh_zlib_records():
         PackageRecord.from_objects(zlib_tar_bz2_prec),
         PackageRecord.from_objects(zlib_conda_prec),
     )
+
+
+@pytest.mark.parametrize("read_only", (False, True))
+@pytest.mark.parametrize("advertisement", (None, "a" * 64))
+def test_cached_archive_uses_selected_attestation_metadata(
+    tmp_pkgs_dir: Path,
+    tmp_path: Path,
+    mocker,
+    read_only: bool,
+    advertisement: str | None,
+):
+    _, selected = fresh_zlib_records()
+    cached = PackageRecord.from_objects(selected, attestations_sha256="b" * 64)
+    ProgressiveFetchExtract((cached,)).execute()
+    extracted = tmp_pkgs_dir / zlib_base_fn
+    (extracted / "info" / "index.json").unlink()
+    if advertisement is not None:
+        selected.attestations_sha256 = advertisement
+    if read_only:
+        make_read_only(tmp_pkgs_dir / PACKAGE_CACHE_MAGIC_FILE)
+        writable = tmp_path / "writable"
+        writable.mkdir()
+        (writable / PACKAGE_CACHE_MAGIC_FILE).touch()
+        mocker.patch(
+            "conda.base.context.Context.pkgs_dirs",
+            new_callable=mocker.PropertyMock,
+            return_value=(str(tmp_pkgs_dir), str(writable)),
+        )
+        PackageCacheData._cache_.clear()
+    pfe = ProgressiveFetchExtract((selected,))
+    pfe.prepare()
+    assert pfe.extract_actions
+    pfe.execute()
+    saved = json.loads(
+        Path(
+            pfe.extract_actions[0].target_full_path, "info", "repodata_record.json"
+        ).read_text()
+    )
+    assert saved.get("attestations_sha256") == advertisement
+
+
+@pytest.mark.parametrize("archive_state", ("legacy", "missing", "corrupt"))
+def test_advertised_package_requires_exact_cached_archive(
+    tmp_pkgs_dir: Path,
+    archive_state: str,
+):
+    legacy, selected = fresh_zlib_records()
+    selected.attestations_sha256 = "a" * 64
+    ProgressiveFetchExtract(
+        (legacy if archive_state == "legacy" else selected,)
+    ).execute()
+    archive = tmp_pkgs_dir / selected.fn
+    if archive_state == "missing":
+        archive.unlink()
+    elif archive_state == "corrupt":
+        original = archive.read_bytes()
+        archive.write_bytes(b"x" + original[1:])
+    if archive_state != "corrupt":
+        with pytest.raises(CondaError, match="selected package archive"):
+            PackageCacheData.get_entry_to_link(selected)
+    pfe = ProgressiveFetchExtract((selected,))
+    pfe.prepare()
+    if archive_state == "corrupt":
+        with pytest.raises(CondaMultiError, match="selected package record"):
+            pfe.execute()
+        assert (tmp_pkgs_dir / zlib_base_fn / "info" / "index.json").is_file()
+    else:
+        assert len(pfe.cache_actions) == 1
+        assert pfe.cache_actions[0].target_package_basename == selected.fn
+        pfe.execute()
+        assert PackageCacheData.get_entry_to_link(selected).fn == selected.fn
+
+
+@pytest.mark.parametrize("advertisement", (None, "a" * 64))
+def test_cache_reconstruction_ignores_embedded_attestation_metadata(
+    tmp_pkgs_dir: Path,
+    advertisement: str | None,
+):
+    _, selected = fresh_zlib_records()
+    if advertisement is not None:
+        selected.attestations_sha256 = advertisement
+    ProgressiveFetchExtract((selected,)).execute()
+    info = tmp_pkgs_dir / zlib_base_fn / "info"
+    data = json.loads((info / "index.json").read_text())
+    data["attestations_sha256"] = "embedded-invalid-value"
+    (info / "index.json").write_text(json.dumps(data))
+    (info / "repodata_record.json").unlink()
+    PackageCacheData._cache_.clear()
+    (reconstructed,) = PackageCacheData(tmp_pkgs_dir).iter_records()
+    assert "attestations_sha256" not in reconstructed.dump()
+
+
+@pytest.mark.parametrize("invalid", (None, "https://user:secret@example.com/token"))
+def test_malformed_cached_advertisement_cannot_fall_back_to_archive(
+    tmp_pkgs_dir: Path,
+    invalid: object,
+):
+    _, selected = fresh_zlib_records()
+    ProgressiveFetchExtract((selected,)).execute()
+    record_path = tmp_pkgs_dir / zlib_base_fn / "info" / "repodata_record.json"
+    saved = json.loads(record_path.read_text())
+    saved["attestations_sha256"] = invalid
+    record_path.write_text(json.dumps(saved))
+    PackageCacheData._cache_.clear()
+    with pytest.raises(CondaValueError, match="attestations_sha256") as error:
+        tuple(PackageCacheData(tmp_pkgs_dir).iter_records())
+    assert "secret" not in str(error.value)
+
+
+@pytest.mark.parametrize("needs_extraction", (False, True))
+def test_explicit_url_does_not_change_shared_cache_advertisement(
+    tmp_pkgs_dir: Path,
+    needs_extraction: bool,
+):
+    _, selected = fresh_zlib_records()
+    selected.attestations_sha256 = "a" * 64
+    ProgressiveFetchExtract((selected,)).execute()
+    cached = PackageCacheData.get_entry_to_link(selected)
+    if needs_extraction:
+        (tmp_pkgs_dir / zlib_base_fn / "info" / "index.json").unlink()
+    (explicit_record,) = get_package_records_from_explicit([selected.url])
+    assert "attestations_sha256" not in explicit_record.dump()
+    assert cached.attestations_sha256 == "a" * 64
+    assert explicit_record is not cached
+    PackageCacheData._cache_.clear()
+    assert PackageCacheData.get_entry_to_link(selected).attestations_sha256 == "a" * 64
+
+
+def test_missing_advertised_archive_fails_offline_without_network(
+    tmp_pkgs_dir: Path,
+    monkeypatch: MonkeyPatch,
+):
+    _, selected = fresh_zlib_records()
+    selected.attestations_sha256 = "a" * 64
+    selected.url = f"https://example.com/{subdir}/{selected.fn}"
+    monkeypatch.setenv("CONDA_OFFLINE", "true")
+    reset_context()
+    with pytest.raises(OfflineError, match="selected package archive is unavailable"):
+        ProgressiveFetchExtract((selected,)).prepare()
+
+
+@pytest.mark.parametrize("source", ("repodata", "explicit"))
+def test_extraction_ignores_embedded_advertisement(tmp_pkgs_dir: Path, source: str):
+    _, selected = fresh_zlib_records()
+    ProgressiveFetchExtract((selected,)).execute()
+    extracted = tmp_pkgs_dir / zlib_base_fn
+    index_path = extracted / "info" / "index.json"
+    raw = json.loads(index_path.read_text())
+    raw["attestations_sha256"] = "embedded-invalid-value"
+    index_path.write_text(json.dumps(raw))
+    action = ExtractPackageAction(
+        source_full_path=str(tmp_pkgs_dir / selected.fn),
+        target_pkgs_dir=str(tmp_pkgs_dir),
+        target_extracted_dirname=zlib_base_fn,
+        record_or_spec=selected if source == "repodata" else MatchSpec(selected.url),
+        sha256=selected.sha256,
+        size=selected.size,
+        md5=selected.md5,
+    )
+    action._finish_extract()
+    saved = json.loads((extracted / "info" / "repodata_record.json").read_text())
+    assert "attestations_sha256" not in saved
+
+
+def test_installed_advertisement_keeps_selected_source_url(
+    tmp_pkgs_dir: Path, tmp_path: Path
+):
+    _, selected = fresh_zlib_records()
+    ProgressiveFetchExtract((selected,)).execute()
+    cached = PackageCacheData.get_entry_to_link(selected)
+    selected = PackageRecord.from_objects(
+        selected,
+        attestations_sha256="a" * 64,
+        url=f"https://example.com/selected/{subdir}/{selected.fn}",
+        channel="https://example.com/selected",
+    )
+    prefix = tmp_path / "prefix"
+    (prefix / "conda-meta").mkdir(parents=True)
+    (action,) = CreatePrefixRecordAction.create_actions(
+        {},
+        read_package_info(selected, cached),
+        str(prefix),
+        LinkType.copy,
+        MatchSpec(selected.name),
+        (),
+    )
+    action.execute()
+    installed = PrefixData(prefix).reload().get(selected.name)
+    assert installed.url == selected.url
+    assert installed.attestations_sha256 == selected.attestations_sha256
 
 
 def test_get_softlinked_package_dirs(mocker, tmp_path: Path):
