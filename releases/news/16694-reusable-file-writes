@@ -1,10 +1,10 @@
 ### Enhancements
 
-* Add `conda.gateways.disk.write` for reusable file snapshots and byte writes with conflict detection. (#16694)
+* Add `conda.gateways.disk.write` for reusable file snapshots and byte writes with conflict detection. (#16694 via #16875)
 
 ### Bug fixes
 
-* Preserve the previous channel notice response when serializing or writing its cache fails. (#16694)
+* Preserve the previous channel notice response when serializing or writing its cache fails. (#16694 via #16875)
 
 ### Deprecations
 
