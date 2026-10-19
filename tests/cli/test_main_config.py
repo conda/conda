@@ -988,7 +988,7 @@ def test_config_write_respects_read_only_file(tmp_path: Path) -> None:
         config.write()
 
     assert path.read_text() == original
-    assert set(tmp_path.iterdir()) == {path, tmp_path / ".condarc.lock"}
+    assert list(tmp_path.iterdir()) == [path]
 
 
 @pytest.mark.skipif(on_win, reason="symlink privilege required")
@@ -1443,6 +1443,68 @@ def test_config_write_serializes_threads(tmp_path: Path, mocker: MockerFixture) 
             second_write.result(timeout=10)
 
     assert path.read_text() == "changeps1: false\n"
+
+
+@pytest.mark.skipif(
+    on_win or os.geteuid() == 0, reason="POSIX unprivileged permissions"
+)
+@pytest.mark.parametrize("read_only_directory", [False, True])
+def test_config_write_keeps_source_locked(
+    tmp_path: Path, mocker: MockerFixture, read_only_directory: bool
+) -> None:
+    import fcntl
+    import signal
+    from multiprocessing import get_context
+
+    path = tmp_path / ".condarc"
+    path.write_text("changeps1: true\n")
+    config = ConfigurationFile(path)
+    config.set_key("changeps1", False)
+    multiprocessing = get_context("fork")
+    writing = multiprocessing.Event()
+    release = multiprocessing.Event()
+    parent, child = multiprocessing.Pipe(duplex=False)
+    fsync = os.fsync
+
+    def pause_before_commit(fd: int) -> None:
+        fsync(fd)
+        writing.set()
+        assert release.wait(10)
+
+    def write_in_child() -> None:
+        signal.alarm(15)
+        try:
+            config.write()
+            child.send("written")
+        except Exception as error:
+            child.send(type(error).__name__)
+        finally:
+            child.close()
+
+    mocker.patch("os.fsync", side_effect=pause_before_commit)
+    process = multiprocessing.Process(target=write_in_child)
+    if read_only_directory:
+        tmp_path.chmod(0o555)
+    try:
+        process.start()
+        assert writing.wait(10)
+        with path.open("r+b") as source:
+            with pytest.raises(BlockingIOError):
+                fcntl.flock(source, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        release.set()
+        assert parent.poll(10)
+        assert parent.recv() == "written"
+        process.join(5)
+        assert process.exitcode == 0
+        assert path.read_text() == "changeps1: false\n"
+    finally:
+        release.set()
+        tmp_path.chmod(0o755)
+        if process.is_alive():
+            process.terminate()
+            process.join(5)
+        parent.close()
+        child.close()
 
 
 @pytest.mark.skipif(not hasattr(os, "fork"), reason="requires fork")

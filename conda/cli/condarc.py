@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import sys
 from collections.abc import Sequence
+from contextlib import ExitStack, contextmanager
 from functools import cached_property
 from logging import getLogger
 from pathlib import Path
@@ -25,8 +26,8 @@ from ..common.compat import on_mac, on_win
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-    from typing import Any
+    from collections.abc import Callable, Iterator
+    from typing import Any, BinaryIO
 
     from ..common.configuration import Configuration
 
@@ -41,6 +42,29 @@ def _reset_write_lock() -> None:
 
 if hasattr(os, "register_at_fork"):
     os.register_at_fork(after_in_child=_reset_write_lock)
+
+
+@contextmanager
+def _lock_source(source: BinaryIO) -> Iterator[None]:
+    """Keep a POSIX config locked when other descriptors are opened and closed."""
+    import fcntl
+    from time import sleep
+
+    from ..exceptions import LockError
+    from ..gateways.disk.lock import LOCK_ATTEMPTS, LOCK_SLEEP
+
+    for attempt in range(LOCK_ATTEMPTS):
+        try:
+            fcntl.flock(source, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except BlockingIOError:
+            if attempt == LOCK_ATTEMPTS - 1:
+                raise LockError("Failed to acquire configuration lock.")
+            sleep(LOCK_SLEEP)
+    try:
+        yield
+    finally:
+        fcntl.flock(source, fcntl.LOCK_UN)
 
 
 def _file_version(metadata: os.stat_result | None) -> tuple[int, ...]:
@@ -487,20 +511,33 @@ class ConfigurationFile:
 
             parent_metadata = target.parent.stat()
             lock_path = target.with_name(f"{target.name}.lock")
-            # POSIX record locks are per process. Keep all opens and closes of
-            # the persistent lock file inside the thread lock as well.
-            with (
-                _write_lock,
-                lock_path.open("a+") as lock_file,
-                lock(lock_file, required=True),
-            ):
-                lock_metadata = os.fstat(lock_file.fileno())
+            with _write_lock, ExitStack() as stack:
+                locked_source = None
+                if metadata is not None and not on_win:
+                    locked_source = stack.enter_context(target.open("r+b", buffering=0))
+                    stack.enter_context(_lock_source(locked_source))
+                    if _file_version(os.fstat(locked_source.fileno())) != _file_version(
+                        metadata
+                    ):
+                        raise conflict("while waiting to write")
+                try:
+                    lock_file = stack.enter_context(lock_path.open("a+"))
+                except PermissionError:
+                    if locked_source is None:
+                        raise
+                    lock_metadata = None
+                else:
+                    stack.enter_context(lock(lock_file, required=True))
+                    lock_metadata = os.fstat(lock_file.fileno())
 
                 def paths_changed() -> bool:
                     try:
                         return not (
                             os.path.samestat(parent_metadata, target.parent.stat())
-                            and os.path.samestat(lock_metadata, lock_path.lstat())
+                            and (
+                                lock_metadata is None
+                                or os.path.samestat(lock_metadata, lock_path.lstat())
+                            )
                         )
                     except FileNotFoundError:
                         return True
@@ -525,46 +562,45 @@ class ConfigurationFile:
                 try:
                     fd = os.open(candidate, os.O_CREAT | os.O_EXCL | os.O_WRONLY, mode)
                 except PermissionError:
-                    if metadata is None:
+                    if locked_source is None:
                         raise
                     from locale import getpreferredencoding
 
                     # A writable file can live in a directory that forbids replacement.
                     # Preserve that behavior, with best-effort recovery on write errors.
-                    with target.open("r+b", buffering=0) as stream:
-                        if (
-                            not os.path.samestat(metadata, os.fstat(stream.fileno()))
-                            or source_changed()
-                        ):
+                    stream = locked_source
+                    if paths_changed() or source_changed():
+                        raise conflict("while writing")
+                    original = stream.read()
+                    content = text.replace("\n", os.linesep).encode(
+                        getpreferredencoding(False)
+                    )
+
+                    def overwrite(content: bytes) -> None:
+                        stream.seek(0)
+                        if os.write(stream.fileno(), content) != len(content):
+                            raise OSError("Incomplete configuration write")
+                        stream.truncate(len(content))
+                        os.fsync(stream.fileno())
+
+                    try:
+                        overwrite(content)
+                    except OSError as error:
+                        try:
+                            overwrite(original)
+                        except OSError as restore_error:
                             raise CondaError(
                                 f"Cannot write to condarc file at {path}: "
-                                "file changed while writing"
-                            )
-                        original = stream.read()
-                        content = text.replace("\n", os.linesep).encode(
-                            getpreferredencoding(False)
-                        )
-
-                        def overwrite(content: bytes) -> None:
-                            stream.seek(0)
-                            if os.write(stream.fileno(), content) != len(content):
-                                raise OSError("Incomplete configuration write")
-                            stream.truncate(len(content))
-                            os.fsync(stream.fileno())
-
-                        try:
-                            overwrite(content)
-                        except OSError as error:
-                            try:
-                                overwrite(original)
-                            except OSError as restore_error:
-                                raise CondaError(
-                                    f"Cannot write to condarc file at {path}: "
-                                    f"{error}. Restoring the original contents also failed: "
-                                    f"{restore_error}"
-                                ) from error
-                            raise
-                    self._read_state = (path.absolute(), target, text)
+                                f"{error}. Restoring the original contents also failed: "
+                                f"{restore_error}"
+                            ) from error
+                        raise
+                    self._read_state = (
+                        path.absolute(),
+                        target,
+                        text,
+                        _file_version(os.fstat(stream.fileno())),
+                    )
                     return
                 temporary = candidate
                 temporary_metadata = os.fstat(fd)
