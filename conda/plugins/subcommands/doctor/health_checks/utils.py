@@ -4,9 +4,12 @@
 
 from __future__ import annotations
 
+from logging import getLogger
 from pathlib import Path
 
 from .....common.serialize import json
+
+logger = getLogger(__name__)
 
 
 def get_spec_str_from_conda_meta(
@@ -28,7 +31,8 @@ def get_spec_str_from_conda_meta(
             specs.append(
                 f"{metadata['name']}={metadata['version']}={metadata['build']}"
             )
-        except KeyError:
+        except KeyError as exc:
+            logger.error("conda-meta record is missing %s for %s.", exc, stem)
             skipped.append(stem)
     return specs, skipped
 
