@@ -4,12 +4,9 @@
 
 from __future__ import annotations
 
-from logging import getLogger
 from pathlib import Path
 
 from .....common.serialize import json
-
-logger = getLogger(__name__)
 
 
 def get_spec_str_from_conda_meta(
