@@ -70,8 +70,10 @@ def test_get_specs_from_non_existent_prefix():
 @pytest.mark.parametrize(
     "filename,expected",
     [
-        pytest.param("foo-1.0-py_0.json", "foo", id="simple"),
-        pytest.param("numpy-1.26.4-py312h8753938_0.json", "numpy", id="dotted-version"),
+        pytest.param("foo-1.0-py_0.json", "foo", id="two-part-version-string"),
+        pytest.param(
+            "numpy-1.26.4-py312h8753938_0.json", "numpy", id="three-part-version-string"
+        ),
         pytest.param(
             "python-dateutil-2.9.0-pyhd8ed1ab_0.json",
             "python-dateutil",
