@@ -18,7 +18,7 @@ def get_spec_str_from_conda_meta(
     """
     Get a list of specs (specified with name, version, and build) from the prefix
     matching the name of the requested packages. The conda-meta is generally assumed
-    to be intact. However, uf the name, version or build metadata is incomplete, the
+    to be intact. However, if the name, version or build metadata is incomplete, the
     package will be skipped.
     """
     specs = []
@@ -36,7 +36,7 @@ def get_spec_str_from_conda_meta(
     return specs, skipped
 
 
-def get_name_from_conda_meta_file_name(conda_meta_filename: str):
+def get_name_from_conda_meta_file_name(conda_meta_filename: str) -> str:
     """Given the name of a package conda_meta file, extract the name of the package"""
     name_version_build_string = Path(conda_meta_filename).name.removesuffix(".json")
     return name_version_build_string.rsplit("-", 2)[0]

@@ -65,7 +65,7 @@ Reinstalling openssl was skipped due to malformed conda-meta data.
 ### Pass criteria
 - All the steps complete as described above. Quick recap:
    - Step 4 reports the deleted file as missing.
-   - Step 5 prints `Reinstalling openssl failed. Please manually reinstall the missing packages using "conda install openssl"`.
+   - Step 5 prints `Reinstalling openssl was skipped due to malformed conda-meta data.`.
    - Step 5 does **not** show a traceback (e.g. `KeyError: 'build'`) and exits with a nonzero code.
    - Step 5 does not attempt a reinstall, so the deleted file is still missing afterwards.
 
