@@ -80,6 +80,8 @@ This section goes over some of the best practices we recommend for addressing pe
 
           conda install --solver=libmamba package_name
 
+   For more information on conda's solver options, see :doc:`Solvers <solvers>`.
+
 .. _concepts-performance-channel-priority:
 
 3. **Configure channels to minimize conflicts.**
