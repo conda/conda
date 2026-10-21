@@ -95,6 +95,9 @@ def get_python_site_packages_short_path(python_version):
     if python_version is None:
         return None
     elif on_win:
+        py_ver = get_major_minor_version(python_version)
+        if py_ver == "3.15":
+            return "lib/python/site-packages"
         return "Lib/site-packages"
     else:
         py_ver = get_major_minor_version(python_version)
