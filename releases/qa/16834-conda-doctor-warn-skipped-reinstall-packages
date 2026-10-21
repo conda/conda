@@ -2,7 +2,7 @@
 Warn when conda doctor reinstall attempt fails due to malformed `conda-meta` data
 
 ### Why
-When a package's conda-meta record is missing `name`, `version` or `build`, `conda doctor` can't reinstall it and asks the user to reinstall it manually.
+When a package's conda-meta record is missing `name`, `version` or `build`, `conda doctor --fix` can't reinstall it and informs the user that the reinstall was skipped due to broken conda-meta record.
 
 ### Platforms
 - [ ] Windows
