@@ -1,0 +1,4 @@
+### Bug fixes
+
+* Write environment creation markers in a portable UTC format and continue to
+  read markers written by older conda versions.
