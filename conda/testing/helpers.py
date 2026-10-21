@@ -58,6 +58,17 @@ def raises(exception, func, string=None):
     raise Exception(f"did not raise, gave {a}")
 
 
+def deprecated_import(module: str):
+    """Assert a module's import-time deprecation warning, but only on first import.
+
+    A module-level ``deprecated.module(...)`` warning fires once, on first import.
+    If something else already imported the module first (e.g. test collection or an
+    earlier test), asserting ``pytest.deprecated_call()`` again would fail. Use this
+    instead of bare ``pytest.deprecated_call()`` around deprecated module imports.
+    """
+    return pytest.deprecated_call() if module not in sys.modules else nullcontext()
+
+
 @contextmanager
 def captured(disallow_stderr=True):
     # same as common.io.captured but raises Exception if unexpected output was written to stderr
@@ -258,13 +269,7 @@ def _get_index_r_base(
     add_pip=False,
     merge_noarch=False,
 ):
-    # Module deprecation warns only on first import; later callers must not
-    # expect another warning (collection or earlier tests may have imported it).
-    with (
-        pytest.deprecated_call()
-        if "conda.resolve" not in sys.modules
-        else nullcontext()
-    ):
+    with deprecated_import("conda.resolve"):
         from ..resolve import Resolve
 
     if isinstance(json_filename_or_packages, (str, os.PathLike)):

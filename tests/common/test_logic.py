@@ -1,18 +1,12 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
-import sys
-from contextlib import nullcontext
 from itertools import chain, combinations, permutations, product
 
 import pytest
 
-from conda.testing.helpers import raises
+from conda.testing.helpers import deprecated_import, raises
 
-with (
-    pytest.deprecated_call()
-    if "conda.common.logic" not in sys.modules
-    else nullcontext()
-):
+with deprecated_import("conda.common.logic"):
     from conda.common.logic import FALSE, TRUE, Clauses, minimal_unsatisfiable_subset
 
 # These routines implement logical tests with short-circuiting

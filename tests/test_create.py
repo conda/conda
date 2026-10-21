@@ -7,7 +7,6 @@ import platform
 import re
 import sys
 import tarfile
-from contextlib import nullcontext
 from datetime import datetime
 from importlib.metadata import version
 from io import BytesIO
@@ -80,7 +79,12 @@ from conda.history import History
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
-from conda.testing.helpers import CHANNEL_DIR_V2, forward_to_subprocess, in_subprocess
+from conda.testing.helpers import (
+    CHANNEL_DIR_V2,
+    deprecated_import,
+    forward_to_subprocess,
+    in_subprocess,
+)
 from conda.testing.integration import (
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
@@ -859,11 +863,7 @@ def test_strict_channel_priority(
 
 
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
-    with (
-        pytest.deprecated_call()
-        if "conda.resolve" not in sys.modules
-        else nullcontext()
-    ):
+    with deprecated_import("conda.resolve"):
         from conda.resolve import Resolve
 
     channels = (Channel("defaults"),)
