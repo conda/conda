@@ -1,3 +1,3 @@
 ### Bug fixes
 
-* Require `certifi >=2026.10.19` and `ca-certificates >=2026.10.19` to update the packaged CA bundles following the eMudhra intermediate CA compromise. (#16880)
+* Require `certifi >=2026.10.19` and `ca-certificates >=2026.10.19` to update the packaged CA bundles following the eMudhra intermediate CA compromise. (#16880 via #16881)
