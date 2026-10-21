@@ -9,6 +9,7 @@ tests/plugins/subcommands/conftest.py and shared with health fix tests.
 from __future__ import annotations
 
 import json
+from argparse import Namespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -16,9 +17,12 @@ import pytest
 from conda.plugins.subcommands.doctor.health_checks.altered_files import (
     altered_files,
     find_altered_packages,
+    fix_altered_files,
 )
 
 if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
     from tests.plugins.subcommands.conftest import EnvFixture
 
 
@@ -82,3 +86,33 @@ def test_json_cannot_be_loaded(env_ok: EnvFixture):
     """Test that runs for the case when json file is missing."""
     # passing a None type to json.loads() so that it fails
     assert find_altered_packages(env_ok.prefix) == {}
+
+
+def test_fix_altered_files_skips_reinstall(
+    env_altered_files: EnvFixture,
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture,
+):
+    """Packages whose conda-meta record lacks a build are skipped, not reinstalled."""
+    file = env_altered_files.prefix / "conda-meta" / f"{env_altered_files.package}.json"
+    with open(file) as f:
+        data = json.load(f)
+        del data["build"]
+    with open(file, "w") as f:
+        json.dump(data, f)
+
+    mock_reinstall = mocker.patch(
+        "conda.plugins.subcommands.doctor.health_checks.altered_files.reinstall_packages",
+        return_value=0,
+    )
+    confirm = mocker.Mock()
+    args = Namespace()
+
+    result = fix_altered_files(str(env_altered_files.prefix), args, confirm)
+
+    assert result == 1
+    confirm.assert_called_once()
+    mock_reinstall.assert_not_called()
+    assert (
+        f"Reinstalling {env_altered_files.package} was skipped"
+    ) in capsys.readouterr().out

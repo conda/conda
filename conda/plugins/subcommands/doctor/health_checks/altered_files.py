@@ -8,6 +8,11 @@ from logging import getLogger
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from conda.plugins.subcommands.doctor.health_checks.utils import (
+    get_name_from_conda_meta_file_name,
+    get_spec_str_from_conda_meta,
+)
+
 from .....base.constants import OK_MARK, X_MARK
 from .....cli.install import reinstall_packages
 from .....common.serialize import json
@@ -108,35 +113,17 @@ def fix_altered_files(prefix: str, args: Namespace, confirm: ConfirmCallback) ->
 
     print()
     confirm("Reinstall these packages to restore original files?")
-
-    specs = []
-    skipped = []
-    for stem in altered:
-        try:
-            metadata = json.loads(
-                (Path(prefix) / "conda-meta" / f"{stem}.json").read_text()
-            )
-            specs.append(
-                f"{metadata['name']}={metadata['version']}={metadata['build']}"
-            )
-        except KeyError as exc:
-            logger.error(
-                "Could not build an installable MatchSpec from conda-meta record; "
-                "missing field %s. Skipping reinstall for %s.",
-                exc,
-                stem,
-            )
-            print(
-                f"Reinstalling package {stem} failed due to missing fields in conda-meta record."
-            )
-            skipped.append(stem)
-
+    specs, skipped = get_spec_str_from_conda_meta(prefix, list(altered.keys()))
+    result = 1
     if specs:
         result = reinstall_packages(args, specs, force_reinstall=True)
-        if skipped:
-            return 1
-        return result
-    return 1
+    if skipped:
+        skipped_packages = [get_name_from_conda_meta_file_name(pkg) for pkg in skipped]
+        print(
+            f"Reinstalling {(', ').join(skipped_packages)} was skipped due to malformed conda-meta data."
+        )
+        result = 1
+    return result
 
 
 @hookimpl
