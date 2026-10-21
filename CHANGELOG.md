@@ -1,5 +1,69 @@
 [//]: # (current developments)
 
+## 26.10.0 (2026-10-21)
+
+### Enhancements
+
+* Track the last time an environment was activated via user invocation. Activation modifies the mtime of `<prefix>/conda-meta/last_activated` (best-effort; failures are ignored). The timestamp is exposed `last_activated` in json output. (#14308 via #16808)
+* `PrefixData` now has is_active property. (#14308 via #16808)
+* Add `--disable-plugins` to selectively disable plugins at runtime using comma-separated names or repeated options. Keep `--no-plugins` as a boolean flag to disable all external plugins. (#15914 via #15915)
+* Add `--enable-plugins` to keep selected plugins enabled when using `--no-plugins` or `CONDA_NO_PLUGINS`, including solver plugins needed for recovery. (#15914 via #15915)
+* Add a `root_extras` option to `conda._private.shards.subset.build_repodata_subset`
+  (and the underlying `RepodataSubset.reachable*` methods) so callers can request
+  CEP 44 `extra_depends` groups be fetched only for specific root/user-requested
+  packages, without recursing into extras of their dependencies. (#16724 via #16742)
+
+### Bug fixes
+
+* Avoid `FileNotFoundError` on Windows when `rmtree()` deletes a directory that
+  `RD /S /Q` already removed (for example during `conda package` temp cleanup).
+  (#16539 via #16803)
+* Write configuration files atomically when directory permissions allow, preserve macOS ACLs, and reject detected intervening edits. Keep writable files editable in read-only directories, with best-effort recovery after write failures. (#16694 via #16695)
+* Ask once before `conda env remove` and `conda remove --all` delete an environment. Those commands previously confirmed the package unlink and then, after the packages were already uninstalled, asked again before deleting the rest of the prefix, including non-conda files. Declining that second prompt left a half-deleted environment. The package plan and the prefix-deletion warning are now shown together before anything is removed, and declining leaves the environment unchanged. (#16753 via #16852)
+* Fix `conda config --get` writing to the config file when no key is given. (#16825 via #16831)
+* Fix shard records with raw-bytes hashes (`sha256`, `md5`, `legacy_bz2_md5`, `attestations_sha256`), as written by e.g. `rattler-index`, not being converted to hex strings when iterating records via `iter_records_v3()`. (#16866)
+* Retry remote requests that fail with HTTP 502 (Bad Gateway) or 504 (Gateway Timeout), which are usually transient server or CDN errors. (#16848)
+* Show environment names in PowerShell prompts for canary packages built with `changeps1: false`. (#16858)
+
+### Docs
+
+* Added small explaination to documentation about json timestamps.
+* Add a "Rendering output" deep dive documenting the reporter backend as the output system for the conda CLI, with logging and error handling guidelines. (#16700 via #16843)
+* Add Choosing a solver guide to documentation, with information about current solvers and how to change your solver. (#16844)
+
+### Other
+
+* Add `tmp_repodata_channel` for constructing local test channels from in-memory package metadata. (#16807)
+* Replace production-channel inputs in `test_neutering_of_historic_specs` with a small local channel while preserving historical-spec regression coverage. (#16767 via #16807)
+* Speed up `test_cross_channel_incompatibility` by using two small local channels instead of remote conda-forge/defaults metadata, preserving optional-constraint regression coverage. (#16768 via #16796)
+* Raise the minimum Python version required to run conda to 3.11, following
+  [conda-build#6176](https://github.com/conda/conda-build/issues/6176). Conda can still create
+  and manage environments containing Python 3.10 and older; this only affects the interpreter
+  used to run conda itself. (#16795 via #16801)
+* Don't allow local condarc's to populate context_testdata fixture. (16797 via #16809)
+* Convert raw-bytes hash digests to hex strings in memory when sharded repodata is decoded, rather than re-converting records on each read. (#16868)
+
+### Contributors
+
+* @aditya0929 made their first commit in https://github.com/conda/conda/pull/16831
+* @conda-bot
+* @danyeaw
+* @dependabot[bot] made their first commit in https://github.com/conda/conda/pull/11965
+* @dholth
+* @ForgottenProgramme
+* @gavinw2143 made their first commit in https://github.com/conda/conda/pull/16796
+* @jezdez
+* @kathatherine
+* @kenodegard
+* @larsoner made their first commit in https://github.com/conda/conda/pull/16848
+* @pre-commit-ci[bot] made their first commit in https://github.com/conda/conda/pull/11042
+* @r3wretrhy made their first commit in https://github.com/conda/conda/pull/16803
+* @ryanskeith
+* @soapy1
+* @travishathaway
+* @VINAYRAO0406 made their first commit in https://github.com/conda/conda/pull/16814
+
+
 ## 26.9.3 (2026-10-14)
 
 ### Bug fixes
