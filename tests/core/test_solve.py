@@ -6,7 +6,7 @@ import copy
 import json
 import re
 import sys
-from contextlib import ExitStack
+from contextlib import ExitStack, nullcontext
 from importlib.metadata import version
 from pprint import pprint
 from typing import TYPE_CHECKING
@@ -4335,7 +4335,13 @@ def test_prepare_reduces_provided_lazy_index_without_realizing(
         autospec=True,
         side_effect=(first_reduced_index, second_reduced_index),
     )
-    resolve = mocker.patch("conda.resolve.Resolve")
+    # May already be imported (e.g. via helpers during collection); warn only on first load.
+    with (
+        pytest.deprecated_call()
+        if "conda.resolve" not in sys.modules
+        else nullcontext()
+    ):
+        resolve = mocker.patch("conda.resolve.Resolve")
     first_specs = {MatchSpec("first")}
     second_specs = {MatchSpec("second")}
     solver._index = provided_index
@@ -4368,7 +4374,13 @@ def test_prepare_preserves_records_in_provided_realized_index(mocker) -> None:
     record = _make_conda_prefix_rec("custom", "1.0")
     provided_index._data = {record: record}
     get_reduced_index = mocker.spy(provided_index, "get_reduced_index")
-    resolve = mocker.patch("conda.resolve.Resolve")
+    # May already be imported (e.g. via helpers during collection); warn only on first load.
+    with (
+        pytest.deprecated_call()
+        if "conda.resolve" not in sys.modules
+        else nullcontext()
+    ):
+        resolve = mocker.patch("conda.resolve.Resolve")
     solver._index = provided_index
 
     prepared_index, _ = solver._prepare({MatchSpec("custom")})
