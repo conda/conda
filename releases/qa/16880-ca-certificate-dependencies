@@ -20,6 +20,12 @@ Start with `ssl_verify: true` and no `REQUESTS_CA_BUNDLE`, `CURL_CA_BUNDLE`, or
 `SSL_CERT_FILE` overrides. Download the certificate chains and verification
 instructions from https://emudhra.we-have-a-problem.com/chains.zip.
 
+The test hosts do not serve conda repodata. On an unpatched installation, a
+request may return HTTP 200 and then raise `ZstdError` while parsing the response
+as shard metadata. This means the HTTPS request succeeded. It does not count as
+rejection of the compromised certificate, even though the command exits with an
+error.
+
 ### Steps
 1. Create and activate an environment with conda 26.9.3 and older CA packages:
    ```console
@@ -58,8 +64,9 @@ instructions from https://emudhra.we-have-a-problem.com/chains.zip.
    python -m conda search -vvv --override-channels --channel https://dv-g3b-emudhra.we-have-a-problem.com/ zlib
    python -m conda search -vvv --override-channels --channel https://dv-g3b-aaa-emudhra.we-have-a-problem.com/ zlib
    ```
-   Both commands must fail certificate verification. A timeout, HTTP error, or
-   missing package is not a pass.
+   Both commands must fail certificate verification before receiving an HTTP
+   response. HTTP 200 followed by `ZstdError` is a failure of this security check.
+   A timeout, HTTP error, other parsing error, or missing package is not a pass.
 6. Repeat steps 1 and 2 with a fresh 26.9.3 environment, then add an environment
    pin:
    ```console
