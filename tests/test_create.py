@@ -589,7 +589,7 @@ def test_noarch_python_package_with_entry_points(
     This test uses "pygments" as a Python package because it has no other dependencies and has an
     entry point script, "pygmentize".
     """
-    with tmp_env("pygments") as prefix:
+    with tmp_env("pygments", PYTHON_SPEC) as prefix:
         python_record = PrefixData(prefix).get("python")
         py_ver = get_major_minor_version(python_record.version)
         sp_dir = (
@@ -631,7 +631,7 @@ def test_noarch_python_package_without_entry_points(
     This test uses "itsdangerous" as a dependency because it is a relatively small package and
     has no entry point scripts.
     """
-    with tmp_env("itsdangerous") as prefix:
+    with tmp_env("itsdangerous", PYTHON_SPEC) as prefix:
         python_record = PrefixData(prefix).get("python", None)
         py_ver = get_major_minor_version(python_record.version)
         sp_dir = (
