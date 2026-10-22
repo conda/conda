@@ -36,6 +36,7 @@ from .auxlib.compat import Utf8NamedTemporaryFile
 from .base.constants import (
     CONDA_ENV_VARS_UNSET_VAR,
     PACKAGE_ENV_VARS_DIR,
+    PREFIX_LAST_ACTIVATED_FILE,
     PREFIX_STATE_FILE,
     RESERVED_ENV_VARS,
 )
@@ -73,6 +74,20 @@ BUILTIN_COMMANDS = {
     "commands": GenericHelp("commands"),
     "reactivate": GenericHelp("reactivate"),
 }
+
+
+def _touch_last_activated(prefix: str) -> None:
+    """Record an activation by updating conda-meta/last_activated's mtime.
+
+    This is a best-effort activity and thus why we are wrapping the touch command
+    from gateways.disk.update to ignore any OS errors.
+    """
+    from .gateways.disk.update import touch
+
+    try:
+        touch(join(prefix, PREFIX_LAST_ACTIVATED_FILE))
+    except OSError:
+        pass
 
 
 class _Activator(metaclass=abc.ABCMeta):
@@ -371,6 +386,7 @@ class _Activator(metaclass=abc.ABCMeta):
         stack: bool,
     ) -> dict[str, Any]:
         prefix = self._resolve_prefix(env_name_or_prefix)
+        _touch_last_activated(prefix)
 
         # get prior shlvl and prefix
         old_conda_shlvl = int(os.getenv("CONDA_SHLVL", "").strip() or 0)

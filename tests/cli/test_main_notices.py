@@ -170,9 +170,7 @@ def test_main_notices_reads_from_expired_cache(
 
     messages = ("Test One", "Test Two")
     messages_different = ("With different value one", "With different value two")
-    created_at = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
-        days=14
-    )
+    created_at = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=14)
     cache_files = get_notice_cache_filenames(context)
 
     # Cache first version of notices, with a cache date we know is expired

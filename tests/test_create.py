@@ -6,8 +6,10 @@ import os
 import platform
 import re
 import sys
+import tarfile
 from datetime import datetime
 from importlib.metadata import version
+from io import BytesIO
 from itertools import zip_longest
 from json import loads as json_loads
 from logging import getLogger
@@ -72,6 +74,7 @@ from conda.gateways.disk.create import compile_multiple_pyc
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import compute_sum
 from conda.gateways.subprocess import Response
+from conda.history import History
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
@@ -102,6 +105,7 @@ if TYPE_CHECKING:
         PipCLIFixture,
         TmpChannelFixture,
         TmpEnvFixture,
+        TmpRepodataChannelFixture,
     )
 
 log = getLogger(__name__)
@@ -628,7 +632,7 @@ def test_noarch_python_package_without_entry_points(
     has no entry point scripts.
     """
     with tmp_env("itsdangerous") as prefix:
-        python_record = PrefixData(prefix).get("python")
+        python_record = PrefixData(prefix).get("python", None)
         py_ver = get_major_minor_version(python_record.version)
         sp_dir = (
             python_record.python_site_packages_path
@@ -2841,53 +2845,180 @@ def test_remove_spellcheck(
         conda_cli("remove", f"--prefix={prefix}", "dependint", "--yes")
 
 
-@pytest.mark.skipif(
-    context.subdir == "win-32", reason="dependencies not available for win-32"
-)
 def test_cross_channel_incompatibility(conda_cli: CondaCLIFixture, tmp_path: Path):
-    # regression test for https://github.com/conda/conda/issues/8772
-    # conda-forge puts a run_constrains on libboost, which they don't have on conda-forge.
-    #   This is a way of forcing libboost to be removed.  It's a way that they achieve
-    #   mutual exclusivity with the boost from defaults that works differently.
+    # Regression for #8772: an impossible optional constraint must not
+    # make the constraining package uninstallable.
+    channel_packages = (
+        (
+            {"name": "app", "depends": ["engine >=1"]},
+            {"name": "engine", "constrains": ["old-engine <0"]},
+        ),
+        ({"name": "old-engine"},),
+    )
+    channels = []
 
-    # Keep the historical Boost metadata for this dry run on win-arm64.
-    platform_args = ("--platform=win-64",) if context.subdir == "win-arm64" else ()
-    # if this test passes, we'll hit the DryRunExit exception, instead of an UnsatisfiableError
-    with pytest.raises(DryRunExit):
-        conda_cli(
-            "create",
-            f"--prefix={tmp_path}",
-            "--dry-run",
-            "--override-channels",
-            "--channel=conda-forge",
-            "--channel=defaults",
-            *platform_args,
-            "python",
-            "boost==1.82.0",
-            "boost-cpp==1.82.0",
-            "--yes",
-        )
+    for channel_number, packages in enumerate(channel_packages):
+        channel = tmp_path / f"channel-{channel_number}"
+        records = {
+            f"{package['name']}-1.0-0.tar.bz2": {
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+                "subdir": "noarch",
+                "noarch": "generic",
+                **package,
+            }
+            for package in packages
+        }
+
+        for subdir in dict.fromkeys((context.subdir, "noarch")):
+            subdir_path = channel / subdir
+            subdir_path.mkdir(parents=True)
+            repodata = {
+                "info": {"subdir": subdir},
+                "packages": records if subdir == "noarch" else {},
+                "packages.conda": {},
+                "repodata_version": 1,
+            }
+            (subdir_path / "repodata.json").write_text(
+                json.dumps(repodata), encoding="utf-8"
+            )
+
+        channels.append(channel.as_uri())
+
+    stdout, _, _ = conda_cli(
+        "create",
+        f"--prefix={tmp_path / 'env'}",
+        "--dry-run",
+        "--json",
+        "--override-channels",
+        f"--channel={channels[0]}",
+        f"--channel={channels[1]}",
+        "--repodata-fn=repodata.json",
+        "app==1.0",
+        "engine==1.0",
+        "--yes",
+        raises=DryRunExit,
+    )
+
+    result = json.loads(stdout)
+    assert result["success"]
+    assert {package["name"] for package in result["actions"]["LINK"]} == {
+        "app",
+        "engine",
+    }
 
 
 # https://github.com/conda/conda/issues/9124
 @pytest.mark.skipif(
     context.subdir != "linux-64",
-    reason="lazy; package constraint here only valid on linux-64",
+    reason="historical-spec regression currently exercised on linux-64",
 )
+@pytest.mark.usefixtures("tmp_pkgs_dir")
 def test_neutering_of_historic_specs(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+    tmp_repodata_channel: TmpRepodataChannelFixture,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
 ):
-    with tmp_env("main::psutil=5.6.3=py37h7b6447c_0") as prefix:
-        conda_cli("install", f"--prefix={prefix}", "python=3.6", "--yes")
-        # make sure we didn't lose psutil
-        PrefixData._cache_.clear()
-        assert PrefixData(prefix).get("psutil")
+    # These synthetic Python packages need no pip dependency.
+    monkeypatch.setenv("CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY", "false")
+    reset_context()
 
-        d = (prefix / PREFIX_MAGIC_FILE).read_text()
-        assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", d)
-        # this would be unsatisfiable if the neutered specs were not being factored in correctly.
-        #    If this command runs successfully (does not raise), then all is well.
-        conda_cli("install", f"--prefix={prefix}", "imagesize", "--yes")
+    channel, channel_url = tmp_repodata_channel(
+        [
+            {"name": "python", "version": "3.7.0"},
+            {"name": "python", "version": "3.6.0"},
+            {
+                "name": "psutil",
+                "version": "5.6.3",
+                "build": "py37_0",
+                "depends": ["python >=3.7,<3.8"],
+            },
+            {
+                "name": "psutil",
+                "version": "5.6.3",
+                "build": "py36_0",
+                "depends": ["python >=3.6,<3.7"],
+            },
+            {"name": "imagesize", "depends": ["python >=3.6"]},
+        ],
+        subdir=context.subdir,
+    )
+    package_dir = channel / context.subdir
+    repodata_path = package_dir / "repodata.json"
+    repodata = json.loads(repodata_path.read_text())
+
+    for filename, record in repodata["packages"].items():
+        # Empty payloads still exercise extraction, linking, and history.
+        metadata = {
+            "info/index.json": json.dumps(record).encode("utf-8"),
+            "info/files": b"",
+            "info/paths.json": json.dumps({"paths_version": 1, "paths": []}).encode(
+                "utf-8"
+            ),
+        }
+        package_path = package_dir / filename
+        with tarfile.open(package_path, "w:bz2") as archive:
+            for path, content in metadata.items():
+                member = tarfile.TarInfo(path)
+                member.size = len(content)
+                archive.addfile(member, BytesIO(content))
+
+        record.update(
+            size=package_path.stat().st_size,
+            sha256=compute_sum(package_path, "sha256"),
+        )
+
+    repodata_path.write_text(json.dumps(repodata), encoding="utf-8")
+
+    channel_args = (
+        "--override-channels",
+        f"--channel={channel_url}",
+        "--repodata-fn=repodata.json",
+    )
+
+    with tmp_env(
+        *channel_args,
+        "--no-default-packages",
+        "psutil=5.6.3=py37_0",
+    ) as prefix:
+        installed = PrefixData(prefix)
+        installed.reload()
+        assert installed.get("python").version == "3.7.0"
+        assert installed.get("psutil").build == "py37_0"
+
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            *channel_args,
+            "python=3.6",
+            "--yes",
+        )
+
+        installed.reload()
+        assert installed.get("python").version == "3.6.0"
+        assert installed.get("psutil").build == "py36_0"
+
+        history = (prefix / PREFIX_MAGIC_FILE).read_text()
+        assert re.search(r"neutered specs:.*'psutil==5.6.3'\]", history)
+        assert History(prefix).get_requested_specs_map()["psutil"] == MatchSpec(
+            "psutil==5.6.3"
+        )
+
+        conda_cli(
+            "install",
+            f"--prefix={prefix}",
+            *channel_args,
+            "imagesize",
+            "--yes",
+        )
+
+        installed.reload()
+        assert installed.get("imagesize").version == "1.0"
+        assert installed.get("python").version == "3.6.0"
+        assert installed.get("psutil").build == "py36_0"
 
 
 # https://github.com/conda/conda/issues/10116

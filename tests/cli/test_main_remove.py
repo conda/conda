@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from importlib.metadata import version
+from io import StringIO
 from logging import getLogger
 from typing import TYPE_CHECKING
 
@@ -13,6 +14,7 @@ from conda.base.context import context, reset_context
 from conda.common.io import stderr_log_level
 from conda.exceptions import (
     CondaEnvException,
+    CondaSystemExit,
     DryRunExit,
     EnvironmentLocationNotFound,
     PackagesNotFoundInPrefixError,
@@ -74,6 +76,59 @@ def test_remove_all_keep_env(
 
         conda_cli("remove", f"--prefix={prefix}", "--all", "--keep-env", "--yes")
         assert not path_is_clean(prefix)
+
+
+@pytest.mark.parametrize("specs", [("small-executable",), ()])
+def test_remove_all_decline_leaves_environment(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+    specs: tuple[str, ...],
+):
+    """Pressing Enter at the removal prompt leaves the environment intact."""
+    with tmp_env(*specs) as prefix:
+        monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+        reset_context()
+        monkeypatch.setattr("sys.stdin", StringIO("\n"))
+
+        stdout, stderr, _ = conda_cli(
+            "remove",
+            f"--prefix={prefix}",
+            "--all",
+            raises=CondaSystemExit,
+        )
+
+        assert "non-conda files" in stdout
+        assert "Proceed" not in stdout
+        assert not path_is_clean(prefix)
+        if specs:
+            assert package_is_installed(prefix, "small-executable"), stderr
+        else:
+            assert "No conda packages found" in stdout
+
+
+def test_remove_all_yes_asks_once(
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    test_recipes_channel: Path,
+    monkeypatch: MonkeyPatch,
+):
+    """Answering yes shows one deletion prompt and removes the environment."""
+    with tmp_env("small-executable") as prefix:
+        monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+        reset_context()
+        monkeypatch.setattr("sys.stdin", StringIO("y\n"))
+
+        stdout, stderr, _ = conda_cli(
+            "remove",
+            f"--prefix={prefix}",
+            "--all",
+        )
+
+        assert stdout.count("(y/[n])?") == 1
+        assert "Proceed" not in stdout
+        assert path_is_clean(prefix), stderr
 
 
 @pytest.mark.integration
