@@ -1026,6 +1026,7 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkey
     assert isinstance(shard_out_queue.get(timeout=1), TypeError)
 
     # Thread exits after exception.
+    network_thread.join(timeout=5)
     assert not network_thread.is_alive()
 
     # The network_in_queue() has an unnecessary None from its exception handler,
