@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from functools import cache
 from os.path import abspath, dirname, join
 from pathlib import Path
@@ -28,7 +28,6 @@ from ..gateways.disk.read import lexists
 from ..history import History
 from ..models.channel import Channel
 from ..models.records import PackageRecord, PrefixRecord
-from ..resolve import Resolve
 
 # The default value will only work if we have installed conda in development mode!
 TEST_DATA_DIR = os.environ.get(
@@ -57,6 +56,17 @@ def raises(exception, func, string=None):
         print(e)
         return True
     raise Exception(f"did not raise, gave {a}")
+
+
+def deprecated_import(module: str):
+    """Assert a module's import-time deprecation warning, but only on first import.
+
+    A module-level ``deprecated.module(...)`` warning fires once, on first import.
+    If something else already imported the module first (e.g. test collection or an
+    earlier test), asserting ``pytest.deprecated_call()`` again would fail. Use this
+    instead of bare ``pytest.deprecated_call()`` around deprecated module imports.
+    """
+    return pytest.deprecated_call() if module not in sys.modules else nullcontext()
 
 
 @contextmanager
@@ -259,6 +269,9 @@ def _get_index_r_base(
     add_pip=False,
     merge_noarch=False,
 ):
+    with deprecated_import("conda.resolve"):
+        from ..resolve import Resolve
+
     if isinstance(json_filename_or_packages, (str, os.PathLike)):
         with open(join(TEST_DATA_DIR, json_filename_or_packages)) as fi:
             all_packages = json.load(fi)
