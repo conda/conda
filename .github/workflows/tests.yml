@@ -314,15 +314,22 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          # The default Azure-hosted Ubuntu apt mirror has been hanging
-          # for hours on the integration jobs. Switch to the canonical
-          # archive and let apt retry on transient failures so a single
-          # mirror outage does not block CI.
-          sudo sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' \
-            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
-          sudo apt-get update -o Acquire::Retries=3
-          sudo apt-get install -y --no-install-recommends \
-            -o Acquire::Retries=3 ash csh fish tcsh zsh
+          # The Ubuntu apt mirrors on the GitHub runners have hung for hours
+          # on rare occasions (the step normally runs in seconds), surviving
+          # apt's own retries. Bound each apt invocation with `timeout` so a
+          # stall fails fast: try the default runner mirror first, fall back
+          # to the canonical archive if that fails, and let the step fail
+          # otherwise.
+          apt_install_shells() {
+            sudo timeout --kill-after=30 300 apt-get update -o Acquire::Retries=3 &&
+              sudo timeout --kill-after=30 300 apt-get install -y \
+                --no-install-recommends -o Acquire::Retries=3 ash csh fish tcsh zsh
+          }
+          apt_install_shells || {
+            sudo sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' \
+              /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+            apt_install_shells
+          }
           # xonsh is installed with conda in step above
           # Initialize all shells
           python -m conda init --all
