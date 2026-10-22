@@ -72,6 +72,7 @@ requirements:
     - conda-rattler-solver >=0.2.0
     - conda-self >=0.3.0
   run_constrained:
+    # eMudhra Intermediate CA Compromise
     - ca-certificates >=2026.10.19
     - certifi >=2026.10.19
     - conda-build >=25.9
