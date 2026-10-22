@@ -282,11 +282,13 @@ jobs:
           run-post: false  # skip post cleanup
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
+        timeout-minutes: 10
 
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
       - name: Upgrade conda-libmamba-solver
         run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+        timeout-minutes: 10
 
       - name: Conda Install
         run: >
@@ -297,6 +299,7 @@ jobs:
           --file tests/requirements-ci.txt
           --file tests/requirements-s3.txt
           python=${{ matrix.python-version }}
+        timeout-minutes: 10
 
       - name: Conda Info
         # view test env info (not base)
@@ -333,6 +336,7 @@ jobs:
           # xonsh is installed with conda in step above
           # Initialize all shells
           python -m conda init --all
+        timeout-minutes: 30
 
       - name: Run Tests
         run: >
@@ -343,6 +347,7 @@ jobs:
           --splits=${{ env.PYTEST_SPLITS }}
           -m "${{ env.PYTEST_MARKER }}"
           ${{ env.PYTEST_EXTRA }}
+        timeout-minutes: 90
 
       - name: Upload Coverage
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
@@ -841,6 +846,7 @@ jobs:
         # for tests/shell, so only necessary for integration tests
         if: matrix.test-type == 'integration'
         run: brew update && brew install fish xonsh
+        timeout-minutes: 10
 
       - name: Run Tests
         run: >
