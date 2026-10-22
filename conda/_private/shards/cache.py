@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 import msgpack
 
 from .decompression import decompress_shard
+from .misc import ensure_hex_hashes
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -117,14 +118,9 @@ class ShardCache:
                     "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
                 )
         except sqlite3.DatabaseError as e:
-            # Python 3.11 adds sqlite_errorcode. This is meant to delete and
-            # retry on all DatabaseError for Python 3.10, but on Python 3.11+
-            # only retry on SQLITE_NOTADB. Other errors e.g. busy, locked, would
+            # Only retry on SQLITE_NOTADB. Other errors e.g. busy, locked, would
             # propagate.
-            has_errorcode = hasattr(e, "sqlite_errorcode")
-            if retry and (
-                (not has_errorcode) or (e.sqlite_errorcode == sqlite3.SQLITE_NOTADB)
-            ):
+            if retry and e.sqlite_errorcode == sqlite3.SQLITE_NOTADB:
                 log.warning("%s '%s'; remove and retry.", dburi, e)
                 try:
                     self.remove_cache()
@@ -157,11 +153,13 @@ class ShardCache:
                 "SELECT package, shard FROM shards WHERE url = ?", (url,)
             ).fetchone()
             return (
-                msgpack.loads(
-                    decompress_shard(
-                        row["shard"],
-                        url=url,
-                        package=row["package"],
+                ensure_hex_hashes(
+                    msgpack.loads(
+                        decompress_shard(
+                            row["shard"],
+                            url=url,
+                            package=row["package"],
+                        )
                     )
                 )
                 if row
@@ -180,11 +178,13 @@ class ShardCache:
         query = f"SELECT url, package, shard FROM shards WHERE url IN ({','.join(('?',) * len(urls))}) ORDER BY url"
         with self.conn as c:
             result: dict[str, ShardDict | None] = {
-                row["url"]: msgpack.loads(
-                    decompress_shard(
-                        row["shard"],
-                        url=row["url"],
-                        package=row["package"],
+                row["url"]: ensure_hex_hashes(
+                    msgpack.loads(
+                        decompress_shard(
+                            row["shard"],
+                            url=row["url"],
+                            package=row["package"],
+                        )
                     )
                 )
                 if row

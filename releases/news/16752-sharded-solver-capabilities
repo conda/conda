@@ -1,3 +1,0 @@
-### Bug fixes
-
-* Preserve `exclude_newer` capabilities when wrapping solver backends for sharded repodata. (#16752)

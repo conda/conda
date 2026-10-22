@@ -63,6 +63,8 @@ The ``conda-pypi`` workflow requires the following:
 
       conda config --set solver rattler
 
+  For more information on the rattler solver, see :doc:`Solvers <../concepts/solvers>`.
+
 Setting up the conda-pypi channel
 ---------------------------------
 

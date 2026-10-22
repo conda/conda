@@ -34,9 +34,10 @@ from ..zstd import capped_decompress
 from . import cache, decompression
 from .misc import (
     _is_http_error_most_400_codes,
+    _iter_shard_records,
     _safe_urljoin_with_slash,
     _shards_connections,
-    ensure_hex_hash,
+    ensure_hex_hashes,
     spec_to_package_name,
 )
 
@@ -164,11 +165,13 @@ class ShardFetch:
             fetch_result = future.result()
 
         # Decompress and save record
-        results[fetch_result.package] = msgpack.loads(
-            decompression.decompress_shard(
-                fetch_result.compressed_shard,
-                url=shards.url,
-                package=fetch_result.package,
+        results[fetch_result.package] = ensure_hex_hashes(
+            msgpack.loads(
+                decompression.decompress_shard(
+                    fetch_result.compressed_shard,
+                    url=shards.url,
+                    package=fetch_result.package,
+                )
             )
         )
         self.shard_cache.insert(fetch_result)
@@ -214,27 +217,68 @@ def shard_mentioned_packages(
     """
     Return all dependency names mentioned in a shard, not including the shard's
     own package name.
+
+    Callers are responsible for calling
+    ``conda._private.shards.misc.filter_redundant_packages`` on ``shard`` first if
+    "prefer .conda over .tar.bz2" semantics are required; `conda._private.shards.subset`
+    already does this for every shard before invoking this function.
     """
     unique_specs: set[str] = set()
-
-    def _yield_record(record):
-        ensure_hex_hash(record)  # otherwise we could do this at serialization
+    for record in _iter_shard_records(shard, repodata_version):
         for spec in record.get("depends", ()):
             if spec not in unique_specs:
                 unique_specs.add(spec)
                 name = spec_to_package_name(spec)
                 if name is not None:
                     yield name  # not much improvement from only yielding unique names
-
-    for record in shard["packages"].values():
-        yield from _yield_record(record)
-    for record in shard["packages.conda"].values():
-        yield from _yield_record(record)
-    if repodata_version >= 3 and (v3_data := shard.get("v3")):
-        for group in v3_data.values():
-            for record in group.values():
-                yield from _yield_record(record)
     yield from extra
+
+
+def shard_extra_depends_packages(
+    shard: ShardDict,
+    extras: Iterable[str],
+    spec_to_package_name=spec_to_package_name,
+    repodata_version: int = 1,
+) -> Iterable[str]:
+    """
+    Return dependency names mentioned in the CEP 44 ``extra_depends`` groups
+    named by ``extras``, across every record (all builds/versions) in
+    ``shard``.
+
+    This only looks at ``extra_depends`` groups attached directly to records
+    in this shard (i.e. extras requested for *this* package, typically because
+    it was named in a root/user-requested MatchSpec, e.g.
+    ``httpx[extras=cli]``). It does not recurse into ``extras=[...]`` that may
+    appear nested inside individual dependency spec strings elsewhere in the
+    graph; that is out of scope here.
+
+    Unions ``extra_depends`` across all builds/versions present in the shard
+    rather than trying to match the specific version a MatchSpec requested,
+    matching the "overgenerous" traversal philosophy documented in
+    ``conda._private.shards.subset`` (already true of ``depends`` traversal,
+    which does not filter by version either).
+
+    Callers are responsible for calling
+    ``conda._private.shards.misc.filter_redundant_packages`` on ``shard`` first if
+    "prefer .conda over .tar.bz2" semantics are required; `conda._private.shards.subset`
+    already does this for every shard before invoking this function.
+    """
+    unique_specs: set[str] = set()
+    wanted = set(extras)
+    if not wanted:
+        return
+
+    for record in _iter_shard_records(shard, repodata_version):
+        extra_depends = record.get("extra_depends")
+        if not extra_depends:
+            continue
+        for extra_name in wanted:
+            for spec in extra_depends.get(extra_name, ()):
+                if spec not in unique_specs:
+                    unique_specs.add(spec)
+                    name = spec_to_package_name(spec)
+                    if name is not None:
+                        yield name
 
 
 class ShardBase(abc.ABC):
