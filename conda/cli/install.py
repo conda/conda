@@ -346,7 +346,9 @@ def install(args, parser, command="install"):
         (UnsatisfiableError, SpecsConfigurationConflictError, SystemExit),
     ):
         with repodata_fn as repodata:
-            solver_backend = context.plugin_manager.get_cached_solver_backend()
+            solver_backend = solver_backend = (
+                context.plugin_manager.get_cached_solver_backend()
+            )
             solver = solver_backend(
                 prefix,
                 env.config.channels,

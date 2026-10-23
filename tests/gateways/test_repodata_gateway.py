@@ -84,19 +84,33 @@ def test_save(tmp_path):
     assert state3 == state2
 
 
+LAST_MODIFIED = "Thu, 26 Jan 2023 19:34:01 GMT"
+CACHE_CONTROL = "public, max-age=30"
+ETAG = '"unambiguous-etag"'
+EMPTY_JSON = "{}"
+
+
+@pytest.fixture
+def repodata_cache(tmp_path):
+    """RepodataCache() with some test data."""
+    cache = RepodataCache(tmp_path / "cacheme", "repodata.json")
+    last_modified = LAST_MODIFIED
+    cache.state.mod = last_modified
+    cache_control = CACHE_CONTROL
+    cache.state.cache_control = cache_control
+    etag = ETAG
+    cache.state.etag = etag
+    cache.save(EMPTY_JSON)
+    return cache
+
+
 def test_stale(tmp_path, mocker: MockerFixture):
     """RepodataCache should understand cache-control and modified time versus now."""
     TEST_DATA = "{}"
     now_ns = 1_800_000_000 * 10**9
     mocker.patch("conda.gateways.repodata.time.time_ns", return_value=now_ns)
-    cache = RepodataCache(tmp_path / "cacheme", "repodata.json")
-    last_modified = "Thu, 26 Jan 2023 19:34:01 GMT"
-    cache.state.mod = last_modified
-    cache_control = "public, max-age=30"
-    cache.state.cache_control = cache_control
-    etag = '"unambiguous-etag"'
-    cache.state.etag = etag
-    cache.save(TEST_DATA)
+
+    cache = repodata_cache
 
     cache.load()
     assert not cache.stale()
@@ -105,7 +119,7 @@ def test_stale(tmp_path, mocker: MockerFixture):
     # backdate
     cache.state["refresh_ns"] = now_ns - (60 * 10**9)  # type: ignore
     cache.cache_path_state.write_text(json.dumps(dict(cache.state)))
-    assert cache.load() == TEST_DATA
+    assert cache.load() == EMPTY_JSON
     assert cache.stale()
     assert cache.timeout() == -30
 
@@ -128,9 +142,9 @@ def test_stale(tmp_path, mocker: MockerFixture):
         context.local_repodata_ttl = original_ttl
 
     # since state's mtime_ns matches repodata.json stat(), these will be preserved
-    assert cache.state.mod == last_modified
-    assert cache.state.cache_control == cache_control
-    assert cache.state.etag == etag
+    assert cache.state.mod == LAST_MODIFIED
+    assert cache.state.cache_control == CACHE_CONTROL
+    assert cache.state.etag == ETAG
 
     # XXX rewrite state without replacing repodata.json, assert still stale...
 
@@ -178,6 +192,48 @@ def test_stale(tmp_path, mocker: MockerFixture):
     )
     state = cache.load_state()
     assert state.mod == "some"
+
+
+def test_repodata_state_check_mtime(repodata_cache):
+    """
+    Test that RepodataCache clears cache data when mtime doesn't match the one
+    in the stat file.
+
+    Test that it doesn't clear cache data when we ask it not to check mtime.
+    """
+    cache2 = RepodataCache(
+        repodata_cache.cache_dir / repodata_cache.name, "repodata.json"
+    )
+    assert cache2.load() == "{}"
+    assert cache2.state.etag == ETAG
+
+    # empties cache headers
+    state = json.loads(cache2.cache_path_state.read_text())
+    state["mtime_ns"] = 0
+    cache2.cache_path_state.write_text(json.dumps(state))
+
+    assert cache2.load() == "{}"
+    assert cache2.state.etag == ""
+
+    # But state with cleared etag isn't written to disk, since we haven't called
+    # a save method yet. Can we get the file without clearing etag?
+    assert cache2.load(check_mtime=False) == EMPTY_JSON
+    assert cache2.state.etag == ETAG
+
+    # And bytes version.
+    cache2.cache_path_shards.write_bytes(b"bytes")
+    assert cache2.load(binary=True, check_mtime=False) == b"bytes"
+
+    # When cache_path_* is missing (normal for the bytes xor the text path to
+    # exist), state_only=True tolerates missing files (stat is skipped on
+    # FileNotFoundError). Without state_only the error propagates.
+    cache2.cache_path_json.unlink()
+    cache2.cache_path_shards.unlink()
+    for binary, expected in [(True, b""), (False, "")]:
+        assert cache2.load(state_only=True, binary=binary, check_mtime=True) == expected
+        assert (
+            cache2.load(state_only=True, binary=binary, check_mtime=False) == expected
+        )
 
 
 def test_repodata_state_has_format():
