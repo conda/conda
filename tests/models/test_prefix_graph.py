@@ -14,7 +14,12 @@ from conda.exceptions import CyclicalDependencyError
 from conda.models.match_spec import MatchSpec
 from conda.models.prefix_graph import GeneralGraph, PrefixGraph
 from conda.models.records import PackageRecord
-from conda.testing.helpers import add_subdir_to_iter, get_solver_4, get_solver_5
+from conda.testing.helpers import (
+    add_subdir_to_iter,
+    get_solver_4,
+    get_solver_5,
+    record,
+)
 
 pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")
 
@@ -796,6 +801,65 @@ def test_sort_without_prep(tmpdir, mocker, monkeypatch: MonkeyPatch):
         records, specs = get_windows_conda_build_record_set(tmpdir)
         with pytest.raises(CyclicalDependencyError):
             graph = PrefixGraph(records, specs)
+
+
+def test_prefix_graph_sorts_disconnected_nodes_then_each_dependency_level_by_name():
+    records = (
+        record("app", depends=("lib-z", "lib-a")),
+        record("lib-z", depends=("base",)),
+        record("independent"),
+        record("lib-a", depends=("base",)),
+        record("base"),
+    )
+
+    graph = PrefixGraph(records)
+
+    assert tuple(record.name for record in graph.records) == (
+        "independent",
+        "base",
+        "lib-a",
+        "lib-z",
+        "app",
+    )
+
+
+def test_prefix_graph_keeps_dependency_levels_separate():
+    # A child exposed during one level must wait until the next level.
+    records = (
+        record("m-root"),
+        record("z-root"),
+        record("a-child", depends=("m-root",)),
+        record("z-leaf", depends=("z-root",)),
+    )
+
+    graph = PrefixGraph(records)
+
+    assert tuple(record.name for record in graph.records) == (
+        "m-root",
+        "z-root",
+        "a-child",
+        "z-leaf",
+    )
+
+
+def test_prefix_graph_handles_cycle_after_acyclic_nodes():
+    records = (
+        record("cycle-child", depends=("cycle-a",)),
+        record("leaf", depends=("base",)),
+        record("cycle-b", depends=("cycle-a",)),
+        record("base"),
+        record("cycle-a", depends=("cycle-b",)),
+    )
+
+    graph = PrefixGraph(records)
+
+    assert tuple(record.name for record in graph.records) == (
+        "base",
+        "leaf",
+        "cycle-a",
+        "cycle-b",
+        "cycle-child",
+    )
 
 
 def test_deep_cyclical_dependency(tmpdir):
