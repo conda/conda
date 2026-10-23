@@ -1,0 +1,24 @@
+### Title
+Package version ordering in conda search output.
+
+### Why
+When sharded repodata is enabled, `conda search` displayed package versions in lexicographic string order rather than `VersionOrder` (e.g., `1.11.5` before `1.3.0`).
+
+### Platforms
+- [x] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+Internet access to default channels or access to a channel serving sharded repodata.
+
+### Steps
+1. Execute `conda search maturin --override-channels -c defaults`.
+2. Inspect the unique sequence of version numbers displayed in the `Version` column.
+3. Compare the relative position of `1.3.0` and `1.11.5`.
+
+### Pass criteria
+Versions are sorted according to Conda version semantics (`VersionOrder`): `0.14.17` precedes `1.3.0`, `1.3.0` precedes `1.9.4`, and `1.9.4` precedes `1.11.5`. Single-digit minor versions appear before double-digit minor versions with the same major version.
+
+### Out of scope / notes
+Non-standard PEP 440 prerelease parsing edge cases (covered by #11721).

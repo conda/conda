@@ -444,3 +444,58 @@ def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
     local_channel = Channel(join(CHANNEL_DIR_V1, platform))
     sd = SubdirData(channel=local_channel)
     sd._read_pickled({})  # type: ignore
+
+
+@pytest.mark.parametrize(
+    "use_shards",
+    (True, False),
+)
+def test_query_all_version_order(monkeypatch: MonkeyPatch, use_shards: bool):
+    """
+    Ensure query_all returns records ordered by (name, VersionOrder(version), build),
+    preventing lexicographic sorting regression in both sharded and monolithic paths.
+    """
+    from unittest.mock import MagicMock
+
+    versions = ["1.11.5", "1.14.0", "1.3.0", "1.9.4"]
+    expected_versions = ["1.3.0", "1.9.4", "1.11.5", "1.14.0"]
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true" if use_shards else "false")
+    reset_context()
+
+    if use_shards:
+        fake_shard = MagicMock()
+        fake_shard.package_names = ["testpkg"]
+        fake_shard.base_url = "https://example.com"
+        fake_shard.iter_records_v3.return_value = [
+            (
+                (f"testpkg-{v}-0.conda", "packages.conda"),
+                {"name": "testpkg", "version": v, "build": "0", "build_number": 0},
+            )
+            for v in versions
+        ]
+
+        monkeypatch.setattr(
+            "conda._private.shards.shards.fetch_channels",
+            lambda *args, **kwargs: {"https://example.com/noarch": fake_shard},
+        )
+        monkeypatch.setattr(
+            "conda._private.shards.subset.RepodataSubset.reachable",
+            lambda *args, **kwargs: None,
+        )
+    else:
+        records_monolithic = [
+            PackageRecord(name="testpkg", version=v, build="0", build_number=0)
+            for v in versions
+        ]
+        monkeypatch.setattr(
+            "conda.core.subdir_data.SubdirData.query_all",
+            lambda *args, **kwargs: records_monolithic,
+        )
+
+    results = query_all(
+        MatchSpec("testpkg"),
+        ["https://example.com/noarch"],
+        subdirs=["noarch"],
+    )
+    assert [r.version for r in results] == expected_versions
