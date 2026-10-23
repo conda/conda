@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Retry built-in Windows package extraction to tolerate transient file-handle contention. (#15969 via #16353)
