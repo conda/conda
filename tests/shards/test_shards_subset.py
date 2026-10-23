@@ -16,7 +16,8 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-from requests.exceptions import HTTPError
+import responses
+from requests.exceptions import ConnectionError, HTTPError, SSLError
 
 import conda.gateways.repodata
 from conda._private.shards import cache as shards_cache
@@ -40,6 +41,7 @@ from conda._private.shards.subset import (
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.core.subdir_data import SubdirData
+from conda.exceptions import CondaHTTPError, CondaSSLError
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
@@ -1051,6 +1053,56 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkey
 
     network_thread.join(1)
     assert not network_thread.is_alive()
+
+
+@pytest.mark.parametrize("status", [401, 403, 404, 429, 502, 503, 504])
+def test_pipelined_shard_http_error(http_server_shards, tmp_path, mocker, status):
+    """Translate shard request errors after propagation through worker futures."""
+    mocker.patch("conda.gateways.repodata.create_cache_dir", return_value=str(tmp_path))
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+    shards = fetch_shards_index(SubdirData(channel))
+    assert shards is not None
+    shard_url = shards.shard_url("foo")
+
+    with responses.RequestsMock() as requests:
+        requests.add_passthru(http_server_shards)
+        requests.get(shard_url, status=status)
+        with pytest.raises(CondaHTTPError) as exc:
+            build_repodata_subset(
+                ["foo"], expand_channels([channel]), algorithm="pipelined"
+            )
+
+    assert exc.value._kwargs["url"] == shard_url
+    assert exc.value._kwargs["status_code"] == status
+    cause = exc.value._caused_by
+    assert isinstance(cause, HTTPError)
+    assert cause.response.status_code == status
+    assert cause.response.url == shard_url
+
+
+@pytest.mark.parametrize(
+    "request_error,conda_error",
+    [(ConnectionError, CondaHTTPError), (SSLError, CondaSSLError)],
+)
+def test_pipelined_shard_connection_error(
+    http_server_shards, tmp_path, mocker, request_error, conda_error
+):
+    """Translate errors raised while opening a shard response, too."""
+    mocker.patch("conda.gateways.repodata.create_cache_dir", return_value=str(tmp_path))
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+    shards = fetch_shards_index(SubdirData(channel))
+    assert shards is not None
+    shard_url = shards.shard_url("foo")
+
+    with responses.RequestsMock() as requests:
+        requests.add_passthru(http_server_shards)
+        requests.get(shard_url, body=request_error("shard connection failed"))
+        with pytest.raises(conda_error) as exc:
+            build_repodata_subset(
+                ["foo"], expand_channels([channel]), algorithm="pipelined"
+            )
+
+    assert isinstance(exc.value.__context__, request_error)
 
 
 # endregion
