@@ -16,13 +16,18 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.constants import (
+    PREFIX_CREATION_TIMESTAMP_FILE,
     PREFIX_LAST_ACTIVATED_FILE,
     PREFIX_PINNED_FILE,
     PREFIX_STATE_FILE,
 )
 from conda.common.compat import on_win
 from conda.common.path.python import get_python_site_packages_short_path
-from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
+from conda.core.prefix_data import (
+    PrefixData,
+    _parse_creation_marker,
+    get_conda_anchor_files_and_records,
+)
 from conda.exceptions import CondaError, CondaValueError, CorruptedEnvironmentError
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
@@ -1080,6 +1085,42 @@ def test_timestamps(
         assert created == pd.created
         assert first_modification < second_modification
         assert start < pd.created < second_modification < datetime.now(tz=UTC)
+
+
+@pytest.mark.parametrize(
+    "marker, expected",
+    [
+        ("2026-10-21T18:30:00+00:00", datetime(2026, 10, 21, 18, 30, tzinfo=UTC)),
+        ("2026-10-21 18:30:00+00:00", datetime(2026, 10, 21, 18, 30, tzinfo=UTC)),
+        ("1792607400.0", datetime.fromtimestamp(1792607400.0, tz=UTC)),
+    ],
+)
+def test_parse_creation_marker(marker: str, expected: datetime):
+    assert _parse_creation_marker(marker) == expected
+
+
+def test_parse_creation_marker_invalid():
+    assert _parse_creation_marker("not-a-timestamp") is None
+
+
+def test_set_creation_time_writes_portable_marker(tmp_path):
+    prefix = tmp_path / "prefix"
+    (prefix / "conda-meta").mkdir(parents=True)
+    prefix_data = PrefixData(prefix)
+
+    before = datetime.now(tz=UTC)
+    prefix_data.set_creation_time()
+    marker = prefix / PREFIX_CREATION_TIMESTAMP_FILE
+    after = datetime.now(tz=UTC)
+
+    marker_value = marker.read_text()
+    parsed = _parse_creation_marker(marker_value)
+    assert parsed is not None
+    assert before <= parsed <= after
+
+    marker.write_text("1792607400.0")
+    prefix_data.set_creation_time()
+    assert marker.read_text() == "1792607400.0"
 
 
 def test_last_activated(tmp_env: TmpEnvFixture):
