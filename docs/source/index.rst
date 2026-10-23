@@ -9,7 +9,7 @@ using conda in your own projects.
 Install  :octicon:`download;1em;sd-text-primary`
 ................................................
 
-We recommend the following conda distribtions to install conda:
+We recommend the following conda distributions to install conda:
 
 .. grid:: 2
 
