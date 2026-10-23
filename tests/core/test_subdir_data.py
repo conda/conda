@@ -14,7 +14,7 @@ from conda import CondaError
 from conda.base.context import context, reset_context
 from conda.core.index import Index
 from conda.core.subdir_data import SubdirData, cache_fn_url, query_all
-from conda.exceptions import CondaUpgradeError
+from conda.exceptions import CondaUpgradeError, CondaValueError
 from conda.gateways.repodata import (
     CondaRepoInterface,
     RepodataCache,
@@ -29,6 +29,8 @@ from conda.utils import url_path
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
+
+    from conda.testing.fixtures import TmpRepodataChannelFixture
 
 log = getLogger(__name__)
 
@@ -444,3 +446,45 @@ def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
     local_channel = Channel(join(CHANNEL_DIR_V1, platform))
     sd = SubdirData(channel=local_channel)
     sd._read_pickled({})  # type: ignore
+
+
+@pytest.mark.parametrize("digest", [None, "a" * 64], ids=["absent", "advertised"])
+@pytest.mark.parametrize("source", ["fresh", "raw-pickle", "materialized-pickle"])
+def test_attestations_sha256_survives_repodata_cache(
+    tmp_repodata_channel: TmpRepodataChannelFixture,
+    tmp_pkgs_dir: Path,
+    digest: str | None,
+    source: str,
+):
+    package = {"name": "attested-package"}
+    if digest is not None:
+        package["attestations_sha256"] = digest
+    channel, _ = tmp_repodata_channel([package])
+    subdir = SubdirData(Channel((channel / "noarch").as_uri())).load()
+
+    if source == "fresh":
+        records = subdir.iter_records()
+    else:
+        if source == "materialized-pickle":
+            tuple(subdir.iter_records())
+        subdir._pickle_me()
+        cached = subdir._read_pickled(subdir.repo_cache.load_state())
+        assert cached is not None
+        records = iter(cached["_package_records"])
+
+    (record,) = records
+    assert record.get("attestations_sha256") == digest
+    assert ("attestations_sha256" in record.dump()) == (digest is not None)
+
+
+def test_repodata_rejects_null_attestations_sha256(
+    tmp_repodata_channel: TmpRepodataChannelFixture,
+    tmp_pkgs_dir: Path,
+):
+    channel, _ = tmp_repodata_channel(
+        [{"name": "attested-package", "attestations_sha256": None}]
+    )
+    subdir = SubdirData(Channel((channel / "noarch").as_uri()))
+
+    with pytest.raises(CondaValueError, match="attestations_sha256"):
+        tuple(subdir.iter_records())

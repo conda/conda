@@ -14,12 +14,14 @@ from os.path import basename, dirname, getsize, isdir, isfile, join, normpath
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
+from conda_package_handling.utils import checksums
+
 from .. import CondaError
 from ..auxlib.ish import dals
 from ..base.constants import CONDA_TEMP_EXTENSION
 from ..base.context import context
 from ..common.compat import on_win
-from ..common.constants import TRACE
+from ..common.constants import NULL, TRACE
 from ..common.path import (
     BIN_DIRECTORY,
     get_leaf_directories,
@@ -1076,7 +1078,14 @@ class CreatePrefixRecordAction(CreateInPrefixPathAction):
             paths_data=paths_data,
             files=files,
             link=link,
-            url=self.package_info.url,
+            url=(
+                self.package_info.repodata_record.url
+                if self.package_info.repodata_record.get("attestations_sha256")
+                else self.package_info.url
+            ),
+            attestations_sha256=self.package_info.repodata_record.get(
+                "attestations_sha256", NULL
+            ),
             extracted_package_dir=extracted_package_dir,
             package_tarball_full_path=package_tarball_full_path,
         )
@@ -1486,12 +1495,14 @@ class ExtractPackageAction(PathAction):
         sha256,
         size,
         md5,
+        cache_record: PackageCacheRecord | None = None,
     ):
         self.source_full_path = source_full_path
         self.target_pkgs_dir = target_pkgs_dir
         self.target_extracted_dirname = target_extracted_dirname
         self.hold_path = self.target_full_path + CONDA_TEMP_EXTENSION
         self.record_or_spec = record_or_spec
+        self.cache_record = cache_record
         self.sha256 = sha256
         self.size = size
         self.md5 = md5
@@ -1508,10 +1519,33 @@ class ExtractPackageAction(PathAction):
         self._finish_extract()
 
     def _prepare_extract(self):
+        if self.record_or_spec.get("attestations_sha256"):
+            # The advertisement applies to the selected archive, including its format.
+            if basename(self.source_full_path) != self.record_or_spec.fn:
+                raise CondaError(
+                    "The archive filename does not match the selected package record."
+                )
+            if self.size is not None and getsize(self.source_full_path) != self.size:
+                raise CondaError(
+                    "The archive size does not match the selected package record."
+                )
+            expected = {
+                algorithm: digest
+                for algorithm in ("sha256", "md5")
+                if (digest := self.record_or_spec.get(algorithm))
+            }
+            if expected:
+                actual = checksums(self.source_full_path, expected)
+                for algorithm, digest in zip(expected, actual):
+                    if digest != expected[algorithm]:
+                        raise CondaError(
+                            f"The archive {algorithm} does not match the selected package record."
+                        )
         log.log(
             TRACE, "extracting %s => %s", self.source_full_path, self.target_full_path
         )
 
+        self._extract_prepared = True
         if lexists(self.target_full_path):
             rm_rf(self.target_full_path)
 
@@ -1532,7 +1566,20 @@ class ExtractPackageAction(PathAction):
             )
             sys.exit(1)
 
-        if isinstance(self.record_or_spec, MatchSpec):
+        if self.cache_record is not None and not self.record_or_spec.get(
+            "attestations_sha256"
+        ):
+            # Keep prior cache metadata separate from an explicit URL selection.
+            repodata_record = PackageRecord.from_objects(
+                self.cache_record,
+                raw_index_json,
+                attestations_sha256=(
+                    self.cache_record.get("attestations_sha256", NULL)
+                    if isinstance(self.record_or_spec, MatchSpec)
+                    else NULL
+                ),
+            )
+        elif isinstance(self.record_or_spec, MatchSpec):
             url = self.record_or_spec.get_raw_value("url")
             if not url:
                 raise ValueError("URL cannot be empty.")
@@ -1551,6 +1598,7 @@ class ExtractPackageAction(PathAction):
             md5 = self.md5 or compute_sum(self.source_full_path, "md5")
             repodata_record = PackageRecord.from_objects(
                 raw_index_json,
+                attestations_sha256=NULL,
                 url=url,
                 channel=channel,
                 fn=fn,
@@ -1560,7 +1608,11 @@ class ExtractPackageAction(PathAction):
             )
         else:
             repodata_record = PackageRecord.from_objects(
-                self.record_or_spec, raw_index_json
+                self.record_or_spec,
+                raw_index_json,
+                attestations_sha256=self.record_or_spec.get(
+                    "attestations_sha256", NULL
+                ),
             )
 
         repodata_record_path = join(
@@ -1577,6 +1629,8 @@ class ExtractPackageAction(PathAction):
         target_package_cache.insert(package_cache_record)
 
     def reverse(self):
+        if not getattr(self, "_extract_prepared", False):
+            return
         rm_rf(self.target_full_path)
         if lexists(self.hold_path):
             log.log(TRACE, "moving %s => %s", self.hold_path, self.target_full_path)

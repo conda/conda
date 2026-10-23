@@ -44,7 +44,13 @@ from ..common.serialize import json
 from ..common.signals import signal_handler
 from ..common.terminal import is_tty, term_dumb
 from ..common.url import path_to_url
-from ..exceptions import NotWritableError, NoWritablePkgsDirError, PluginError
+from ..exceptions import (
+    CondaValueError,
+    NotWritableError,
+    NoWritablePkgsDirError,
+    OfflineError,
+    PluginError,
+)
 from ..gateways.disk.create import (
     create_package_cache_directory,
     write_as_json_to_file,
@@ -306,9 +312,14 @@ class PackageCacheData(metaclass=PackageCacheType):
 
     @classmethod
     def get_entry_to_link(cls, package_ref, target_prefix=None):
+        advertised = bool(package_ref.get("attestations_sha256"))
         first_extracted = None
         for pcrec in cls.query_all(package_ref):
             if not pcrec.is_extracted:
+                continue
+            if advertised and (
+                not pcrec.is_fetched or not pcrec.matches_metadata(package_ref)
+            ):
                 continue
             if first_extracted is None:
                 first_extracted = pcrec
@@ -322,6 +333,11 @@ class PackageCacheData(metaclass=PackageCacheType):
 
         if first_extracted is not None:
             return first_extracted
+
+        if advertised:
+            raise CondaError(
+                "The selected package archive is unavailable in the cache."
+            )
 
         # this can happen with `conda install path/to/package.tar.bz2`
         #   because dist has channel '<unknown>'
@@ -453,6 +469,9 @@ class PackageCacheData(metaclass=PackageCacheType):
                 extracted_package_dir=extracted_package_dir,
             )
             return package_cache_record
+        except CondaValueError:
+            # Invalid advertised metadata must not fall back to archive contents.
+            raise
         except (OSError, json.JSONDecodeError, ValueError, FileNotFoundError) as e:
             # EnvironmentError: info/repodata_record.json doesn't exists
             # json.JSONDecodeError: info/repodata_record.json is partially extracted or corrupted
@@ -545,6 +564,7 @@ class PackageCacheData(metaclass=PackageCacheType):
             url = self._urls_data.get_url(package_filename)
             package_cache_record = PackageCacheRecord.from_objects(
                 raw_json_record,
+                attestations_sha256=NULL,
                 url=url,
                 fn=basename(package_tarball_full_path),
                 md5=md5,
@@ -660,6 +680,7 @@ class ProgressiveFetchExtract:
         sha256 = pref_or_spec.get("sha256")
         size = pref_or_spec.get("size")
         md5 = pref_or_spec.get("md5")
+        advertised = bool(pref_or_spec.get("attestations_sha256"))
 
         extracted_pcrec = next(
             (
@@ -673,7 +694,8 @@ class ProgressiveFetchExtract:
             None,
         )
         if (
-            extracted_pcrec
+            not advertised
+            and extracted_pcrec
             and extracted_pcrec.matches_metadata(pref_or_spec)
             and extracted_pcrec.get("url")
         ):
@@ -692,14 +714,13 @@ class ProgressiveFetchExtract:
                     for pcache in PackageCacheData.writable_caches()
                 )
                 if pcrec.is_fetched
+                and pcrec.matches_metadata(pref_or_spec)
+                and pcrec.get("url")
             ),
             None,
         )
-        if (
-            pcrec_from_writable_cache
-            and pcrec_from_writable_cache.matches_metadata(pref_or_spec)
-            and pcrec_from_writable_cache.get("url")
-        ):
+        if pcrec_from_writable_cache:
+            archive_record = pref_or_spec if advertised else pcrec_from_writable_cache
             # extract in place
             extract_action = ExtractPackageAction(
                 source_full_path=pcrec_from_writable_cache.package_tarball_full_path,
@@ -709,10 +730,11 @@ class ProgressiveFetchExtract:
                 target_extracted_dirname=basename(
                     pcrec_from_writable_cache.extracted_package_dir
                 ),
-                record_or_spec=pcrec_from_writable_cache,
-                sha256=pcrec_from_writable_cache.sha256 or sha256,
-                size=pcrec_from_writable_cache.size or size,
-                md5=pcrec_from_writable_cache.md5 or md5,
+                record_or_spec=pref_or_spec,
+                cache_record=pcrec_from_writable_cache,
+                sha256=archive_record.get("sha256") or sha256,
+                size=archive_record.get("size") or size,
+                md5=archive_record.get("md5") or md5,
             )
             return None, extract_action
 
@@ -723,15 +745,14 @@ class ProgressiveFetchExtract:
                     pcache.query(pref_or_spec)
                     for pcache in PackageCacheData.read_only_caches()
                 )
-                if pcrec.is_fetched
+                if pcrec.is_fetched and pcrec.matches_metadata(pref_or_spec)
             ),
             None,
         )
 
         first_writable_cache = PackageCacheData.first_writable()
-        if pcrec_from_read_only_cache and pcrec_from_read_only_cache.matches_metadata(
-            pref_or_spec
-        ):
+        if pcrec_from_read_only_cache:
+            archive_record = pref_or_spec if advertised else pcrec_from_read_only_cache
             # we found a tarball, but it's in a read-only package cache
             # we need to link the tarball into the first writable package cache,
             #   and then extract
@@ -739,9 +760,9 @@ class ProgressiveFetchExtract:
                 url=path_to_url(pcrec_from_read_only_cache.package_tarball_full_path),
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_package_basename=pcrec_from_read_only_cache.fn,
-                sha256=pcrec_from_read_only_cache.get("sha256") or sha256,
-                size=pcrec_from_read_only_cache.get("size") or size,
-                md5=pcrec_from_read_only_cache.get("md5") or md5,
+                sha256=archive_record.get("sha256") or sha256,
+                size=archive_record.get("size") or size,
+                md5=archive_record.get("md5") or md5,
             )
             trgt_extracted_dirname = strip_pkg_extension(pcrec_from_read_only_cache.fn)[
                 0
@@ -750,10 +771,11 @@ class ProgressiveFetchExtract:
                 source_full_path=cache_action.target_full_path,
                 target_pkgs_dir=first_writable_cache.pkgs_dir,
                 target_extracted_dirname=trgt_extracted_dirname,
-                record_or_spec=pcrec_from_read_only_cache,
-                sha256=pcrec_from_read_only_cache.get("sha256") or sha256,
-                size=pcrec_from_read_only_cache.get("size") or size,
-                md5=pcrec_from_read_only_cache.get("md5") or md5,
+                record_or_spec=pref_or_spec,
+                cache_record=pcrec_from_read_only_cache,
+                sha256=archive_record.get("sha256") or sha256,
+                size=archive_record.get("size") or size,
+                md5=archive_record.get("md5") or md5,
             )
             return cache_action, extract_action
 
@@ -762,6 +784,10 @@ class ProgressiveFetchExtract:
         url = pref_or_spec.get("url")
         if not url:
             raise ValueError(".url field is required and must be non-empty.")
+        if advertised and context.offline and not url.startswith("file:"):
+            raise OfflineError(
+                "The selected package archive is unavailable in the cache."
+            )
 
         # Determine the target filename for the downloaded package.
         # For the draft repodata v3 format (especially packages.whl), while the
