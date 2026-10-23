@@ -557,7 +557,7 @@ class LoadedParameter(metaclass=ABCMeta):
             for attr_name, attr_value in vars(self.value).items():
                 if isinstance(attr_value, LoadedParameter):
                     self.value.__setattr__(attr_name, attr_value.expand())
-            return self.value
+            return self
         else:
             new_value = expand_environment_variables(self.value)
         self.value = new_value

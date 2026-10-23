@@ -8,6 +8,7 @@ into one global stateful object to be used across all of conda.
 
 from __future__ import annotations
 
+import copy
 import logging
 import os
 import platform
@@ -37,7 +38,11 @@ from ..common.configuration import (
     DEFAULT_CONDARC_FILENAME,
     Configuration,
     ConfigurationLoadError,
+    ConfigurationObject,
     MapParameter,
+    ObjectLoadedParameter,
+    ObjectParameter,
+    Parameter,
     ParameterLoader,
     PrimitiveParameter,
     SequenceParameter,
@@ -216,6 +221,45 @@ def ssl_verify_validation(value: str) -> str | Literal[True]:
     return True
 
 
+class PkgsDirConfig(ConfigurationObject):
+    """A ``pkgs_dirs`` entry and the policies for that package cache."""
+
+    def __init__(self):
+        self.path = PrimitiveParameter("", str)
+        self.read_only = PrimitiveParameter(False)
+        self.allow_softlinks = PrimitiveParameter(False)
+        self.always_softlink = PrimitiveParameter(False)
+
+
+def pkgs_dir_validation(value: PkgsDirConfig) -> str | Literal[True]:
+    if not value.path:
+        return "pkgs_dirs entries must have a 'path'."
+    return True
+
+
+class PkgsDirParameter(ObjectParameter):
+    """A ``pkgs_dirs`` entry, given as a path string or a map of ``PkgsDirConfig`` fields."""
+
+    def load(self, name, match):
+        if not isinstance(match.value(self._element_type), str):
+            return super().load(name, match)
+
+        # a plain path string uses the defaults for every policy
+        config = copy.deepcopy(self._element_type)
+        config.path = config.path.load(name, match)
+        for attr_name, parameter in vars(config).items():
+            if isinstance(parameter, Parameter):
+                setattr(config, attr_name, parameter.default)
+        return ObjectLoadedParameter(
+            name,
+            config,
+            self._element_type,
+            match.keyflag(),
+            None,
+            validation=self._validation,
+        )
+
+
 class Context(Configuration):
     add_pip_as_python_dependency = ParameterLoader(PrimitiveParameter(True))
     allow_conda_downgrades = ParameterLoader(PrimitiveParameter(False))
@@ -336,7 +380,9 @@ class Context(Configuration):
         expandvars=True,
     )
     _pkgs_dirs = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", str)),
+        SequenceParameter(
+            PkgsDirParameter(PkgsDirConfig(), validation=pkgs_dir_validation)
+        ),
         aliases=("pkgs_dirs",),
         expandvars=True,
     )
@@ -831,7 +877,7 @@ class Context(Configuration):
     @property
     def pkgs_dirs(self) -> tuple[PathType, ...]:
         if self._pkgs_dirs:
-            return tuple(dict.fromkeys(expand(p) for p in self._pkgs_dirs))
+            return tuple(dict.fromkeys(expand(p.path) for p in self._pkgs_dirs))
         else:
             cache_dir_name = "pkgs32" if context.force_32bit else "pkgs"
             fixed_dirs = (
@@ -1911,7 +1957,9 @@ class Context(Configuration):
                 """
                 The list of directories where locally-available packages are linked from at
                 install time. Packages not locally available are downloaded and extracted
-                into the first writable directory.
+                into the first writable directory. Each entry is either a path or a map
+                with the keys 'path' (required), 'read_only', 'allow_softlinks' and
+                'always_softlink' (all default false).
                 """
             ),
             proxy_servers=dals(
