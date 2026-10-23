@@ -14,7 +14,6 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
-  queue: max
   cancel-in-progress: false
 
 permissions:
