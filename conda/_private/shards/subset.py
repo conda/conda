@@ -71,6 +71,7 @@ from .decompression import decompress_shard
 from .misc import (
     _shards_connections,
     combine_batches_until_none,
+    ensure_hex_hashes,
     exception_to_queue,
     filter_redundant_packages,
     spec_to_package_name,
@@ -811,11 +812,13 @@ def network_fetch_thread(
         # Decompress and parse. If it decodes as
         # msgpack.zst, insert into cache. Then put "known
         # good" shard into out queue.
-        shard: ShardDict = msgpack.loads(
-            decompress_shard(
-                data,
-                url=node_id.channel,
-                package=node_id.package,
+        shard: ShardDict = ensure_hex_hashes(
+            msgpack.loads(
+                decompress_shard(
+                    data,
+                    url=node_id.channel,
+                    package=node_id.package,
+                )
             )
         )  # type: ignore[assign]
         # This may be a QueueCache which lets the cache thread serialize access

@@ -10,6 +10,7 @@ Concepts
    packages
    pkg-specs
    pkg-search
+   solvers
    channels
    environments
    installing-with-conda
@@ -33,6 +34,9 @@ in conda, including information about packages, channels, environments, and plug
 
     :doc:`Package search and install <pkg-search>`
         The search specifications for a package (for the ``conda install`` and ``conda search`` commands)
+
+    :doc:`Solvers <solvers>`
+        Learn about the different solvers available in conda and how to use them
 
     :doc:`Channels <channels>`
         Learn about channels and how they host packages

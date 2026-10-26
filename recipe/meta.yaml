@@ -14,6 +14,9 @@ source:
 
 build:
   skip: true  # [win and arm64 and py < 314]
+  # Keep the installed PowerShell hook independent of the builder's prompt preference.
+  script_env:
+    - CONDA_CHANGEPS1=true
   # conda-build applies selectors before parsing YAML, so the copy command is
   # removed on non-Windows platforms before this string is folded.
   script: >-
@@ -76,6 +79,9 @@ requirements:
     - conda-rattler-solver
     - conda-self >=0.3.0
   run_constrained:
+    # eMudhra Intermediate CA Compromise
+    - ca-certificates >=2026.10.19
+    - certifi >=2026.10.19
     - conda-build >=25.9
     # minimum version when conda-content-trust plugin is installed
     - conda-content-trust >=0.3.0

@@ -26,6 +26,7 @@ import conda.gateways.repodata
 from conda._private import zstd
 from conda._private.shards import cache as shards_cache
 from conda._private.shards import decompression as shard_decompression
+from conda._private.shards import misc as shards_misc
 from conda._private.shards import shards
 from conda._private.shards import subset as shards_subset
 from conda._private.shards.shards import (
@@ -554,12 +555,6 @@ def test_shard_mentioned_packages_2():
         )
     )
 
-    # check that the bytes hash was converted to hex
-    assert (
-        FAKE_SHARD["packages.conda"]["foo.conda"]["sha256"]
-        == hashlib.sha256().hexdigest()
-    )  # type: ignore
-
 
 def test_shard_mentioned_packages_invalid_spec_skipped():
     # An unparseable spec is silently skipped; valid deps are still yielded and
@@ -634,17 +629,6 @@ def test_shard_mentioned_packages_v3_deduplication_across_classic_and_v3():
     }
     names = list(shard_mentioned_packages(shard, repodata_version=3))
     assert names.count("openssl") == 1
-
-
-def test_shard_mentioned_packages_v3_ensures_hex_hash(mocker):
-    # spy on the name as bound inside shards.py (imported by-name at module level)
-    spy = mocker.spy(shards, "ensure_hex_hash")
-    record = {"sha256": b"\xde\xad\xbe\xef" * 8, "depends": ["zlib >=1.2"]}
-    shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": record}})
-    list(shard_mentioned_packages(shard, repodata_version=3))
-    spy.assert_called()
-    # ensure_hex_hash mutates in-place
-    assert record["sha256"] == "deadbeef" * 8
 
 
 def test_shard_mentioned_packages_v3_empty():
@@ -909,6 +893,31 @@ def test_shards_cache(tmp_path: Path):
     assert (tmp_path / shards_cache.SHARD_CACHE_NAME).exists()
 
     cache.close()
+
+
+def test_shards_cache_normalizes_hashes(tmp_path: Path):
+    """Raw-bytes hashes are normalized to hex when a shard is decoded."""
+    raw = bytes.fromhex("ab" * 32)
+    fake_shard = {
+        "packages": {"mypkg-1.0-0.tar.bz2": {"name": "mypkg", "md5": list(raw)}},
+        "packages.conda": {"mypkg-1.0-0.conda": {"name": "mypkg", "sha256": raw}},
+    }
+    annotated_shard = shards_cache.AnnotatedRawShard(
+        "https://example.com/noarch/shards/abcd",
+        "mypkg",
+        zstd.compress(msgpack.dumps(fake_shard)),  # type: ignore
+    )
+    with shards_cache.ShardCache(tmp_path) as cache:
+        cache.insert(annotated_shard)
+        single = cache.retrieve(annotated_shard.url)
+        multiple = cache.retrieve_multiple([annotated_shard.url])
+
+    assert single["packages"]["mypkg-1.0-0.tar.bz2"]["md5"] == raw.hex()
+    assert single["packages.conda"]["mypkg-1.0-0.conda"]["sha256"] == raw.hex()
+    assert (
+        multiple[annotated_shard.url]["packages"]["mypkg-1.0-0.tar.bz2"]["md5"]
+        == raw.hex()
+    )
 
 
 def test_shard_size_limits():
@@ -1455,11 +1464,40 @@ def test_ensure_hex_hash_in_record():
             "md5": md5,
         }
 
-        updated = shards.ensure_hex_hash(record)  # type: ignore
+        updated = shards_misc._ensure_hex_hash(record)  # type: ignore
         assert isinstance(updated["sha256"], str)  # type: ignore
         assert updated["sha256"] == sha256_hash.hexdigest()  # type: ignore
         assert isinstance(updated["md5"], str)  # type: ignore
         assert updated["md5"] == md5_hash.hexdigest()  # type: ignore
+
+
+@pytest.mark.parametrize("convert", (bytes, list, bytes.hex))
+@pytest.mark.parametrize(
+    "field", ("sha256", "md5", "legacy_bz2_md5", "attestations_sha256")
+)
+def test_ensure_hex_hash_all_hash_fields(field, convert):
+    digest = bytes.fromhex("ab" * 16)
+    record = {"name": "package", field: convert(digest)}
+    assert shards_misc._ensure_hex_hash(record)[field] == digest.hex()
+    assert json.loads(json.dumps(record)) == {"name": "package", field: digest.hex()}
+
+
+def test_ensure_hex_hashes_normalizes_shard():
+    """Raw-bytes hashes in a decoded shard must come out JSON-serializable."""
+    raw = bytes.fromhex("ab" * 32)
+    shard = {
+        "packages": {"mypkg-1.0-0.tar.bz2": {"name": "mypkg", "md5": raw}},
+        "packages.conda": {"mypkg-1.0-0.conda": {"name": "mypkg", "sha256": raw}},
+        "v3": {"whl": {"mypkg-1.0-py3_none_any_0": {"attestations_sha256": raw}}},
+    }
+    shards_misc.ensure_hex_hashes(shard)
+    assert shard["packages"]["mypkg-1.0-0.tar.bz2"]["md5"] == raw.hex()
+    assert shard["packages.conda"]["mypkg-1.0-0.conda"]["sha256"] == raw.hex()
+    assert (
+        shard["v3"]["whl"]["mypkg-1.0-py3_none_any_0"]["attestations_sha256"]
+        == raw.hex()
+    )
+    json.dumps(shard)
 
 
 @pytest.mark.integration

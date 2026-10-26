@@ -34,9 +34,10 @@ from ..zstd import capped_decompress
 from . import cache, decompression
 from .misc import (
     _is_http_error_most_400_codes,
+    _iter_shard_records,
     _safe_urljoin_with_slash,
     _shards_connections,
-    ensure_hex_hash,
+    ensure_hex_hashes,
     spec_to_package_name,
 )
 
@@ -50,7 +51,7 @@ if TYPE_CHECKING:
 
     from conda.gateways.repodata import RepodataCache
 
-    from .typing import PackageRecordDict, RepodataDict, ShardDict, ShardsIndexDict
+    from .typing import RepodataDict, ShardDict, ShardsIndexDict
 
 
 class ShardFetch:
@@ -164,11 +165,13 @@ class ShardFetch:
             fetch_result = future.result()
 
         # Decompress and save record
-        results[fetch_result.package] = msgpack.loads(
-            decompression.decompress_shard(
-                fetch_result.compressed_shard,
-                url=shards.url,
-                package=fetch_result.package,
+        results[fetch_result.package] = ensure_hex_hashes(
+            msgpack.loads(
+                decompression.decompress_shard(
+                    fetch_result.compressed_shard,
+                    url=shards.url,
+                    package=fetch_result.package,
+                )
             )
         )
         self.shard_cache.insert(fetch_result)
@@ -205,23 +208,6 @@ class ShardFetch:
                     shard_fetch._fetched = True
 
 
-def _iter_shard_records(
-    shard: ShardDict, repodata_version: int = 1
-) -> Iterable[PackageRecordDict]:
-    """
-    Yield every package record in a shard: classic ``packages``,
-    ``packages.conda``, and (when ``repodata_version >= 3``) all ``v3`` groups.
-    """
-    for record in shard["packages"].values():
-        yield record
-    for record in shard["packages.conda"].values():
-        yield record
-    if repodata_version >= 3 and (v3_data := shard.get("v3")):
-        for group in v3_data.values():
-            for record in group.values():
-                yield record
-
-
 def shard_mentioned_packages(
     shard: ShardDict,
     extra: Iterable[str] = (),
@@ -239,7 +225,6 @@ def shard_mentioned_packages(
     """
     unique_specs: set[str] = set()
     for record in _iter_shard_records(shard, repodata_version):
-        ensure_hex_hash(record)  # otherwise we could do this at serialization
         for spec in record.get("depends", ()):
             if spec not in unique_specs:
                 unique_specs.add(spec)
