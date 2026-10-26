@@ -291,7 +291,7 @@ def shard_mentioned_package_extras(
     """
     Return ``(name, extras)`` for each dependency spec in a shard, where
     ``extras`` are the CEP 44 extras explicitly requested by that spec (e.g.
-    ``pkg-u[extras=more]`` -> ``("pkg-u", frozenset({"more"}))``).
+    ``pkg[extras=more]`` -> ``("pkg", frozenset({"more"}))``).
 
     Specs come from every record's ``depends`` (when ``include_depends`` is
     true) and from the ``extra_depends`` groups named by ``extras``. As with
