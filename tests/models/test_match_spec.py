@@ -1933,6 +1933,7 @@ def any_solver(request):
 @pytest.mark.parametrize(
     "spec,name,channel,extras",
     [
+        ("httpx2[extras=cli,http2]", "httpx2", None, ("cli", "http2")),
         ("httpx2[extras=[cli,http2]]", "httpx2", None, ("cli", "http2")),
         ("httpx2[extras=[cli, http2]]", "httpx2", None, ("cli", "http2")),
         ("httpx2[extras=[cli]]", "httpx2", None, ("cli",)),
