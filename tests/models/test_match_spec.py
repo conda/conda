@@ -1921,12 +1921,22 @@ def test_extra_specs(match_spec_v3):
         MatchSpec("package[a,b]")
 
 
+@pytest.fixture(params=["libmamba", "classic", "rattler"])
+def any_solver(request):
+    """Parse MatchSpec strings under every solver (the parser must not depend on it)."""
+    request.getfixturevalue(f"solver_{request.param}")
+    _PARSE_CACHE.clear()
+    yield request.param
+    _PARSE_CACHE.clear()
+
+
 @pytest.mark.parametrize(
     "spec,name,channel,extras",
     [
         ("httpx2[extras=[cli,http2]]", "httpx2", None, ("cli", "http2")),
         ("httpx2[extras=[cli, http2]]", "httpx2", None, ("cli", "http2")),
         ("httpx2[extras=[cli]]", "httpx2", None, ("cli",)),
+        ("httpx2[extras=cli]", "httpx2", None, ("cli",)),
         (
             "conda-pypi::httpx2[extras=[cli,http2]]",
             "httpx2",
@@ -1935,14 +1945,37 @@ def test_extra_specs(match_spec_v3):
         ),
     ],
 )
-def test_extras_list_with_default_solver(spec, name, channel, extras):
-    """List-style extras parse without selecting the rattler solver."""
-    _PARSE_CACHE.clear()
+def test_extras_list_any_solver(any_solver, spec, name, channel, extras):
     ms = MatchSpec(spec)
     assert ms.name == name
-    assert ms.get_exact_value("extras") == extras
+    assert ms.get("extras") == extras
     assert (ms.get("channel").name if ms.get("channel") else None) == channel
-    _PARSE_CACHE.clear()
+    # round trip through str()
+    assert MatchSpec(str(ms)) == ms
+
+
+def test_flags_list_any_solver(any_solver):
+    assert MatchSpec("pkg[flags=[cpu,avx2]]").get("flags") == ("cpu", "avx2")
+
+
+@pytest.mark.parametrize(
+    "spec,version",
+    [
+        ("numpy[version<2]", "<2"),
+        ("numpy[version>=1.0,<2]", ">=1.0,<2"),
+    ],
+)
+def test_bracket_version_without_equals_any_solver(any_solver, spec, version):
+    """The constraint is applied (and deprecated), not silently dropped."""
+    with pytest.deprecated_call(match=f"Please use `version='{version}'`"):
+        ms = MatchSpec(spec)
+    assert ms.get("version") == VersionSpec(version)
+
+
+@pytest.mark.parametrize("spec", ["numpy[<2]", "numpy[>=1.0]", "package[a,b]"])
+def test_bracket_without_key_any_solver(any_solver, spec):
+    with pytest.raises(InvalidMatchSpec, match="No key-value pairs found"):
+        MatchSpec(spec)
 
 
 @pytest.mark.parametrize("key", ["extras", "flags"])

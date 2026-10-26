@@ -1,0 +1,24 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Fix `InvalidMatchSpec` when parsing list-style `extras`/`flags` (e.g. `httpx2[extras=[cli,http2]]`)
+  with solvers other than `rattler`, by always using the v3 MatchSpec parser. (#16724 via #16906)
+* Fix `MatchSpec` silently ignoring the version constraint in bracketed expressions without an `=`
+  separator (e.g. `numpy[version<2]`) with solvers other than `rattler`. (#16724 via #16906)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Raise `InvalidMatchSpec` for bracket sections without a `key=value` pair (e.g. `numpy[<2]`) with
+  solvers other than `rattler`. These were previously accepted and their contents silently ignored.
+  (#16724 via #16906)
