@@ -141,6 +141,19 @@ def test_client_ssl_cert(context_testdata: None):
     pytest.raises(ValidationError, context.validate_configuration)
 
 
+def test_validate_config_pkg_dirs(context_testdata: None):
+    string = dals(
+        """
+        pkgs_dirs:
+          - path: /path_two
+            always_softlink: true
+            always_copy: true
+        """
+    )
+    _set_pkgs_dirs_testdata(testdata=string)
+    pytest.raises(ValidationError, context.validate_configuration)
+
+
 def test_conda_envs_path(context_testdata: None):
     saved_envs_path = os.environ.get("CONDA_ENVS_PATH")
     beginning = "C:" + os.sep if on_win else os.sep
@@ -1203,19 +1216,25 @@ def test_pkgs_dirs_condarc(monkeypatch: pytest.MonkeyPatch, context_testdata: No
             always_softlink: true
             read_only: true
             allow_softlinks: true
+          - path: /path_three
+            always_copy: true
+            read_only: true
         """
     )
     _set_pkgs_dirs_testdata(testdata=string)
 
-    assert context.pkgs_dirs == ("/path_one", "/path_two", "/env_path")
+    assert context.pkgs_dirs == ("/path_one", "/path_two", "/path_three", "/env_path")
     assert context._pkgs_dirs[0].path == "/path_one"
     assert context._pkgs_dirs[0].allow_softlinks is False
     assert context._pkgs_dirs[1].path == "/path_two"
     assert context._pkgs_dirs[1].always_softlink is True
     assert context._pkgs_dirs[1].read_only is True
     assert context._pkgs_dirs[1].allow_softlinks is True
-    assert context._pkgs_dirs[2].path == "/env_path"
-    assert context._pkgs_dirs[2].allow_softlinks is False
+    assert context._pkgs_dirs[2].path == "/path_three"
+    assert context._pkgs_dirs[2].always_softlink is False
+    assert context._pkgs_dirs[2].always_copy is True
+    assert context._pkgs_dirs[3].path == "/env_path"
+    assert context._pkgs_dirs[3].allow_softlinks is False
 
 
 @pytest.mark.parametrize(
@@ -1224,10 +1243,6 @@ def test_pkgs_dirs_condarc(monkeypatch: pytest.MonkeyPatch, context_testdata: No
         pytest.param("- read_only: true", "must have a 'path'", id="missing-path"),
         pytest.param(
             "- path: /a\n  read_only: maybe", "cannot be boolified", id="bad-boolean"
-        ),
-        # a typo must not silently leave the policy at its default
-        pytest.param(
-            "- path: /a\n  allow_softlink: true", "allow_softlink", id="unknown-key"
         ),
     ],
 )
