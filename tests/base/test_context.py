@@ -1244,6 +1244,11 @@ def test_pkgs_dirs_condarc(monkeypatch: pytest.MonkeyPatch, context_testdata: No
         pytest.param(
             "- path: /a\n  read_only: maybe", "cannot be boolified", id="bad-boolean"
         ),
+        pytest.param(
+            "- path: /a\n  always_copy: true\n  always_softlink: true",
+            "are mutually exclusive",
+            id="mutually-exclusive",
+        ),
     ],
 )
 def test_pkgs_dirs_invalid_entry(context_testdata: None, entry: str, match: str):
