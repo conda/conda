@@ -1921,6 +1921,30 @@ def test_extra_specs(match_spec_v3):
         MatchSpec("package[a,b]")
 
 
+@pytest.mark.parametrize(
+    "spec,name,channel,extras",
+    [
+        ("httpx2[extras=[cli,http2]]", "httpx2", None, ("cli", "http2")),
+        ("httpx2[extras=[cli, http2]]", "httpx2", None, ("cli", "http2")),
+        ("httpx2[extras=[cli]]", "httpx2", None, ("cli",)),
+        (
+            "conda-pypi::httpx2[extras=[cli,http2]]",
+            "httpx2",
+            "conda-pypi",
+            ("cli", "http2"),
+        ),
+    ],
+)
+def test_extras_list_with_default_solver(spec, name, channel, extras):
+    """List-style extras parse without selecting the rattler solver."""
+    _PARSE_CACHE.clear()
+    ms = MatchSpec(spec)
+    assert ms.name == name
+    assert ms.get_exact_value("extras") == extras
+    assert (ms.get("channel").name if ms.get("channel") else None) == channel
+    _PARSE_CACHE.clear()
+
+
 @pytest.mark.parametrize("key", ["extras", "flags"])
 @pytest.mark.parametrize("yaml_version", [(1, 1), (1, 2)])
 @pytest.mark.parametrize(

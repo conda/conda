@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Fix `InvalidMatchSpec` when parsing list-style `extras`/`flags` (e.g. `httpx2[extras=[cli,http2]]`)
+  with solvers other than `rattler`, by always using the v3 MatchSpec parser. (#16724)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

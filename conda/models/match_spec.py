@@ -838,9 +838,7 @@ def _parse_spec_str_dispatcher(spec_str) -> dict[str, object]:
     """
     Temporary dispatcher while we introduce the new v3 features
     """
-    if context.solver == "rattler":
-        return _parse_spec_str_v3(spec_str)
-    return _parse_spec_str(spec_str)
+    return _parse_spec_str_v3(spec_str)
 
 
 def _parse_spec_str(spec_str):
