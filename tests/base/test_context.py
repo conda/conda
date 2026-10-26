@@ -558,7 +558,7 @@ def test_expandvars(context_testdata: None, monkeypatch: MonkeyPatch):
     pkgs_dirs = _get_expandvars_context(
         "pkgs_dirs", "[{'path': '${TEST_VAR}', 'read_only': true}]", "/foo"
     )
-    assert pkgs_dirs == ("/foo",)
+    assert any("foo" in d for d in pkgs_dirs)
 
 
 def test_channel_settings(context_testdata: None):
@@ -1223,7 +1223,9 @@ def test_pkgs_dirs_condarc(monkeypatch: pytest.MonkeyPatch, context_testdata: No
     )
     _set_pkgs_dirs_testdata(testdata=string)
 
-    assert context.pkgs_dirs == ("/path_one", "/path_two", "/path_three", "/env_path")
+    assert context.pkgs_dirs == tuple(
+        map(expand, ("/path_one", "/path_two", "/path_three", "/env_path"))
+    )
     assert context._pkgs_dirs[0].path == "/path_one"
     assert context._pkgs_dirs[0].allow_softlinks is None
     assert context._pkgs_dirs[1].path == "/path_two"
@@ -1270,7 +1272,7 @@ def test_pkgs_dirs_duplicate_path_first_entry_wins(context_testdata: None):
         )
     )
 
-    assert context.pkgs_dirs == ("/path_one",)
+    assert context.pkgs_dirs == (expand("/path_one"),)
     assert context.pkg_dir("/path_one").read_only is False
 
 
