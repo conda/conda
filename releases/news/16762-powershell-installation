@@ -1,3 +1,3 @@
 ### Other
 
-* Avoid replacing locked PowerShell installations during Windows CI setup. (#16762)
+* Keep PowerShell CI installations separate from PowerShell's runtime cache. (#16762)
