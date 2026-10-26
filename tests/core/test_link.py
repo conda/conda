@@ -470,9 +470,7 @@ def test_determine_link_type(
     monkeypatch.setenv("CONDA_ALWAYS_SOFTLINK", str(always_softlink))
     monkeypatch.setenv("CONDA_ALLOW_SOFTLINKS", str(allow_softlinks))
     reset_context()
-    mocker.patch.object(
-        link, "hardlink_supported", return_value=hardlink_ok
-    )
+    mocker.patch.object(link, "hardlink_supported", return_value=hardlink_ok)
     mocker.patch.object(link, "softlink_supported", return_value=softlink_ok)
     extracted_package_dir = tmp_path / "pkgs" / "pkg-1.0-0"
     target_prefix = tmp_path / "prefix"
@@ -490,8 +488,8 @@ def test_determine_link_type(
         ),
         pytest.param(
             "true",
-            "false",
-            "false",
+            "none",
+            "none",
             False,
             "",
             LinkType.softlink,
@@ -594,11 +592,10 @@ def test_determine_link_type_uses_cache_policy(
     assert link_type == expected
 
 
-
 @pytest.mark.parametrize(
     "settings,expected",
     [
-         pytest.param(
+        pytest.param(
             "",
             LinkType.hardlink,
             id="default",
