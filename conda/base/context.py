@@ -236,6 +236,11 @@ class PkgsDirConfig(ConfigurationObject):
 def pkgs_dir_validation(value: PkgsDirConfig) -> str | Literal[True]:
     if not value.path:
         return "pkgs_dirs entries must have a 'path'."
+    if value.always_copy and value.always_softlink:
+        return (
+            "'always_copy' and 'always_softlink' are mutually exclusive. "
+            f"Only one can be set to 'True' for path '{value.path}'."
+        )
     return True
 
 
@@ -639,17 +644,6 @@ class Context(Configuration):
                 "Only one can be set to 'True'.",
             )
             errors.append(error)
-        for pkg_dir_config in self._pkgs_dirs:
-            if pkg_dir_config.always_copy and pkg_dir_config.always_softlink:
-                errors.append(
-                    ValidationError(
-                        "always_copy",
-                        pkg_dir_config.always_copy,
-                        "<<merged>>",
-                        "'always_copy' and 'always_softlink' are mutually exclusive. "
-                        f"Only one can be set to 'True' for path '{pkg_dir_config.path}'.",
-                    )
-                )
         return errors
 
     @property
