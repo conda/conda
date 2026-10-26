@@ -743,7 +743,7 @@ def test_root_extras_unknown_root_package_ignored(algorithm):
 
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
 def test_root_extras_does_not_recurse(algorithm):
-    """Ensure extras for the requested package's dependencies are not fetched"""
+    """Extras of dependencies that no spec explicitly requested are not fetched"""
     shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
     subset = RepodataSubset([shardlike])
     subset.reachable(["httpx"], strategy=algorithm, root_extras={"httpx": ["http2"]})
@@ -752,6 +752,307 @@ def test_root_extras_does_not_recurse(algorithm):
     assert "core-dep" in shardlike.visited
     assert "http2-dep" in shardlike.visited
     assert "core-extra-dep" not in shardlike.visited
+
+
+def _extras_repodata(packages: dict[str, dict]) -> RepodataDict:
+    """
+    Build repodata from ``{name: {"depends": [...], "extra_depends": {...}}}``.
+    """
+    records = {}
+    for name, fields in packages.items():
+        records[f"{name}-1.0-0.conda"] = {
+            "name": name,
+            "version": "1.0",
+            "build": "0",
+            "build_number": 0,
+            "depends": fields.get("depends", []),
+            **(
+                {"extra_depends": fields["extra_depends"]}
+                if "extra_depends" in fields
+                else {}
+            ),
+        }
+    return {
+        "info": {"base_url": ""},
+        "packages": {},
+        "packages.conda": records,
+        "repodata_version": 2,
+    }  # type: ignore[typeddict-item]
+
+
+def _visited_after(packages, roots, algorithm, root_extras=None, **kwargs):
+    shardlike = ShardLike(_extras_repodata(packages), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike], **kwargs)
+    subset.reachable(roots, strategy=algorithm, root_extras=root_extras)
+    return set(shardlike.visited)
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_follow_dependency_spec(algorithm, solver_rattler):
+    """Issue #16891: pkg-t[extras=cli] -> pkg-u[extras=more] -> pkg-v."""
+    visited = _visited_after(
+        {
+            "pkg-t": {"extra_depends": {"cli": ["pkg-u[extras=more]"]}},
+            "pkg-u": {"extra_depends": {"more": ["pkg-v"]}},
+            "pkg-v": {},
+        },
+        ["pkg-t"],
+        algorithm,
+        root_extras={"pkg-t": ["cli"]},
+    )
+    assert visited == {"pkg-t", "pkg-u", "pkg-v"}
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_from_plain_depends(algorithm, solver_rattler):
+    """Extras on a regular dependency are followed without any root extras."""
+    visited = _visited_after(
+        {
+            "root": {"depends": ["dep[extras=x]"]},
+            "dep": {"extra_depends": {"x": ["x-dep"], "y": ["y-dep"]}},
+            "x-dep": {},
+            "y-dep": {},
+        },
+        ["root"],
+        algorithm,
+    )
+    assert visited == {"root", "dep", "x-dep"}
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_unrequested_group_stays_inactive(algorithm, solver_rattler):
+    visited = _visited_after(
+        {
+            "pkg-t": {"extra_depends": {"cli": ["pkg-u[extras=more]"]}},
+            "pkg-u": {"extra_depends": {"more": ["pkg-v"], "other": ["pkg-w"]}},
+            "pkg-v": {},
+            "pkg-w": {},
+        },
+        ["pkg-t"],
+        algorithm,
+        root_extras={"pkg-t": ["cli"]},
+    )
+    assert "pkg-v" in visited
+    assert "pkg-w" not in visited
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_revisit_with_additional_group(algorithm, solver_rattler):
+    """
+    "shared" is first reached with group "a"; a deeper dependent later activates
+    group "b" on the already expanded node. Both groups must be fetched.
+    """
+    visited = _visited_after(
+        {
+            "root": {"depends": ["shared[extras=a]", "mid"]},
+            "mid": {"depends": ["deep"]},
+            "deep": {"depends": ["shared[extras=b]"]},
+            "shared": {
+                "extra_depends": {"a": ["a-dep"], "b": ["b-dep"], "c": ["c-dep"]}
+            },
+            "a-dep": {},
+            "b-dep": {},
+            "c-dep": {},
+        },
+        ["root"],
+        algorithm,
+    )
+    assert visited == {"root", "mid", "deep", "shared", "a-dep", "b-dep"}
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_cycle_terminates(algorithm, solver_rattler):
+    visited = _visited_after(
+        {
+            "a": {"extra_depends": {"x": ["b[extras=y]"]}},
+            "b": {"extra_depends": {"y": ["a[extras=x]", "b-dep"]}},
+            "b-dep": {},
+        },
+        ["a"],
+        algorithm,
+        root_extras={"a": ["x"]},
+    )
+    assert visited == {"a", "b", "b-dep"}
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_combine_with_root_extras(algorithm, solver_rattler):
+    visited = _visited_after(
+        {
+            "root": {"depends": ["pkg-u[extras=b]"]},
+            "pkg-u": {"extra_depends": {"a": ["a-dep"], "b": ["b-dep"]}},
+            "a-dep": {},
+            "b-dep": {},
+        },
+        ["root", "pkg-u"],
+        algorithm,
+        root_extras={"pkg-u": ["a"]},
+    )
+    assert visited == {"root", "pkg-u", "a-dep", "b-dep"}
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_respect_depth(algorithm, solver_rattler):
+    packages = {
+        "pkg-t": {"extra_depends": {"cli": ["pkg-u[extras=more]"]}},
+        "pkg-u": {"extra_depends": {"more": ["pkg-v"]}},
+        "pkg-v": {},
+    }
+    visited = _visited_after(
+        packages,
+        ["pkg-t"],
+        algorithm,
+        root_extras={"pkg-t": ["cli"]},
+        depth=1,
+    )
+    assert "pkg-u" in visited
+    assert "pkg-v" not in visited
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_unrequested_extras_do_not_recurse(algorithm):
+    """Without explicit extras on the spec, a dependency's groups stay inactive."""
+    visited = _visited_after(
+        {
+            "root": {"depends": ["dep"]},
+            "dep": {"extra_depends": {"x": ["x-dep"]}},
+            "x-dep": {},
+        },
+        ["root"],
+        algorithm,
+    )
+    assert visited == {"root", "dep"}
+
+
+class _LazyShardLike(ShardLike):
+    """
+    In-memory shards that count as "not loaded" until the traversal visits
+    them, like a network ``Shards``, so the pipelined workers are exercised.
+    """
+
+    def shard_loaded(self, package: str) -> bool:
+        return package in self.visited
+
+
+@pytest.mark.parametrize("revisit_after_arrival", (True, False))
+def test_pipelined_extras_revisit_does_not_refetch_shard(
+    revisit_after_arrival, solver_rattler
+):
+    """
+    A second group activated on "shared" is picked up without requesting its
+    shard again, whether the shard already arrived or is still in flight.
+    """
+    depends_mid = ["deep"] if revisit_after_arrival else ["shared[extras=b]"]
+    packages = {
+        "root": {"depends": ["shared[extras=a]", "mid"]},
+        "mid": {"depends": depends_mid},
+        "shared": {"extra_depends": {"a": ["a-dep"], "b": ["b-dep"]}},
+        "a-dep": {},
+        "b-dep": {},
+        "deep": {"depends": ["shared[extras=b]"]},
+    }
+    shardlike = _LazyShardLike(
+        _extras_repodata(packages), "https://example.com/noarch/"
+    )
+    requested: list[NodeId] = []
+
+    def fake_worker(in_queue, out_queue, cache, shardlikes):
+        # stands in for both the cache and network threads
+        by_url = {s.url: s for s in shardlikes}
+        for batch in combine_batches_until_none(in_queue):
+            requested.extend(batch)
+            out_queue.put(
+                [
+                    (node_id, by_url[node_id.channel].shards[node_id.package])
+                    for node_id in batch
+                ]
+            )
+
+    subset = RepodataSubset([shardlike])
+    in_queue: SimpleQueue = SimpleQueue()
+    out_queue: SimpleQueue = SimpleQueue()
+    worker = threading.Thread(
+        target=fake_worker,
+        args=(in_queue, out_queue, None, subset.shardlikes),
+        daemon=True,
+    )
+    worker.start()
+    try:
+        subset._pipelined_traversal(["root"], in_queue, out_queue, worker, worker)
+    finally:
+        in_queue.put(None)
+        worker.join(5)
+
+    assert {"a-dep", "b-dep"} <= set(shardlike.visited)
+    assert [node_id.package for node_id in requested].count("shared") == 1
+
+
+def test_pipelined_extras_revisit_while_previous_revisit_in_flight(solver_rattler):
+    """
+    Two dependents activate different groups on an already expanded node
+    before the first revisit is processed. The node must be queued only once
+    (in_flight is a set), and both groups must still be followed.
+    """
+    packages = {
+        "root": {"depends": ["shared[extras=a]", "p0"]},
+        "p0": {"depends": ["p1", "p2"]},
+        "p1": {"depends": ["shared[extras=b]"]},
+        "p2": {"depends": ["shared[extras=c]"]},
+        "shared": {"extra_depends": {"a": ["a-dep"], "b": ["b-dep"], "c": ["c-dep"]}},
+        "a-dep": {},
+        "b-dep": {},
+        "c-dep": {},
+    }
+    shardlike = _LazyShardLike(
+        _extras_repodata(packages), "https://example.com/noarch/"
+    )
+
+    def slow_worker(in_queue, out_queue, cache, shardlikes):
+        # deliver results one at a time, slowly, so that several dependents are
+        # processed before an earlier revisit of "shared" is consumed
+        for batch in combine_batches_until_none(in_queue):
+            time.sleep(0.05)
+            for node_id in batch:
+                out_queue.put([(node_id, shardlike.shards[node_id.package])])
+
+    subset = RepodataSubset([shardlike])
+    in_queue: SimpleQueue = SimpleQueue()
+    out_queue: SimpleQueue = SimpleQueue()
+    worker = threading.Thread(
+        target=slow_worker, args=(in_queue, out_queue, None, [shardlike]), daemon=True
+    )
+    worker.start()
+    try:
+        subset._pipelined_traversal(["root"], in_queue, out_queue, worker, worker)
+    finally:
+        in_queue.put(None)
+        worker.join(5)
+
+    assert {"a-dep", "b-dep", "c-dep"} <= set(shardlike.visited)
+
+
+def test_build_repodata_subset_transitive_extras(monkeypatch, solver_rattler):
+    """Cover the public build_repodata_subset() API with the issue scenario."""
+    shardlike = ShardLike(
+        _extras_repodata(
+            {
+                "pkg-t": {"extra_depends": {"cli": ["pkg-u[extras=more]"]}},
+                "pkg-u": {"extra_depends": {"more": ["pkg-v"]}},
+                "pkg-v": {},
+            }
+        ),
+        "https://example.com/noarch/",
+    )
+    monkeypatch.setattr(
+        shards_subset,
+        "fetch_channels",
+        lambda channels: {shardlike.url: shardlike},
+    )
+
+    channel_data = build_repodata_subset(["pkg-t"], {}, root_extras={"pkg-t": ["cli"]})
+
+    assert channel_data is not None
+    assert set(shardlike.visited) == {"pkg-t", "pkg-u", "pkg-v"}
 
 
 def test_build_repodata_subset_root_extras(monkeypatch):

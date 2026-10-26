@@ -81,8 +81,7 @@ from .shards import (
     batch_retrieve_from_cache,
     batch_retrieve_from_network,
     fetch_channels,
-    shard_extra_depends_packages,
-    shard_mentioned_packages,
+    shard_mentioned_package_extras,
 )
 
 log = logging.getLogger(__name__)
@@ -113,9 +112,16 @@ class Node:
     channel: str = ""
     visited: bool = False
     shard_url: str = ""
-    # Extras requested via root level MatchSpec (e.g. package[extras=extras_group])
-    # Only ever populated for root packages.
+    # Extras requested for this package, either via a root level MatchSpec
+    # (e.g. package[extras=extras_group]) or by a dependency spec of another
+    # fetched package. Grows as more dependents activate additional groups.
     requested_extras: frozenset[str] = frozenset()
+    # Groups in requested_extras whose extra_depends have already been
+    # traversed. Pending groups are requested_extras - expanded_extras.
+    expanded_extras: frozenset[str] = frozenset()
+    # True once depends (and the requested groups) have been traversed, so a
+    # later revisit only has to traverse newly activated groups.
+    expanded: bool = False
 
     def to_id(self) -> NodeId:
         return NodeId(self.package, self.channel, self.shard_url)
@@ -195,9 +201,71 @@ class RepodataSubset:
         """
         return hasattr(cls, f"reachable_{strategy}")
 
+    def _expansion_specs(
+        self, node: Node, shard: ShardDict
+    ) -> Iterator[tuple[str, frozenset[str]]]:
+        """
+        Yield ``(package name, extras requested by the spec)`` for everything
+        reachable from ``shard`` that has not been traversed for ``node`` yet.
+
+        On the first expansion that is the shard's ``depends`` plus every
+        group in ``node.requested_extras``. When the node is revisited because
+        another dependency activated additional groups, only those new groups
+        are traversed. Records the groups as expanded on the node.
+        """
+        first_expansion = not node.expanded
+        pending_extras = node.requested_extras - node.expanded_extras
+        node.expanded = True
+        node.expanded_extras = node.requested_extras
+
+        if first_expansion:
+            # ensure solver has "pip" record if add_pip_as_python_dependency:
+            if self._add_pip_as_python_dependency and node.package == "python":
+                yield "pip", frozenset()
+        elif not pending_extras:
+            return
+
+        yield from shard_mentioned_package_extras(
+            shard,
+            extras=pending_extras,
+            include_depends=first_expansion,
+            spec_to_package_name=self._spec_to_package_name,
+            repodata_version=self._repodata_version,
+        )
+
+    def _add_requested_extras(self, node: Node, extras: frozenset[str]) -> bool:
+        """
+        Merge ``extras`` into ``node.requested_extras``.
+
+        Return True if this added groups to a node that was already visited,
+        i.e. the node needs to be revisited to traverse the new groups.
+        """
+        new_extras = extras - node.requested_extras
+        if not new_extras:
+            return False
+        node.requested_extras |= new_extras
+        return node.visited
+
+    def _add_requested_extras_expanded(
+        self, node: Node, extras: frozenset[str]
+    ) -> bool:
+        """
+        Merge ``extras`` into ``node.requested_extras`` (pipelined strategy).
+
+        Return True if this added groups to a node whose shard was already
+        expanded, so it needs to be re-processed for the new groups.
+        """
+        new_extras = extras - node.requested_extras
+        if not new_extras:
+            return False
+        node.requested_extras |= new_extras
+        return node.expanded
+
     def _neighbors(self, node: Node) -> Iterator[Node]:
         """
-        Retrieve all unvisited neighbors of a node.
+        Retrieve all unvisited neighbors of a node, plus already visited
+        neighbors that need to be revisited because this node's dependency
+        specs activate additional extras groups on them.
 
         Neighbors in the context are dependencies of a package.
 
@@ -205,58 +273,42 @@ class RepodataSubset:
         retrieved from the network via batch_retrieve_from_network() before
         neighbors() is called. It uses visit_package() to access already-loaded shards.
         """
-        discovered = set()
+        shardlike = next((s for s in self.shardlikes if s.url == node.channel), None)
+        if shardlike is None or node.package not in shardlike:
+            return
 
-        for shardlike in self.shardlikes:
-            if node.package not in shardlike:
-                continue
+        # Get the shard that should already be loaded in memory.
+        # For Shards, this assumes fetch_shards() was called before neighbors()
+        # is called. For ShardLike, visit_package() returns the shard immediately.
+        shard = shardlike.visit_package(node.package)
 
-            # Get the shard that should already be loaded in memory.
-            # For Shards, this assumes fetch_shards() was called before neighbors()
-            # is called. For ShardLike, visit_package() returns the shard immediately.
-            shard = shardlike.visit_package(node.package)
+        shard = filter_redundant_packages(shard, self._use_only_tar_bz2)
+        # Store the filtered shard so we'll see it when we call
+        # build_repodata()
+        shardlike.visit_shard(node.package, shard)
 
-            shard = filter_redundant_packages(shard, self._use_only_tar_bz2)
-            # Store the filtered shard so we'll see it when we call
-            # build_repodata()
-            shardlike.visit_shard(node.package, shard)
+        for package, extras in self._expansion_specs(node, shard):
+            # A mentioned package is broadcast to every channel that has it.
+            for target in self.shardlikes:
+                if package not in target:
+                    continue
+                shard_url = target.shard_url(package)
+                node_id = NodeId(package, target.url, shard_url)
+                existing = self._nodes.get(node_id)
 
-            # ensure solver has "pip" record if add_pip_as_python_dependency:
-            extra = (
-                ("pip",)
-                if self._add_pip_as_python_dependency and node.package == "python"
-                else ()
-            )
-            # Root-only extras support: if this node was created from a
-            # root/user-requested MatchSpec with extras=[...], also traverse
-            # the requested extra_depends groups for it.
-            if node.requested_extras:
-                extra = (
-                    *extra,
-                    *shard_extra_depends_packages(
-                        shard,
-                        node.requested_extras,
-                        spec_to_package_name=self._spec_to_package_name,
-                        repodata_version=self._repodata_version,
-                    ),
-                )
-            for package in shard_mentioned_packages(
-                shard,
-                extra=extra,
-                spec_to_package_name=self._spec_to_package_name,
-                repodata_version=self._repodata_version,
-            ):
-                node_id = NodeId(package, shardlike.url)
-
-                if node_id not in self._nodes:
+                if existing is None:
                     self._nodes[node_id] = Node(
-                        node.distance + 1, package, shardlike.url
+                        node.distance + 1,
+                        package,
+                        target.url,
+                        shard_url=shard_url,
+                        requested_extras=extras,
                     )
                     yield self._nodes[node_id]
-
-                    if package not in discovered:
-                        # now this is per package name, not per (name, channel) tuple
-                        discovered.add(package)
+                elif self._add_requested_extras(existing, extras):
+                    # Shard is already in memory; revisit for the new groups.
+                    existing.visited = False
+                    yield existing
 
     def _outgoing(self, node: Node):
         """
@@ -289,9 +341,9 @@ class RepodataSubset:
             strategy: traversal algorithm, "bfs" or "pipelined".
             root_extras: optional mapping of root package name to an iterable
                 of CEP 44 extras requested for it (e.g. `{"package": ["extras_group"]}`).
-                Only honored for the given root packages themselves (root-only
-                scope); extras nested inside dependency spec strings elsewhere
-                in the graph are not traversed.
+                Extras explicitly set on dependency specs of fetched packages
+                (e.g. `pkg-u[extras=more]`) are followed transitively;
+                groups that nobody requested stay inactive.
         """
         return getattr(self, f"reachable_{strategy}")(
             root_packages, root_extras=root_extras
@@ -329,8 +381,10 @@ class RepodataSubset:
 
         while node_queue:
             # Batch fetch all nodes at current level
-            to_retrieve = {node.package for node in node_queue if not node.visited}
-            if to_retrieve:  # pragma: no branch
+            # Revisited nodes (new extras groups) already have their shard in
+            # memory; only fetch nodes that have never been expanded.
+            to_retrieve = {node.package for node in node_queue if not node.expanded}
+            if to_retrieve:
                 # Fetch from cache and network, getting ShardFetch objects for network fetches
                 needs_network = batch_retrieve_from_cache(
                     self.shardlikes, sorted(to_retrieve), shard_cache
@@ -342,8 +396,11 @@ class RepodataSubset:
             level_size = len(node_queue)
             for _ in range(level_size):
                 node = node_queue.popleft()
-                if node.visited:  # pragma: no cover
-                    continue  # we should never add visited nodes to node_queue
+                if node.visited:
+                    # Queued twice in one level; extras merged into the node
+                    # before its first expansion have already been handled.
+                    # Later merges reset visited and queue it again.
+                    continue
                 node.visited = True
 
                 for next_node, _ in self._outgoing(node):
@@ -464,11 +521,14 @@ class RepodataSubset:
 
         # create start condition
         parent_node = Node(0)
-        # root_extras only applies to this initial seeding of root packages
-        # (root-only scope); it must not be passed to any later _visit_node()
-        # call made while processing discovered shards below.
+        # root_extras only seeds the initial root packages; extras on
+        # dependencies come from their own specs (see _expansion_specs).
         pending.update(
-            self._visit_node(parent_node, root_packages, extras_by_package=root_extras)
+            self._visit_node(
+                parent_node,
+                ((package, frozenset()) for package in root_packages),
+                extras_by_package=root_extras,
+            )
         )
 
         def pump():
@@ -476,6 +536,9 @@ class RepodataSubset:
             Find shards we already have and those we need. Submit those need to
             cache_in_queue, those we have to shard_out_queue.
             """
+            # A node that is already in flight will pick up any extras merged
+            # into it when its queued shard is processed; don't queue it twice.
+            pending.difference_update(in_flight)
             have, need = self._drain_pending(pending, shardlikes_by_url)
             if need:
                 in_flight.update(need)
@@ -549,60 +612,46 @@ class RepodataSubset:
                 shardlike = shardlikes_by_url[node_id.channel]
                 shardlike.visit_shard(node_id.package, shard)
 
-                # ensure solver has "pip" record if add_pip_as_python_dependency:
-                extra = (
-                    ("pip",)
-                    if self._add_pip_as_python_dependency
-                    and parent_node.package == "python"
-                    else ()
-                )
-                # Root-only extras support: parent_node here is actually the
-                # node whose shard just arrived (not its parent). If it was
-                # seeded from a root/user-requested MatchSpec with
-                # extras=[...], also traverse the requested extra_depends
-                # groups for it.
-                if parent_node.requested_extras:
-                    extra = (
-                        *extra,
-                        *shard_extra_depends_packages(
-                            shard,
-                            parent_node.requested_extras,
-                            spec_to_package_name=self._spec_to_package_name,
-                            repodata_version=self._repodata_version,
-                        ),
-                    )
+                # parent_node here is actually the node whose shard just
+                # arrived (not its parent). Follow its dependencies and any
+                # requested extras groups that were not traversed yet.
                 pending.update(
                     self._visit_node(
                         parent_node,
-                        shard_mentioned_packages(
-                            shard,
-                            extra=extra,
-                            spec_to_package_name=self._spec_to_package_name,
-                            repodata_version=self._repodata_version,
-                        ),
+                        self._expansion_specs(parent_node, shard),
                     )
                 )
 
     def _visit_node(
         self,
         parent_node: Node,
-        mentioned_packages: Iterable[str],
+        mentioned_packages: Iterable[tuple[str, frozenset[str]]],
         extras_by_package: Mapping[str, Iterable[str]] | None = None,
     ) -> Iterable[NodeId]:
-        """Broadcast mentioned packages across channels. yield pending NodeId's."""
+        """
+        Broadcast mentioned packages across channels. yield pending NodeId's.
+
+        ``mentioned_packages`` are ``(name, extras)`` pairs; extras are the
+        CEP 44 groups requested for that package by the spec that mentions it.
+        A package that already has a node only yields again if the extras add
+        groups to a node whose shard was already processed.
+        """
         # NOTE we have visit for Nodes which is used in the graph traversal
         # algorithm, and a separate visit for ShardBase which means "include
         # this package in the output repodata".
-        for package in mentioned_packages:
+        for package, spec_extras in mentioned_packages:
             if parent_node.distance > self.depth:
                 continue
-            requested_extras = frozenset((extras_by_package or {}).get(package, ()))
+            requested_extras = spec_extras | frozenset(
+                (extras_by_package or {}).get(package, ())
+            )
             for shardlike in self.shardlikes:
                 if package in shardlike:
                     new_node_id = NodeId(
                         package, shardlike.url, shardlike.shard_url(package)
                     )
-                    if new_node_id not in self._nodes:
+                    existing = self._nodes.get(new_node_id)
+                    if existing is None:
                         new_node = Node(
                             distance=parent_node.distance + 1,
                             package=new_node_id.package,
@@ -611,6 +660,12 @@ class RepodataSubset:
                             requested_extras=requested_extras,
                         )
                         self._nodes[new_node_id] = new_node
+                        yield new_node_id
+                    elif self._add_requested_extras_expanded(
+                        existing, requested_extras
+                    ):
+                        # Shard already received; re-process it for the new
+                        # groups without fetching it again.
                         yield new_node_id
 
         parent_node.visited = True
@@ -629,7 +684,8 @@ class RepodataSubset:
         for node_id in pending:
             # we should already have these nodes.
             shardlike = shardlikes_by_url[node_id.channel]
-            if shardlike.shard_loaded(node_id.package):  # for monolithic repodata
+            if shardlike.shard_loaded(node_id.package):
+                # monolithic repodata, or a revisit of a shard already received
                 shards_have.append((node_id, shardlike.visit_package(node_id.package)))
             else:
                 if self._nodes[node_id].visited:  # pragma: no cover
@@ -666,7 +722,7 @@ def build_repodata_subset(
                subset.
         root_extras: optional mapping of root package name to an iterable of
                      CEP 44 extras requested for it (e.g. `{"package": ["extras_group"]}`).
-                     Only honored for the given root packages themselves; see
+                     Extras on dependency specs are followed transitively; see
                      `RepodataSubset.reachable`.
     Return:
         None if there are no shards available, or a mapping of channel URL's to

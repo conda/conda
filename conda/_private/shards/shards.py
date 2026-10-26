@@ -38,6 +38,7 @@ from .misc import (
     _safe_urljoin_with_slash,
     _shards_connections,
     ensure_hex_hashes,
+    spec_to_package_extras,
     spec_to_package_name,
 )
 
@@ -246,11 +247,10 @@ def shard_extra_depends_packages(
     ``shard``.
 
     This only looks at ``extra_depends`` groups attached directly to records
-    in this shard (i.e. extras requested for *this* package, typically because
-    it was named in a root/user-requested MatchSpec, e.g.
+    in this shard (i.e. extras requested for *this* package, e.g. via
     ``httpx[extras=cli]``). It does not recurse into ``extras=[...]`` that may
-    appear nested inside individual dependency spec strings elsewhere in the
-    graph; that is out of scope here.
+    appear nested inside the dependency specs it returns; see
+    ``shard_mentioned_package_extras`` for that.
 
     Unions ``extra_depends`` across all builds/versions present in the shard
     rather than trying to match the specific version a MatchSpec requested,
@@ -279,6 +279,47 @@ def shard_extra_depends_packages(
                     name = spec_to_package_name(spec)
                     if name is not None:
                         yield name
+
+
+def shard_mentioned_package_extras(
+    shard: ShardDict,
+    extras: Iterable[str] = (),
+    include_depends: bool = True,
+    spec_to_package_name=spec_to_package_name,
+    repodata_version: int = 1,
+) -> Iterable[tuple[str, frozenset[str]]]:
+    """
+    Return ``(name, extras)`` for each dependency spec in a shard, where
+    ``extras`` are the CEP 44 extras explicitly requested by that spec (e.g.
+    ``pkg-u[extras=more]`` -> ``("pkg-u", frozenset({"more"}))``).
+
+    Specs come from every record's ``depends`` (when ``include_depends`` is
+    true) and from the ``extra_depends`` groups named by ``extras``. As with
+    ``shard_extra_depends_packages``, groups are unioned across all
+    builds/versions in the shard. Only groups named in ``extras`` are
+    followed; other groups stay inactive.
+
+    Callers are responsible for calling
+    ``conda._private.shards.misc.filter_redundant_packages`` on ``shard`` first.
+    """
+    unique_specs: set[str] = set()
+    wanted = set(extras)
+
+    def emit(spec: str):
+        if spec not in unique_specs:
+            unique_specs.add(spec)
+            name = spec_to_package_name(spec)
+            if name is not None:
+                yield name, spec_to_package_extras(spec)
+
+    for record in _iter_shard_records(shard, repodata_version):
+        if include_depends:
+            for spec in record.get("depends", ()):
+                yield from emit(spec)
+        if wanted and (extra_depends := record.get("extra_depends")):
+            for extra_name in wanted:
+                for spec in extra_depends.get(extra_name, ()):
+                    yield from emit(spec)
 
 
 class ShardBase(abc.ABC):

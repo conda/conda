@@ -39,6 +39,7 @@ from conda._private.shards.shards import (
     fetch_channels,
     fetch_shards_index,
     shard_extra_depends_packages,
+    shard_mentioned_package_extras,
     shard_mentioned_packages,
 )
 from conda.base.context import context, reset_context
@@ -704,6 +705,94 @@ def test_shard_mentioned_packages_classic_unaffected_by_v3_flag():
     with_v3 = list(shard_mentioned_packages(shard, repodata_version=3))
     assert "classic_dep" in with_v3
     assert "v3only_dep" in with_v3
+
+
+@pytest.mark.parametrize(
+    "spec, expected",
+    [
+        ("pkg", frozenset()),
+        ("pkg >=1.0", frozenset()),
+        ("pkg[extras=more]", frozenset({"more"})),
+        ("pkg[extras=[a,b]]", frozenset({"a", "b"})),
+        ("pkg[extras=a,b]", frozenset({"a", "b"})),
+        ("pkg >=1.0[extras=more]", frozenset({"more"})),
+        ("!!!extras invalid!!!", frozenset()),
+    ],
+)
+def test_spec_to_package_extras(spec, expected, solver_rattler):
+    # the rattler solver activates the MatchSpec parser that understands extras
+    assert shards_misc.spec_to_package_extras(spec) == expected
+
+
+def test_shard_mentioned_package_extras_depends_and_requested_group(solver_rattler):
+    shard = {
+        "packages": {},
+        "packages.conda": {
+            "pkg-t-1.0-0.conda": {
+                "name": "pkg-t",
+                "depends": ["plain", "with-extras[extras=more]"],
+                "extra_depends": {
+                    "cli": ["pkg-u[extras=more]", "click"],
+                    "other": ["unrequested"],
+                },
+            },
+        },
+    }
+    pairs = dict(shard_mentioned_package_extras(shard, extras=["cli"]))
+    assert pairs == {
+        "plain": frozenset(),
+        "with-extras": frozenset({"more"}),
+        "pkg-u": frozenset({"more"}),
+        "click": frozenset(),
+    }
+
+
+def test_shard_mentioned_package_extras_exclude_depends():
+    shard = {
+        "packages": {},
+        "packages.conda": {
+            "pkg-t-1.0-0.conda": {
+                "name": "pkg-t",
+                "depends": ["plain"],
+                "extra_depends": {"cli": ["click"]},
+            },
+        },
+    }
+    pairs = list(
+        shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+    )
+    assert pairs == [("click", frozenset())]
+
+
+def test_shard_mentioned_package_extras_deduplicates_and_skips_invalid():
+    shard = {
+        "packages": {
+            "a-1.0-0.tar.bz2": {"name": "a", "depends": ["dep", "!!!invalid!!!"]},
+            "a-1.0-1.tar.bz2": {"name": "a", "depends": ["dep"]},
+        },
+        "packages.conda": {},
+    }
+    assert list(shard_mentioned_package_extras(shard)) == [("dep", frozenset())]
+
+
+def test_shard_mentioned_package_extras_v3_gated_by_repodata_version(solver_rattler):
+    shard = {
+        "packages": {},
+        "packages.conda": {},
+        "v3": {
+            "conda": {
+                "foo-1.0-0": {
+                    "name": "foo",
+                    "depends": [],
+                    "extra_depends": {"cli": ["click[extras=x]"]},
+                }
+            }
+        },
+    }
+    assert list(shard_mentioned_package_extras(shard, extras=["cli"])) == []
+    assert list(
+        shard_mentioned_package_extras(shard, extras=["cli"], repodata_version=3)
+    ) == [("click", frozenset({"x"}))]
 
 
 def test_shard_extra_depends_packages_no_extra_depends_key():
