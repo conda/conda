@@ -93,13 +93,27 @@ log = getLogger(__name__)
 
 def determine_link_type(extracted_package_dir, target_prefix):
     source_test_file = join(extracted_package_dir, "info", "index.json")
-    if context.always_copy:
+
+    always_copy = context.always_copy
+    always_softlink = context.always_softlink
+    allow_softlinks = context.allow_softlinks
+    pkg_dir_config = context.pkg_dir(dirname(extracted_package_dir))
+
+    if pkg_dir_config:
+        if pkg_dir_config.always_copy is not None:
+            always_copy = pkg_dir_config.always_copy
+        if pkg_dir_config.always_softlink is not None:
+            always_softlink = pkg_dir_config.always_softlink
+        if pkg_dir_config.allow_softlinks is not None:
+            allow_softlinks = pkg_dir_config.allow_softlinks
+
+    if always_copy:
         return LinkType.copy
-    if context.always_softlink:
+    if always_softlink:
         return LinkType.softlink
     if hardlink_supported(source_test_file, target_prefix):
         return LinkType.hardlink
-    if context.allow_softlinks and softlink_supported(source_test_file, target_prefix):
+    if allow_softlinks and softlink_supported(source_test_file, target_prefix):
         return LinkType.softlink
     return LinkType.copy
 
