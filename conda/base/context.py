@@ -227,9 +227,10 @@ class PkgsDirConfig(ConfigurationObject):
     def __init__(self):
         self.path = PrimitiveParameter("", str)
         self.read_only = PrimitiveParameter(False)
-        self.allow_softlinks = PrimitiveParameter(False)
-        self.always_softlink = PrimitiveParameter(False)
-        self.always_copy = PrimitiveParameter(False)
+        # link policies left unset (None) fall back to the global setting
+        self.allow_softlinks = PrimitiveParameter(None, element_type=(bool, NoneType))
+        self.always_softlink = PrimitiveParameter(None, element_type=(bool, NoneType))
+        self.always_copy = PrimitiveParameter(None, element_type=(bool, NoneType))
 
 
 def pkgs_dir_validation(value: PkgsDirConfig) -> str | Literal[True]:
@@ -640,13 +641,15 @@ class Context(Configuration):
             errors.append(error)
         for pkg_dir_config in self._pkgs_dirs:
             if pkg_dir_config.always_copy and pkg_dir_config.always_softlink:
-                errors.append(ValidationError(
-                    "always_copy",
-                    pkg_dir_config.always_copy,
-                    "<<merged>>",
-                    "'always_copy' and 'always_softlink' are mutually exclusive. "
-                    f"Only one can be set to 'True' for path '{pkg_dir_config.path}'.",
-                ))
+                errors.append(
+                    ValidationError(
+                        "always_copy",
+                        pkg_dir_config.always_copy,
+                        "<<merged>>",
+                        "'always_copy' and 'always_softlink' are mutually exclusive. "
+                        f"Only one can be set to 'True' for path '{pkg_dir_config.path}'.",
+                    )
+                )
         return errors
 
     @property
@@ -1989,8 +1992,9 @@ class Context(Configuration):
                 The list of directories where locally-available packages are linked from at
                 install time. Packages not locally available are downloaded and extracted
                 into the first writable directory. Each entry is either a path or a map
-                with the keys 'path' (required), 'read_only', 'allow_softlinks' and
-                'always_softlink' (all default false).
+                with the keys 'path' (required), 'read_only' (default false), and
+                'allow_softlinks', 'always_softlink' and 'always_copy', which default to
+                the global setting of the same name.
                 """
             ),
             proxy_servers=dals(

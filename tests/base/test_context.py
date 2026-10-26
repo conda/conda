@@ -1225,16 +1225,16 @@ def test_pkgs_dirs_condarc(monkeypatch: pytest.MonkeyPatch, context_testdata: No
 
     assert context.pkgs_dirs == ("/path_one", "/path_two", "/path_three", "/env_path")
     assert context._pkgs_dirs[0].path == "/path_one"
-    assert context._pkgs_dirs[0].allow_softlinks is False
+    assert context._pkgs_dirs[0].allow_softlinks is None
     assert context._pkgs_dirs[1].path == "/path_two"
     assert context._pkgs_dirs[1].always_softlink is True
     assert context._pkgs_dirs[1].read_only is True
     assert context._pkgs_dirs[1].allow_softlinks is True
     assert context._pkgs_dirs[2].path == "/path_three"
-    assert context._pkgs_dirs[2].always_softlink is False
+    assert context._pkgs_dirs[2].always_softlink is None
     assert context._pkgs_dirs[2].always_copy is True
     assert context._pkgs_dirs[3].path == "/env_path"
-    assert context._pkgs_dirs[3].allow_softlinks is False
+    assert context._pkgs_dirs[3].allow_softlinks is None
 
 
 @pytest.mark.parametrize(
