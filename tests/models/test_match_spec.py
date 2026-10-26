@@ -1972,6 +1972,43 @@ def test_bracket_version_without_equals_any_solver(any_solver, spec, version):
     assert ms.get("version") == VersionSpec(version)
 
 
+@pytest.mark.parametrize("build", ["*", "py39_0", "py39*"])
+@pytest.mark.parametrize(
+    "version,expected",
+    [
+        ("=1.2", True),
+        ("==1.2", False),
+        ("==1.2.3", True),
+        ("1.2.*", True),
+        (">=1.2,<2", True),
+    ],
+)
+def test_bracket_version_with_build_any_solver(any_solver, version, build, expected):
+    record = PackageRecord(
+        name="pkg",
+        version="1.2.3",
+        build="py39_0",
+        build_number=0,
+        channel="test",
+        subdir="noarch",
+    )
+    spec = f"pkg[version='{version}',build='{build}']"
+    assert MatchSpec(spec).match(record) is expected
+
+
+@pytest.mark.parametrize("version", ["1.2", "1.2.3"])
+def test_compact_version_with_build_stays_exact_any_solver(any_solver, version):
+    record = PackageRecord(
+        name="pkg",
+        version=version,
+        build="py39_0",
+        build_number=0,
+        channel="test",
+        subdir="noarch",
+    )
+    assert MatchSpec("pkg=1.2=py39_0").match(record) is (version == "1.2")
+
+
 @pytest.mark.parametrize("spec", ["numpy[<2]", "numpy[>=1.0]", "package[a,b]"])
 def test_bracket_without_key_any_solver(any_solver, spec):
     with pytest.raises(InvalidMatchSpec, match="No key-value pairs found"):

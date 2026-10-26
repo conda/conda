@@ -16,10 +16,10 @@ Requesting an extra through a MatchSpec (e.g. `httpx[extras=cli]`) was accepted 
 - Use `--override-channels` and a fresh environment name each time so the host `.condarc` does not skew channel priority.
 
 ### Steps
-1. Baseline, no extra: run `conda create -n httpx2-plain -c conda-pypi -c conda-forge --override-channels "conda-pypi::httpx" --yes --solver rattler`, then `conda list -n httpx-plain`.
-2. With the extra: run `conda create -n httpx2-cli -c conda-pypi -c conda-forge --override-channels "conda-pypi::httpx2[extras=cli]" --yes --solver rattler`, then `conda list -n httpx-cli`.
+1. Baseline, no extra: run `conda create -n httpx2-plain -c conda-pypi -c conda-forge --override-channels "conda-pypi::httpx2" --yes --solver rattler`, then `conda list -n httpx2-plain`.
+2. With the extra: run `conda create -n httpx2-cli -c conda-pypi -c conda-forge --override-channels "conda-pypi::httpx2[extras=cli]" --yes --solver rattler`, then `conda list -n httpx2-cli`.
 3. Repeat step 2 without the channel prefix: `"httpx2[extras=cli]"`.
-4. Repeat step 2 with an explicit version: `"conda-pypi::httpx[extras=cli, version=<version published by conda-pypi>]"`.
+4. Repeat step 2 with an explicit version: `"conda-pypi::httpx2[extras=cli, version=<version published by conda-pypi>]"`.
 5. Request two extras at once, if the package defines them (e.g. `"conda-pypi::httpx2[extras=[cli,http2]]"`), and check `conda list`.
 6. Request an extra that does not exist (e.g. `"conda-pypi::httpx2[extras=doesnotexist]"`).
 7. Activate `httpx2-cli` and run `python -c "import httpx2, click, pygments, rich"`.
@@ -27,11 +27,11 @@ Requesting an extra through a MatchSpec (e.g. `httpx[extras=cli]`) was accepted 
 
 ### Pass criteria
 - Step 1: `click`, `pygments` and `rich` are not installed.
-- Steps 2-4: `click`, `pygments` and `rich` are installed in addition to everything from step 1, and `httpx` comes from the `conda-pypi` channel for the channel-qualified specs.
+- Steps 2-4: `click`, `pygments` and `rich` are installed in addition to everything from step 1, and `httpx2` comes from the `conda-pypi` channel for the channel-qualified specs.
 - Step 5: the union of both extras' packages is installed.
 - Step 6: behavior is deterministic and does not crash with a traceback (either a clear error or the plain package is installed; record which).
 - Step 7: the imports succeed.
-- Results are the same for both solvers and with/without sharded repodata.
+- With rattler, results are the same with and without sharded repodata.
 
 ### Out of scope / notes
 - Pre-fix, `httpx[cli]` (without `extras=`) raises `InvalidMatchSpec`; that syntax is not expected to work.

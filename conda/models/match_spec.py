@@ -1197,11 +1197,9 @@ def _parse_spec_str_v3(spec_str):
                     f"did you mean `extras=[{brackets_str}]`?",
                 )
 
-    # Re-process version field, whose syntax depends on the presence of a build field
+    # Preserve bracket-version matching independently of the build constraint.
     if version_value := brackets.get("version"):
-        brackets["version"] = _sanitize_version_str(
-            version_value, brackets.get("build")
-        )
+        brackets["version"] = _sanitize_version_str(version_value, None)
 
     # Step 4. strip off parens portion
     m4 = _PARENS_RE.match(spec_str)
