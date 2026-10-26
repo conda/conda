@@ -391,6 +391,9 @@ class PackageCacheData(metaclass=PackageCacheType):
         if isfile(magic_file):
             i_wri = file_path_is_writable(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
             self.__is_writable = i_wri
+            pkg_dir_config = context.pkg_dir(self.pkgs_dir)
+            if pkg_dir_config and pkg_dir_config.read_only:
+                self.__is_writable = i_wri = False
             log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         else:
             log.log(TRACE, "package cache directory '%s' does not exist", self.pkgs_dir)
