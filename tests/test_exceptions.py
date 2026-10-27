@@ -5,7 +5,6 @@ import json
 import sys
 from contextlib import nullcontext
 from datetime import timedelta
-from unittest.mock import patch
 
 import pytest
 import requests
@@ -844,8 +843,6 @@ def test_print_unexpected_error_message_upload_3(
     assert "conda version" in stderr
 
 
-@patch("requests.post", return_value=None)
-@patch("builtins.input", return_value="n")
 def test_print_unexpected_error_message_opt_out_1(
     mocker: MockerFixture,
     monkeypatch: MonkeyPatch,
@@ -870,15 +867,14 @@ def test_print_unexpected_error_message_opt_out_1(
     assert "conda version" in stderr
 
 
-@patch("requests.post", return_value=None)
-@patch("builtins.input", return_value="n")
-@patch("os.isatty", return_value=True)
 def test_print_unexpected_error_message_opt_out_2(
-    isatty_mock,
-    input_mock,
-    post_mock,
+    mocker: MockerFixture,
     capsys: CaptureFixture,
-):
+) -> None:
+    mocker.patch("os.isatty", return_value=True)
+    input_mock = mocker.patch("builtins.input", return_value="n")
+    post_mock = mocker.patch("requests.post", return_value=None)
+
     ExceptionHandler()(_raise_helper, AssertionError())
     stdout, stderr = capsys.readouterr()
 

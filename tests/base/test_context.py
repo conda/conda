@@ -10,7 +10,6 @@ from itertools import chain
 from os.path import abspath, join
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
-from unittest import mock
 
 import pytest
 
@@ -483,20 +482,20 @@ def test_specify_same_channels_cli_as_in_condarc(context_testdata: None):
     assert context.channels == ("conda-forge",)
 
 
-def test_expandvars(context_testdata: None):
+def test_expandvars(context_testdata: None, monkeypatch: MonkeyPatch):
     """Environment variables should be expanded in settings that have expandvars=True."""
 
     def _get_expandvars_context(attr, config_expr, env_value):
-        with mock.patch.dict(os.environ, {"TEST_VAR": env_value}):
-            reset_context(())
-            string = f"{attr}: {config_expr}"
-            rd = {
-                "testdata": YamlRawParameter.make_raw_parameters(
-                    "testdata", yaml.loads(string)
-                )
-            }
-            context._set_raw_data(rd)
-            return getattr(context, attr)
+        monkeypatch.setenv("TEST_VAR", env_value)
+        reset_context(())
+        string = f"{attr}: {config_expr}"
+        rd = {
+            "testdata": YamlRawParameter.make_raw_parameters(
+                "testdata", yaml.loads(string)
+            )
+        }
+        context._set_raw_data(rd)
+        return getattr(context, attr)
 
     ssl_verify = _get_expandvars_context("ssl_verify", "${TEST_VAR}", "yes")
     assert ssl_verify
