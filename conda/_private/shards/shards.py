@@ -235,52 +235,6 @@ def shard_mentioned_packages(
     yield from extra
 
 
-def shard_extra_depends_packages(
-    shard: ShardDict,
-    extras: Iterable[str],
-    spec_to_package_name=spec_to_package_name,
-    repodata_version: int = 1,
-) -> Iterable[str]:
-    """
-    Return dependency names mentioned in the CEP 44 ``extra_depends`` groups
-    named by ``extras``, across every record (all builds/versions) in
-    ``shard``.
-
-    This only looks at ``extra_depends`` groups attached directly to records
-    in this shard (i.e. extras requested for *this* package, e.g. via
-    ``httpx[extras=cli]``). It does not recurse into ``extras=[...]`` that may
-    appear nested inside the dependency specs it returns; see
-    ``shard_mentioned_package_extras`` for that.
-
-    Unions ``extra_depends`` across all builds/versions present in the shard
-    rather than trying to match the specific version a MatchSpec requested,
-    matching the "overgenerous" traversal philosophy documented in
-    ``conda._private.shards.subset`` (already true of ``depends`` traversal,
-    which does not filter by version either).
-
-    Callers are responsible for calling
-    ``conda._private.shards.misc.filter_redundant_packages`` on ``shard`` first if
-    "prefer .conda over .tar.bz2" semantics are required; `conda._private.shards.subset`
-    already does this for every shard before invoking this function.
-    """
-    unique_specs: set[str] = set()
-    wanted = set(extras)
-    if not wanted:
-        return
-
-    for record in _iter_shard_records(shard, repodata_version):
-        extra_depends = record.get("extra_depends")
-        if not extra_depends:
-            continue
-        for extra_name in wanted:
-            for spec in extra_depends.get(extra_name, ()):
-                if spec not in unique_specs:
-                    unique_specs.add(spec)
-                    name = spec_to_package_name(spec)
-                    if name is not None:
-                        yield name
-
-
 def shard_mentioned_package_extras(
     shard: ShardDict,
     extras: Iterable[str] = (),
@@ -294,10 +248,9 @@ def shard_mentioned_package_extras(
     ``pkg[extras=more]`` -> ``("pkg", frozenset({"more"}))``).
 
     Specs come from every record's ``depends`` (when ``include_depends`` is
-    true) and from the ``extra_depends`` groups named by ``extras``. As with
-    ``shard_extra_depends_packages``, groups are unioned across all
-    builds/versions in the shard. Only groups named in ``extras`` are
-    followed; other groups stay inactive.
+    true) and from the ``extra_depends`` groups named by ``extras``. Groups
+    are unioned across all builds/versions in the shard. Only groups named
+    in ``extras`` are followed. Other groups stay inactive.
 
     Callers are responsible for calling
     ``conda._private.shards.misc.filter_redundant_packages`` on ``shard`` first.

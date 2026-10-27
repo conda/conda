@@ -233,34 +233,6 @@ class RepodataSubset:
             repodata_version=self._repodata_version,
         )
 
-    def _add_requested_extras(self, node: Node, extras: frozenset[str]) -> bool:
-        """
-        Merge ``extras`` into ``node.requested_extras``.
-
-        Return True if this added groups to a node that was already visited,
-        i.e. the node needs to be revisited to traverse the new groups.
-        """
-        new_extras = extras - node.requested_extras
-        if not new_extras:
-            return False
-        node.requested_extras |= new_extras
-        return node.visited
-
-    def _add_requested_extras_expanded(
-        self, node: Node, extras: frozenset[str]
-    ) -> bool:
-        """
-        Merge ``extras`` into ``node.requested_extras`` (pipelined strategy).
-
-        Return True if this added groups to a node whose shard was already
-        expanded, so it needs to be re-processed for the new groups.
-        """
-        new_extras = extras - node.requested_extras
-        if not new_extras:
-            return False
-        node.requested_extras |= new_extras
-        return node.expanded
-
     def _neighbors(self, node: Node) -> Iterator[Node]:
         """
         Retrieve all unvisited neighbors of a node, plus already visited
@@ -306,7 +278,9 @@ class RepodataSubset:
                     )
                     yield self._nodes[node_id]
                 else:
-                    revisit = self._add_requested_extras(existing, extras)
+                    new_extras = extras - existing.requested_extras
+                    existing.requested_extras |= new_extras
+                    revisit = bool(new_extras) and existing.visited
                     if node.distance + 1 < existing.distance:
                         # A shorter path was found (e.g. via late-activated
                         # extras); re-expand so dependencies use the new distance.
@@ -671,9 +645,9 @@ class RepodataSubset:
                         self._nodes[new_node_id] = new_node
                         yield new_node_id
                     else:
-                        revisit = self._add_requested_extras_expanded(
-                            existing, requested_extras
-                        )
+                        new_extras = requested_extras - existing.requested_extras
+                        existing.requested_extras |= new_extras
+                        revisit = bool(new_extras) and existing.expanded
                         if parent_node.distance + 1 < existing.distance:
                             # A shorter path was found; re-expand so
                             # dependencies and extras use the new distance.

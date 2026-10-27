@@ -38,7 +38,6 @@ from conda._private.shards.shards import (
     batch_retrieve_from_cache,
     fetch_channels,
     fetch_shards_index,
-    shard_extra_depends_packages,
     shard_mentioned_package_extras,
     shard_mentioned_packages,
 )
@@ -795,7 +794,7 @@ def test_shard_mentioned_package_extras_v3_gated_by_repodata_version(solver_ratt
     ) == [("click", frozenset({"x"}))]
 
 
-def test_shard_extra_depends_packages_no_extra_depends_key():
+def test_shard_mentioned_package_extras_no_extra_depends_key():
     # Records without an "extra_depends" key yield nothing, even if requested.
     shard = {
         "packages": {
@@ -803,10 +802,15 @@ def test_shard_extra_depends_packages_no_extra_depends_key():
         },
         "packages.conda": {},
     }
-    assert list(shard_extra_depends_packages(shard, ["cli"])) == []
+    assert (
+        list(
+            shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+        )
+        == []
+    )
 
 
-def test_shard_extra_depends_packages_no_extras_requested():
+def test_shard_mentioned_package_extras_no_extras_requested():
     # Nothing requested (empty extras) yields nothing, even if extra_depends present.
     shard = {
         "packages": {
@@ -818,10 +822,13 @@ def test_shard_extra_depends_packages_no_extras_requested():
         },
         "packages.conda": {},
     }
-    assert list(shard_extra_depends_packages(shard, [])) == []
+    assert (
+        list(shard_mentioned_package_extras(shard, extras=[], include_depends=False))
+        == []
+    )
 
 
-def test_shard_extra_depends_packages_single_extra():
+def test_shard_mentioned_package_extras_single_extra():
     shard = {
         "packages": {
             "httpx-0.28.0-0.tar.bz2": {
@@ -832,11 +839,13 @@ def test_shard_extra_depends_packages_single_extra():
         },
         "packages.conda": {},
     }
-    names = set(shard_extra_depends_packages(shard, ["cli"]))
-    assert names == {"click", "rich"}
+    pairs = set(
+        shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+    )
+    assert pairs == {("click", frozenset()), ("rich", frozenset())}
 
 
-def test_shard_extra_depends_packages_unrequested_extra_not_included():
+def test_shard_mentioned_package_extras_unrequested_extra_not_included():
     shard = {
         "packages": {
             "httpx-0.28.0-0.tar.bz2": {
@@ -847,11 +856,13 @@ def test_shard_extra_depends_packages_unrequested_extra_not_included():
         },
         "packages.conda": {},
     }
-    names = set(shard_extra_depends_packages(shard, ["cli"]))
-    assert "h2" not in names
+    pairs = list(
+        shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+    )
+    assert pairs == [("click", frozenset())]
 
 
-def test_shard_extra_depends_packages_unknown_extra_name_no_error():
+def test_shard_mentioned_package_extras_unknown_extra_name_no_error():
     # Requesting an extra name that doesn't exist on the record is a no-op,
     # not a KeyError.
     shard = {
@@ -864,10 +875,17 @@ def test_shard_extra_depends_packages_unknown_extra_name_no_error():
         },
         "packages.conda": {},
     }
-    assert list(shard_extra_depends_packages(shard, ["does-not-exist"])) == []
+    assert (
+        list(
+            shard_mentioned_package_extras(
+                shard, extras=["does-not-exist"], include_depends=False
+            )
+        )
+        == []
+    )
 
 
-def test_shard_extra_depends_packages_multiple_extras_union_deduplicated():
+def test_shard_mentioned_package_extras_multiple_extras_union_deduplicated():
     shard = {
         "packages": {
             "httpx-0.28.0-0.tar.bz2": {
@@ -875,20 +893,27 @@ def test_shard_extra_depends_packages_multiple_extras_union_deduplicated():
                 "depends": [],
                 "extra_depends": {
                     "cli": ["click", "rich"],
-                    "http2": ["h2"],
+                    "http2": ["h2", "rich"],
                     "socks": ["pysocks"],
                 },
             },
         },
         "packages.conda": {},
     }
-    names = list(shard_extra_depends_packages(shard, ["cli", "http2"]))
-    assert set(names) == {"click", "rich", "h2"}
-    # each name yielded once even if it appeared in multiple builds/records
-    assert len(names) == len(set(names))
+    pairs = list(
+        shard_mentioned_package_extras(
+            shard, extras=["cli", "http2"], include_depends=False
+        )
+    )
+    assert set(pairs) == {
+        ("click", frozenset()),
+        ("rich", frozenset()),
+        ("h2", frozenset()),
+    }
+    assert len(pairs) == len(set(pairs))
 
 
-def test_shard_extra_depends_packages_invalid_spec_skipped():
+def test_shard_mentioned_package_extras_invalid_spec_skipped():
     shard = {
         "packages": {
             "httpx-0.28.0-0.tar.bz2": {
@@ -898,12 +923,13 @@ def test_shard_extra_depends_packages_invalid_spec_skipped():
         },
         "packages.conda": {},
     }
-    names = list(shard_extra_depends_packages(shard, ["cli"]))
-    assert "click" in names
-    assert None not in names
+    pairs = list(
+        shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+    )
+    assert pairs == [("click", frozenset())]
 
 
-def test_shard_extra_depends_packages_v3_gated_by_repodata_version():
+def test_shard_mentioned_package_extras_v3_extra_depends_gated_by_repodata_version():
     shard = _v3_shard(
         {
             "whl": {
@@ -915,14 +941,21 @@ def test_shard_extra_depends_packages_v3_gated_by_repodata_version():
         }
     )
     # default repodata_version=1: v3 section is not examined
-    assert list(shard_extra_depends_packages(shard, ["cli"])) == []
+    assert (
+        list(
+            shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+        )
+        == []
+    )
     # repodata_version=3: v3 section is examined
-    assert list(shard_extra_depends_packages(shard, ["cli"], repodata_version=3)) == [
-        "click"
-    ]
+    assert list(
+        shard_mentioned_package_extras(
+            shard, extras=["cli"], include_depends=False, repodata_version=3
+        )
+    ) == [("click", frozenset())]
 
 
-def test_shard_extra_depends_packages_across_classic_and_conda_builds():
+def test_shard_mentioned_package_extras_across_classic_and_conda_builds():
     shard = {
         "packages": {
             "httpx-0.28.0-0.tar.bz2": {
@@ -937,8 +970,11 @@ def test_shard_extra_depends_packages_across_classic_and_conda_builds():
             },
         },
     }
-    names = set(shard_extra_depends_packages(shard, ["cli"]))
-    assert names == {"click", "rich"}
+    pairs = list(
+        shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+    )
+    assert set(pairs) == {("click", frozenset()), ("rich", frozenset())}
+    assert len(pairs) == len(set(pairs))
 
 
 @pytest.mark.integration
