@@ -1,0 +1,22 @@
+### Enhancements
+
+* Follow CEP 44 extras explicitly requested by dependency specs (e.g. `pkg[extras=more]`)
+  when fetching sharded repodata, and revisit a package when another dependency activates an
+  additional extras group. Groups that were not requested stay inactive. Previously only
+  extras requested for root packages via `root_extras` were followed. (#16891 via #16908)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>
