@@ -102,10 +102,13 @@ def determine_link_type(extracted_package_dir, target_prefix):
     if pkg_dir_config:
         if pkg_dir_config.always_copy is not None:
             always_copy = pkg_dir_config.always_copy
-        if pkg_dir_config.always_softlink is not None:
-            always_softlink = pkg_dir_config.always_softlink
         if pkg_dir_config.allow_softlinks is not None:
             allow_softlinks = pkg_dir_config.allow_softlinks
+        if pkg_dir_config.always_softlink is not None:
+            always_softlink = pkg_dir_config.always_softlink
+        elif pkg_dir_config.allow_softlinks is False:
+            # a cache that disallows soft links isn't overridden by a global always_softlink
+            always_softlink = False
 
     if always_copy:
         return LinkType.copy

@@ -554,6 +554,15 @@ def test_determine_link_type(
             LinkType.copy,
             id="cache-always-copy-over-global-always",
         ),
+        pytest.param(
+            "false",
+            "",
+            "",
+            True,
+            "always_softlink: true",
+            LinkType.hardlink,
+            id="cache-dont-allow-softlink-global-always-softlink",
+        ),
     ],
 )
 @pytest.mark.usefixtures("reset_conda_context")

@@ -232,6 +232,9 @@ class PkgsDirConfig(ConfigurationObject):
         self.always_softlink = PrimitiveParameter(None, element_type=(bool, NoneType))
         self.always_copy = PrimitiveParameter(None, element_type=(bool, NoneType))
 
+    def __repr__(self):
+        fields = ", ".join(f"{name}={value!r}" for name, value in vars(self).items())
+        return f"{type(self).__name__}({fields})"
 
 def pkgs_dir_validation(value: PkgsDirConfig) -> str | Literal[True]:
     if not value.path:
