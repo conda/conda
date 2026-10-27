@@ -214,8 +214,8 @@ Because "no" is signalled by an exception, code after the call can assume the us
 (rendering_output_logging)=
 ## Loggers
 
-How to create a logger, which level to use, and the rule that library code does not configure
-handlers are in {ref}`deep_dive_logging`.
+{ref}`deep_dive_logging` covers creating a logger with `getLogger(__name__)`, choosing a level,
+and leaving handlers, levels, and propagation to the caller.
 
 (rendering_output_logger_or_reporter)=
 ### Choosing between a logger and the reporter

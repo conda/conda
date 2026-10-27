@@ -1,9 +1,9 @@
 (deep_dive_logging)=
 # Logging
 
-Loggers record diagnostics. That includes notes that help a developer or a user troubleshoot a
-problem, and warnings about conditions that are surprising but do not stop the command. Command
-results go through the reporter.
+Loggers record diagnostics: notes that help a developer or a user troubleshoot a problem, and
+warnings about conditions that are surprising but do not stop the command. Command results go
+through the reporter.
 
 The conventions are:
 
@@ -38,7 +38,7 @@ The `-v` flags map to levels in {attr}`context.log_level <conda.base.context.Con
 | `-vvv` / `--debug` | 3 | `DEBUG` |
 | `-vvvv` / `--trace` | 4 | `TRACE` |
 
-For example, a recoverable problem is a warning:
+From `conda/core/envs_manager.py`:
 
 ```python
 # conda/core/envs_manager.py
