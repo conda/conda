@@ -841,6 +841,11 @@ def _parse_spec_str_dispatcher(spec_str) -> dict[str, object]:
     return _parse_spec_str_v3(spec_str)
 
 
+@deprecated(
+    "27.3",
+    "27.9",
+    addendum="Use `conda.models.match_spec._parse_spec_str_v3` instead.",
+)
 def _parse_spec_str(spec_str):
     cached_result = _PARSE_CACHE.get(spec_str)
     if cached_result:
