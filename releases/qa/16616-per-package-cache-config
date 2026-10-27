@@ -44,7 +44,7 @@ touch "$QA/stamp"   # anything in $SHARED newer than this was written by conda
         read_only: true
       - $USER_PKGS
     ```
-    
+
     `conda info` lists both caches.
     ```
     $ conda info
@@ -114,7 +114,7 @@ touch "$QA/stamp"   # anything in $SHARED newer than this was written by conda
    Ensure that:
      - The package is downloaded into `$USER_PKGS` with no permission errors.
      - No file changes have been made to the shared cache. You can check this by running ` find "$SHARED" -newer "$QA/stamp" ` and expect an empty response.
-   
+
    Clean up this test by running `chmod -R u+w "$SHARED"` afterwards.
 
 9. **All caches read-only.** Mark every `pkgs_dirs` entry `read_only: true`. You condarc should now look like:
