@@ -22,7 +22,7 @@ from conda.models.match_spec import (
     _PARSE_CACHE,
     ChannelMatch,
     MatchSpec,
-    _parse_spec_str,
+    _parse_spec_str_v3,
 )
 from conda.models.records import PackageRecord
 from conda.models.version import VersionSpec
@@ -484,7 +484,7 @@ def test_parse_channel_preserves_url_for_multichannel_members():
     "https://repo.anaconda.com/pkgs/main" is preserved as the full URL in
     the parsed spec, and not flattened to "defaults".
     """
-    parsed = _parse_spec_str("https://repo.anaconda.com/pkgs/main::numpy")
+    parsed = _parse_spec_str_v3("https://repo.anaconda.com/pkgs/main::numpy")
     assert parsed == {
         "_original_spec_str": "https://repo.anaconda.com/pkgs/main::numpy",
         "channel": "https://repo.anaconda.com/pkgs/main",
@@ -492,13 +492,13 @@ def test_parse_channel_preserves_url_for_multichannel_members():
     }
     # The short form still collapses, since "pkgs/main" resolves via
     # channel_alias and its canonical_name is "defaults".
-    parsed = _parse_spec_str("pkgs/main::numpy")
+    parsed = _parse_spec_str_v3("pkgs/main::numpy")
     assert parsed["channel"] == "defaults"
 
     # An unrelated host that happens to share a multichannel member's path
     # must not collapse: "https://example.com/pkgs/main" has nothing to do
     # with defaults and must stay as the full URL.
-    parsed = _parse_spec_str("https://example.com/pkgs/main::numpy")
+    parsed = _parse_spec_str_v3("https://example.com/pkgs/main::numpy")
     assert parsed["channel"] == "https://example.com/pkgs/main"
 
 
@@ -860,7 +860,7 @@ def test_pip_style2():
 
 def test_parse_spec_str_tarball_url():
     url = "https://repo.anaconda.com/pkgs/main/linux-64/_license-1.1-py27_1.tar.bz2"
-    assert _parse_spec_str(url) == {
+    assert _parse_spec_str_v3(url) == {
         "channel": "defaults",
         "subdir": "linux-64",
         "name": "_license",
@@ -871,7 +871,7 @@ def test_parse_spec_str_tarball_url():
     }
 
     url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.tar.bz2"
-    assert _parse_spec_str(url) == {
+    assert _parse_spec_str_v3(url) == {
         "channel": "conda-canary",
         "subdir": "linux-64",
         "name": "conda",
@@ -882,7 +882,7 @@ def test_parse_spec_str_tarball_url():
     }
 
     url = "https://conda.anaconda.org/conda-canary/linux-64/conda-4.3.21.post699+1dab973-py36h4a561cd_0.conda"
-    assert _parse_spec_str(url) == {
+    assert _parse_spec_str_v3(url) == {
         "channel": "conda-canary",
         "subdir": "linux-64",
         "name": "conda",
@@ -894,45 +894,45 @@ def test_parse_spec_str_tarball_url():
 
 
 def test_parse_spec_str_no_brackets():
-    assert _parse_spec_str("numpy") == {
+    assert _parse_spec_str_v3("numpy") == {
         "_original_spec_str": "numpy",
         "name": "numpy",
     }
     # For whatever reason "numpy=" is allowed and will be interpreted as "numpy"
-    assert _parse_spec_str("numpy=") == {
+    assert _parse_spec_str_v3("numpy=") == {
         "_original_spec_str": "numpy=",
         "name": "numpy",
     }
-    assert _parse_spec_str("defaults::numpy") == {
+    assert _parse_spec_str_v3("defaults::numpy") == {
         "_original_spec_str": "defaults::numpy",
         "channel": "defaults",
         "name": "numpy",
     }
-    assert _parse_spec_str("https://repo.anaconda.com/pkgs/free::numpy") == {
+    assert _parse_spec_str_v3("https://repo.anaconda.com/pkgs/free::numpy") == {
         "_original_spec_str": "https://repo.anaconda.com/pkgs/free::numpy",
         "channel": "https://repo.anaconda.com/pkgs/free",
         "name": "numpy",
     }
-    assert _parse_spec_str("defaults::numpy=1.8") == {
+    assert _parse_spec_str_v3("defaults::numpy=1.8") == {
         "_original_spec_str": "defaults::numpy=1.8",
         "channel": "defaults",
         "name": "numpy",
         "version": "1.8*",
     }
-    assert _parse_spec_str("defaults::numpy =1.8") == {
+    assert _parse_spec_str_v3("defaults::numpy =1.8") == {
         "_original_spec_str": "defaults::numpy =1.8",
         "channel": "defaults",
         "name": "numpy",
         "version": "1.8*",
     }
-    assert _parse_spec_str("defaults::numpy=1.8=py27_0") == {
+    assert _parse_spec_str_v3("defaults::numpy=1.8=py27_0") == {
         "_original_spec_str": "defaults::numpy=1.8=py27_0",
         "channel": "defaults",
         "name": "numpy",
         "version": "1.8",
         "build": "py27_0",
     }
-    assert _parse_spec_str("defaults::numpy 1.8 py27_0") == {
+    assert _parse_spec_str_v3("defaults::numpy 1.8 py27_0") == {
         "_original_spec_str": "defaults::numpy 1.8 py27_0",
         "channel": "defaults",
         "name": "numpy",
@@ -942,19 +942,19 @@ def test_parse_spec_str_no_brackets():
 
 
 def test_parse_spec_str_with_brackets():
-    assert _parse_spec_str("defaults::numpy[channel=anaconda]") == {
+    assert _parse_spec_str_v3("defaults::numpy[channel=anaconda]") == {
         "_original_spec_str": "defaults::numpy[channel=anaconda]",
         "channel": "anaconda",
         "name": "numpy",
     }
-    assert _parse_spec_str("defaults::numpy 1.8 py27_0[channel=anaconda]") == {
+    assert _parse_spec_str_v3("defaults::numpy 1.8 py27_0[channel=anaconda]") == {
         "_original_spec_str": "defaults::numpy 1.8 py27_0[channel=anaconda]",
         "channel": "anaconda",
         "name": "numpy",
         "version": "1.8",
         "build": "py27_0",
     }
-    assert _parse_spec_str(
+    assert _parse_spec_str_v3(
         "defaults::numpy=1.8=py27_0 [channel=anaconda,version=1.9, build=3]"
     ) == {
         "_original_spec_str": "defaults::numpy=1.8=py27_0 [channel=anaconda,version=1.9, build=3]",
@@ -963,7 +963,7 @@ def test_parse_spec_str_with_brackets():
         "version": "1.9",
         "build": "3",
     }
-    assert _parse_spec_str(
+    assert _parse_spec_str_v3(
         "defaults::numpy=1.8=py27_0 [channel='anaconda',version=\">=1.8,<2|1.9\", build='3']"
     ) == {
         "_original_spec_str": "defaults::numpy=1.8=py27_0 [channel='anaconda',version=\">=1.8,<2|1.9\", build='3']",
@@ -974,7 +974,7 @@ def test_parse_spec_str_with_brackets():
     }
 
     # Ensure 'name' within brackets can't override the name specified outside of brackets
-    assert _parse_spec_str(
+    assert _parse_spec_str_v3(
         "tensorflow[name=* version=* md5=253b922ecdb5a30884875948b8904983]"
     ) == {
         "_original_spec_str": "tensorflow[name=* version=* md5=253b922ecdb5a30884875948b8904983]",
@@ -982,12 +982,12 @@ def test_parse_spec_str_with_brackets():
         "version": "*",
         "md5": "253b922ecdb5a30884875948b8904983",
     }
-    assert _parse_spec_str("tensorflow[name=pytorch]") == {
+    assert _parse_spec_str_v3("tensorflow[name=pytorch]") == {
         "_original_spec_str": "tensorflow[name=pytorch]",
         "name": "tensorflow",
     }
 
-    assert _parse_spec_str(
+    assert _parse_spec_str_v3(
         "defaults::numpy=1.8=py27_0 [name=\"pytorch\" channel='anaconda',version=\">=1.8,<2|1.9\", build='3']"
     ) == {
         "_original_spec_str": "defaults::numpy=1.8=py27_0 [name=\"pytorch\" channel='anaconda',version=\">=1.8,<2|1.9\", build='3']",
@@ -999,12 +999,12 @@ def test_parse_spec_str_with_brackets():
 
 
 def test_star_name():
-    assert _parse_spec_str("* 2.7.4") == {
+    assert _parse_spec_str_v3("* 2.7.4") == {
         "_original_spec_str": "* 2.7.4",
         "name": "*",
         "version": "2.7.4",
     }
-    assert _parse_spec_str("* >=1.3 2") == {
+    assert _parse_spec_str_v3("* >=1.3 2") == {
         "_original_spec_str": "* >=1.3 2",
         "name": "*",
         "version": ">=1.3",
@@ -1013,27 +1013,27 @@ def test_star_name():
 
 
 def test_parse_equal_equal():
-    assert _parse_spec_str("numpy==1.7") == {
+    assert _parse_spec_str_v3("numpy==1.7") == {
         "_original_spec_str": "numpy==1.7",
         "name": "numpy",
         "version": "1.7",
     }
-    assert _parse_spec_str("numpy ==1.7") == {
+    assert _parse_spec_str_v3("numpy ==1.7") == {
         "_original_spec_str": "numpy ==1.7",
         "name": "numpy",
         "version": "1.7",
     }
-    assert _parse_spec_str("numpy=1.7") == {
+    assert _parse_spec_str_v3("numpy=1.7") == {
         "_original_spec_str": "numpy=1.7",
         "name": "numpy",
         "version": "1.7*",
     }
-    assert _parse_spec_str("numpy =1.7") == {
+    assert _parse_spec_str_v3("numpy =1.7") == {
         "_original_spec_str": "numpy =1.7",
         "name": "numpy",
         "version": "1.7*",
     }
-    assert _parse_spec_str("numpy !=1.7") == {
+    assert _parse_spec_str_v3("numpy !=1.7") == {
         "_original_spec_str": "numpy !=1.7",
         "name": "numpy",
         "version": "!=1.7",
@@ -1041,52 +1041,52 @@ def test_parse_equal_equal():
 
 
 def test_parse_hard():
-    assert _parse_spec_str("numpy~=1.7.1") == {
+    assert _parse_spec_str_v3("numpy~=1.7.1") == {
         "_original_spec_str": "numpy~=1.7.1",
         "name": "numpy",
         "version": "~=1.7.1",
     }
-    assert _parse_spec_str("numpy>1.8,<2|==1.7") == {
+    assert _parse_spec_str_v3("numpy>1.8,<2|==1.7") == {
         "_original_spec_str": "numpy>1.8,<2|==1.7",
         "name": "numpy",
         "version": ">1.8,<2|==1.7",
     }
-    assert _parse_spec_str("numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0") == {
+    assert _parse_spec_str_v3("numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0") == {
         "_original_spec_str": "numpy >1.8,<2|==1.7,!=1.9,~=1.7.1 py34_0",
         "name": "numpy",
         "version": ">1.8,<2|==1.7,!=1.9,~=1.7.1",
         "build": "py34_0",
     }
-    assert _parse_spec_str("*>1.8,<2|==1.7") == {
+    assert _parse_spec_str_v3("*>1.8,<2|==1.7") == {
         "_original_spec_str": "*>1.8,<2|==1.7",
         "name": "*",
         "version": ">1.8,<2|==1.7",
     }
-    assert _parse_spec_str("* >1.8,<2|==1.7") == {
+    assert _parse_spec_str_v3("* >1.8,<2|==1.7") == {
         "_original_spec_str": "* >1.8,<2|==1.7",
         "name": "*",
         "version": ">1.8,<2|==1.7",
     }
 
-    assert _parse_spec_str("* 1 *") == {
+    assert _parse_spec_str_v3("* 1 *") == {
         "_original_spec_str": "* 1 *",
         "name": "*",
         "version": "1",
         "build": "*",
     }
-    assert _parse_spec_str("* * openblas_0") == {
+    assert _parse_spec_str_v3("* * openblas_0") == {
         "_original_spec_str": "* * openblas_0",
         "name": "*",
         "version": "*",
         "build": "openblas_0",
     }
-    assert _parse_spec_str("* * *") == {
+    assert _parse_spec_str_v3("* * *") == {
         "_original_spec_str": "* * *",
         "name": "*",
         "version": "*",
         "build": "*",
     }
-    assert _parse_spec_str("* *") == {
+    assert _parse_spec_str_v3("* *") == {
         "_original_spec_str": "* *",
         "name": "*",
         "version": "*",
@@ -1116,7 +1116,7 @@ def test_boolean_operator_in_space_separated_build(spec_str, expected_build):
 
 def test_parse_errors():
     with pytest.raises(InvalidMatchSpec):
-        _parse_spec_str("!xyz 1.3")
+        _parse_spec_str_v3("!xyz 1.3")
 
 
 @pytest.mark.xfail(reason="bare '=' with no version value should raise, see #12046")
@@ -1132,14 +1132,14 @@ def test_bare_equals_operator_raises():
 
 
 def test_parse_channel_subdir():
-    assert _parse_spec_str("conda-forge::foo>=1.0") == {
+    assert _parse_spec_str_v3("conda-forge::foo>=1.0") == {
         "_original_spec_str": "conda-forge::foo>=1.0",
         "channel": "conda-forge",
         "name": "foo",
         "version": ">=1.0",
     }
 
-    assert _parse_spec_str("conda-forge/linux-32::foo>=1.0") == {
+    assert _parse_spec_str_v3("conda-forge/linux-32::foo>=1.0") == {
         "_original_spec_str": "conda-forge/linux-32::foo>=1.0",
         "channel": "conda-forge",
         "subdir": "linux-32",
@@ -1147,7 +1147,7 @@ def test_parse_channel_subdir():
         "version": ">=1.0",
     }
 
-    assert _parse_spec_str("*/linux-32::foo>=1.0") == {
+    assert _parse_spec_str_v3("*/linux-32::foo>=1.0") == {
         "_original_spec_str": "*/linux-32::foo>=1.0",
         "channel": "*",
         "subdir": "linux-32",
@@ -1157,7 +1157,7 @@ def test_parse_channel_subdir():
 
 
 def test_parse_parens():
-    assert _parse_spec_str("conda-forge::foo[build=3](target=blarg,optional)") == {
+    assert _parse_spec_str_v3("conda-forge::foo[build=3](target=blarg,optional)") == {
         "_original_spec_str": "conda-forge::foo[build=3](target=blarg,optional)",
         "channel": "conda-forge",
         "name": "foo",
@@ -1189,49 +1189,49 @@ def test_version_with_parentheses(spec_str, expected_version):
 
 
 def test_parse_build_number_brackets():
-    assert _parse_spec_str("python[build_number=3]") == {
+    assert _parse_spec_str_v3("python[build_number=3]") == {
         "_original_spec_str": "python[build_number=3]",
         "name": "python",
         "build_number": "3",
     }
-    assert _parse_spec_str("python[build_number='>3']") == {
+    assert _parse_spec_str_v3("python[build_number='>3']") == {
         "_original_spec_str": "python[build_number='>3']",
         "name": "python",
         "build_number": ">3",
     }
-    assert _parse_spec_str("python[build_number='>=3']") == {
+    assert _parse_spec_str_v3("python[build_number='>=3']") == {
         "_original_spec_str": "python[build_number='>=3']",
         "name": "python",
         "build_number": ">=3",
     }
 
-    assert _parse_spec_str("python[build_number='<3']") == {
+    assert _parse_spec_str_v3("python[build_number='<3']") == {
         "_original_spec_str": "python[build_number='<3']",
         "name": "python",
         "build_number": "<3",
     }
-    assert _parse_spec_str("python[build_number='<=3']") == {
+    assert _parse_spec_str_v3("python[build_number='<=3']") == {
         "_original_spec_str": "python[build_number='<=3']",
         "name": "python",
         "build_number": "<=3",
     }
 
     # # these don't work right now, should they?
-    # assert _parse_spec_str("python[build_number<3]") == {
+    # assert _parse_spec_str_v3("python[build_number<3]") == {
     #     "name": "python",
     #     "build_number": '<3',
     # }
-    # assert _parse_spec_str("python[build_number<=3]") == {
+    # assert _parse_spec_str_v3("python[build_number<=3]") == {
     #     "name": "python",
     #     "build_number": '<=3',
     # }
 
     # # these don't work right now, should they?
-    # assert _parse_spec_str("python[build_number>3]") == {
+    # assert _parse_spec_str_v3("python[build_number>3]") == {
     #     "name": "python",
     #     "build_number": '>3',
     # }
-    # assert _parse_spec_str("python[build_number>=3]") == {
+    # assert _parse_spec_str_v3("python[build_number>=3]") == {
     #     "name": "python",
     #     "build_number": '>=3',
     # }
@@ -2262,7 +2262,7 @@ def test_match_spec_repodata_v3(spec, parsed, match_spec_v3):
 def test_parse_spec_str_with_precompiled_regex(
     spec_str: str, expected_name: str, expected_version: str | None
 ) -> None:
-    """_parse_spec_str should correctly parse specs using the module-level compiled regexes."""
+    """_parse_spec_str_v3 should correctly parse specs using the module-level compiled regexes."""
     ms = MatchSpec(spec_str)
     assert ms.name == expected_name
     if expected_version is not None:
