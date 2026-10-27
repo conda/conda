@@ -12,16 +12,16 @@ This page contains recent additions to `conda` worth your attention, including f
 
 :::
 ---
-## Faster solves: Rattler is now conda's default solver
+## Faster solves: conda-rattler-solver is now conda's default solver
 
 ::::{card}
 :class-card: sd-rounded-3 conda-feature-card conda-feature-stable
 
 {bdg-light}`Default in conda 26.10 or later` &nbsp; {bdg-success}`Stable`
 
-Starting with **conda 26.10**, **Rattler** replaces libmamba as **conda's default solver**, delivering faster dependency resolution, especially for medium and large environments.
+Starting with **conda 26.10**, **conda-rattler-solver** replaces conda-libmamba-solver as **conda's default solver**, delivering faster dependency resolution, especially for medium and large environments.
 
-Rattler also natively supports newer conda capabilities, including {doc}`Installing packages from PyPI with conda </user-guide/tasks/install-packages-from-pypi>`. This transition also paves the way for removing libmamba and classic solvers from the default conda installation, reducing its size and dependencies.
+`conda-rattler-solver` also natively supports newer conda capabilities, including {doc}`Installing packages from PyPI with conda </user-guide/tasks/install-packages-from-pypi>`. This transition also paves the way for removing libmamba and classic solvers from the default conda installation, reducing its size and dependencies.
 
 :::{dropdown} How to manage your solver
 :animate: fade-in-slide-down
@@ -128,7 +128,7 @@ Accepted values include durations (`7d`, `3d12h`, `1w`), ISO 8601 durations (`P7
 
 ### Timestamp behavior and limitations
 
-Conda prefers the channel-provided `indexed_timestamp`, which is intended to record when a package first became available in the channel index. If it is absent or zero, conda falls back to the builder-controlled `timestamp`, which records build time rather than publication time. Records without a usable timestamp remain eligible.
+Conda prefers the channel-provided `indexed_timestamp`, which is intended to record when a package first became available in the channel index. If it is absent or zero, conda falls back to the builder-controlled `timestamp`, which records build time rather than publication time. If a package does not have a useable timestamp, conda cannot compare the package against the exclusion cutoff, so it remains eligible for installation.
 
 For artifacts predating [CEP 47](https://conda.org/learn/ceps/cep-0047/#channel-server-requirements), channels may seed `indexed_timestamp` from build timestamps or other historical signals. These values may not reflect the exact time a package became available.
 
@@ -161,7 +161,7 @@ PyPI packages are made available through the free `conda-pypi` channel, which yo
 :::{dropdown} How to try it
 :animate: fade-in-slide-down
 
-The Rattler solver is required. If you're using conda 26.9, enable it explicitly:
+The `conda-rattler-solver` plugin is required. Check your configured solver with `conda config --show solver`. If it isn't `rattler`, select it explicitly:
 ```bash
 conda config --set solver rattler
 ```

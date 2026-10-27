@@ -57,7 +57,7 @@ If necessary, update conda:
 
 **Rattler solver**
 
-Rattler is the default solver starting with conda 26.10. If you're using conda 26.9, enable it explicitly:
+This workflow requires ``conda-rattler-solver``. Check your configured solver with ``conda config --show solver``. If it isn't ``rattler``, select it explicitly:
 
 .. code-block:: bash
 
