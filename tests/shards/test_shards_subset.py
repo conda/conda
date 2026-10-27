@@ -43,12 +43,12 @@ from conda.core.subdir_data import SubdirData
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PackageRecord
+from conda.testing.http_test_server import run_test_server
 
 from .conftest import (
     CONDA_FORGE_WITH_SHARDS,
     FAKE_REPODATA,
     ROOT_PACKAGES,
-    _run_test_server,
     _timer,
     ensure_hex_hash,
     expand_channels,
@@ -215,7 +215,7 @@ def test_fetch_channels_rechecks_shards_when_needed(
 
     channel_root = tmp_path / "channel"
     channel_root.mkdir()
-    httpd = _run_test_server(str(channel_root))
+    httpd = run_test_server(str(channel_root))
     try:
         host, port = httpd.socket.getsockname()[:2]
         url_host = f"[{host}]" if ":" in host else host
@@ -271,8 +271,8 @@ def test_fetch_channels_rechecks_stale_shards_in_mixed_channels(monkeypatch, tmp
     stale_channel_root.mkdir()
     other_channel_root.mkdir()
 
-    stale_httpd = _run_test_server(str(stale_channel_root))
-    other_httpd = _run_test_server(str(other_channel_root))
+    stale_httpd = run_test_server(str(stale_channel_root))
+    other_httpd = run_test_server(str(other_channel_root))
     try:
 
         def channel_url(httpd):

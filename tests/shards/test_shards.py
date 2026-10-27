@@ -11,12 +11,11 @@ import json
 import logging
 import os
 import sqlite3
-import tempfile
 import threading
 import time
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING
 
 import msgpack
 import pytest
@@ -50,16 +49,16 @@ from conda.models.channel import Channel
 
 from .conftest import (
     CONDA_FORGE_WITH_SHARDS,
+    FAKE_SHARD,
     ROOT_PACKAGES,
-    _run_test_server,
     _timer,
     expand_channels,
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator
-
     from conda._private.shards.typing import ShardsIndexDict
+
+    from .conftest import MockCache, ShardFactory
 
 HERE = Path(__file__).parent
 
@@ -95,229 +94,6 @@ def empty_shards_cache(tmp_path):
     with shards_cache.ShardCache(tmp_path) as cache:
         yield cache
         cache.remove_cache()
-
-
-# 'foo' and 'bar' have circular dependencies on each other; dependencies on
-# missing shards (which are not an error during traversal; the solver may or may
-# not complain if ran); and 'constrains' to exercise other parts of the code.
-
-# TODO may need to give these unique prefixes, version numbers ending in
-# '.tar.bz2', '.conda' to avoid confusing tar-vs-conda code. May need to create
-# a few more packages giving a richer dependency graph.
-
-FAKE_REPODATA = {
-    "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
-    "packages": {
-        "foo.tar.bz2": {
-            "name": "foo",
-            "version": "1",
-            "build": "0_a",
-            "build_number": 0,
-            "depends": ["bar", "baz"],
-        },
-        "bar.tar.bz2": {
-            "name": "bar",
-            "version": "1",
-            "build": "0_a",
-            "build_number": 0,
-            "depends": ["foo"],
-        },
-        "no-matching-conda.tar.bz2": {
-            "name": "foo",
-            "version": "0.1",
-            "build": "0_a",
-            "build_number": 0,
-        },
-    },
-    "packages.conda": {
-        "foo.conda": {
-            "name": "foo",
-            "version": "1",
-            "build": "0_a",
-            "build_number": 0,
-            "depends": ["bar", "baz"],
-            "constrains": ["splat<3"],
-            "sha256": hashlib.sha256().digest(),
-        },
-        "bar.conda": {
-            "name": "bar",
-            "version": "1",
-            "build": "0_a",
-            "build_number": 0,
-            "depends": ["foo"],
-            "constrains": ["splat<3"],
-            "sha256": hashlib.sha256().digest(),
-        },
-        "no-matching-tar-bz2.conda": {
-            "name": "foo",
-            "version": "2",
-            "build": "0_a",
-            "build_number": 0,
-            "depends": ["quux", "warble"],
-            "constrains": ["splat<3"],
-            "sha256": hashlib.sha256().digest(),
-        },
-    },
-    "repodata_version": 2,
-}
-
-
-def ensure_hex_hash(repodata: dict):
-    """
-    Convert every hash in a repodata to hex. Copy repodata.
-    """
-    new_repodata = {**repodata}
-    for group in ("packages", "packages.conda"):
-        for name, record in repodata[group].items():
-            record = {**record}
-            new_repodata[group][name] = record
-            for hash_type in "sha256", "md5":
-                if hash_value := record.get(hash_type):
-                    if not isinstance(hash_value, str):
-                        record[hash_type] = bytes(hash_value).hex()
-    return new_repodata
-
-
-def shard_for_name(repodata, name):
-    return {
-        group: {k: v for (k, v) in repodata[group].items() if v["name"] == name}
-        for group in ("packages", "packages.conda")
-    }
-
-
-FAKE_SHARD = shard_for_name(FAKE_REPODATA, "foo")
-FAKE_SHARD_2 = shard_for_name(FAKE_REPODATA, "bar")
-
-
-class ShardFactory:
-    """
-    Create http server shards in a temporary directory. Use this
-    class in the context of tests to generate multiple shard servers
-    that can be cleaned up after use.
-
-    Example:
-
-    ```
-    # create shard factory with its root in a temporary directory
-    shard_factory = ShardFactory(tmp_path_factory.mktemp("sharded_repo"))
-
-    # create an http server serving the testing data
-    url = shard_factory.http_server_shards("http_server_shards")
-
-    # make a request to the server
-    subdir_data = SubdirData(Channel.from_url(f"{url}/noarch"))
-    found = fetch_shards_index(subdir_data)
-
-    # shutdown up all servers created by this factory
-    shard_factory.clean_up_http_servers()
-    ```
-    """
-
-    def __init__(self, root: Path = tempfile.gettempdir()):
-        self.root = root
-        self._http_servers = []
-
-    def clean_up_http_servers(self):
-        """Shutdown all the servers created by this factory."""
-        for http in self._http_servers:
-            http.shutdown()
-        self._http_servers = []
-
-    def http_server_shards(
-        self, dir_name: str, finish_request_action: Callable | None = None
-    ) -> str:
-        """Create a new http server serving shards from a temporary directory.
-
-        :param dir_name: The name of the directory to create the shards in.
-        :param finish_request_action: An optional callable to be called after each request is finished.
-        :return: The URL of the http server serving the shards.
-        """
-        shards_repository = self.root / dir_name / "sharded_repo"
-        shards_repository.mkdir(parents=True)
-        noarch = shards_repository / "noarch"
-        noarch.mkdir()
-
-        foo_shard = zstd.compress(msgpack.dumps(FAKE_SHARD))  # type: ignore
-        foo_shard_digest = hashlib.sha256(foo_shard).digest()
-        (noarch / f"{foo_shard_digest.hex()}.msgpack.zst").write_bytes(foo_shard)
-
-        bar_shard = zstd.compress(msgpack.dumps(FAKE_SHARD_2))  # type: ignore
-        bar_shard_digest = hashlib.sha256(bar_shard).digest()
-        (noarch / f"{bar_shard_digest.hex()}.msgpack.zst").write_bytes(bar_shard)
-
-        malformed = {"follows_schema": False}
-        bad_schema = zstd.compress(msgpack.dumps(malformed))  # type: ignore
-        malformed_digest = hashlib.sha256(bad_schema).digest()
-
-        (noarch / f"{malformed_digest.hex()}.msgpack.zst").write_bytes(bad_schema)
-        not_zstd = b"not zstd"
-        (noarch / f"{hashlib.sha256(not_zstd).digest().hex()}.msgpack.zst").write_bytes(
-            not_zstd
-        )
-        not_msgpack = zstd.compress(b"not msgpack")
-        (
-            noarch / f"{hashlib.sha256(not_msgpack).digest().hex()}.msgpack.zst"
-        ).write_bytes(not_msgpack)
-        fake_shards: ShardsIndexDict = {
-            "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
-            "version": 1,
-            "shards": {
-                "foo": foo_shard_digest,
-                "bar": bar_shard_digest,
-                "wrong_package_name": foo_shard_digest,
-                "fake_package": b"",
-                "malformed": hashlib.sha256(bad_schema).digest(),
-                "not_zstd": hashlib.sha256(not_zstd).digest(),
-                "not_msgpack": hashlib.sha256(not_msgpack).digest(),
-            },
-        }
-        (shards_repository / "noarch" / "repodata_shards.msgpack.zst").write_bytes(
-            zstd.compress(msgpack.dumps(fake_shards))  # type: ignore
-        )
-
-        http = _run_test_server(
-            str(shards_repository), finish_request_action=finish_request_action
-        )
-        self._http_servers.append(http)
-
-        host, port = http.socket.getsockname()[:2]
-        url_host = f"[{host}]" if ":" in host else host
-        return f"http://{url_host}:{port}/"
-
-
-@pytest.fixture(scope="session")
-def shard_factory(tmp_path_factory, request: pytest.FixtureRequest) -> ShardFactory:
-    """
-    Use ShardFactory to manage creating and cleaning up shards for testing.
-
-    Example:
-
-    ```
-    def test_something(shard_factory: ShardFactory):
-        server_one = shard_factory.http_server_shards("one")
-        server_two = shard_factory.http_server_shards("two")
-        ...
-    ```
-    """
-    shards_repository = tmp_path_factory.mktemp("sharded_repo")
-    shard_factory = ShardFactory(shards_repository)
-
-    def close_servers():
-        shard_factory.clean_up_http_servers()
-
-    request.addfinalizer(close_servers)
-    return shard_factory
-
-
-@pytest.fixture(scope="session")
-def http_server_shards(tmp_path_factory) -> Iterable[str]:
-    """
-    A shard repository with a difference.
-    """
-    shard_factory = ShardFactory(tmp_path_factory.mktemp("sharded_repo"))
-    url = shard_factory.http_server_shards("http_server_shards")
-    yield url
-    shard_factory.clean_up_http_servers()
 
 
 @pytest.mark.parametrize("error_code", [404, 405, 416, 511])
@@ -1216,48 +992,6 @@ def test_shards_cache_concurrent_read_write(tmp_path: Path):
 NUM_FAKE_SHARDS = 64
 
 
-class MockCache(NamedTuple):
-    """
-    Contain all the elements needed to be returned by the `mock_cache` fixture
-    """
-
-    num_shards: int
-    shards: list[shards_cache.AnnotatedRawShard]
-    cache: shards_cache.ShardCache
-
-
-@pytest.fixture()
-def mock_cache(tmp_path: Path) -> Iterator[MockCache]:
-    """
-    Set up a mock shard cache that will be used by multiple benchmark tests.
-    """
-    with shards_cache.ShardCache(tmp_path) as cache:
-        NUM_FAKE_SHARDS = 64
-        fake_shards = []
-
-        for i in range(NUM_FAKE_SHARDS):
-            fake_shard = {f"foo{i}": "bar"}
-            annotated_shard = shards_cache.AnnotatedRawShard(
-                f"https://foo{i}",
-                f"foo{i}",
-                zstd.compress(msgpack.dumps(fake_shard), level=1),  # type: ignore
-            )
-            cache.insert(annotated_shard)
-            fake_shards.append(annotated_shard)
-
-        yield MockCache(num_shards=NUM_FAKE_SHARDS, shards=fake_shards, cache=cache)
-
-
-@pytest.fixture
-def shard_cache_with_data(
-    mock_cache: MockCache,
-) -> tuple[shards_cache.ShardCache, list[shards_cache.AnnotatedRawShard]]:
-    """
-    ShardCache with some data already inserted.
-    """
-    return mock_cache.cache, mock_cache.shards
-
-
 def test_shard_cache_multiple(
     tmp_path: Path,
     shard_cache_with_data: tuple[
@@ -1660,7 +1394,7 @@ def test_shard_cache_multiple_profile(retrieval_type, mock_cache: MockCache):
     `shards_cache.retrieve_multiple should be faster than `shards_cache.retrieve`.
     """
     if retrieval_type == "retrieve_multiple":
-        retrieved = mock_cache.cache.retrieve_multiple(
+        retrieved = mock_cache.cache_obj.retrieve_multiple(
             [shard.url for shard in mock_cache.shards]
         )
         assert len(retrieved) == mock_cache.num_shards
@@ -1668,7 +1402,7 @@ def test_shard_cache_multiple_profile(retrieval_type, mock_cache: MockCache):
     elif retrieval_type == "retrieve_single":
         retrieved = {}
         for i, url in enumerate([shard.url for shard in mock_cache.shards]):
-            single = mock_cache.cache.retrieve(url)
+            single = mock_cache.cache_obj.retrieve(url)
             retrieved[url] = single
 
         assert len(retrieved) == mock_cache.num_shards
