@@ -1,0 +1,141 @@
+### Title
+Configure soft links and read-only behavior per package cache.
+
+### Why
+Group-managed installations may use a shared administrator-managed cache, soft-link its packages into environments on another filesystem, and use a personal writable cache for later installs. Additionally, the global `always_softlink` and `allow_softlinks` settings cannot express different behavior for shared and personal caches. Filesystem permissions also do not always express whether an administrator intends conda to modify a cache.
+
+### Platforms
+- [x] Windows
+- [x] macOS
+- [x] Linux
+
+### Prerequisites
+- A conda build that includes this change, and network access to `conda-forge`.
+- No `pkgs_dirs` set in any other condarc file or in `CONDA_PKGS_DIRS`. Check with `conda config --show-sources`; entries from other files are merged into the list and change which cache is used.
+- On Windows, creating soft links needs Developer Mode or an elevated shell (steps 4 and 5). Commands below are for bash; on Windows use Git Bash, or translate them to PowerShell.
+
+Setup, used by every step:
+
+```bash
+export QA="$(mktemp -d)"
+export CONDARC="$QA/condarc"
+export SHARED="$QA/shared-pkgs" USER_PKGS="$QA/user-pkgs"
+# seed the "admin" cache with zlib, then drop the environment
+CONDA_PKGS_DIRS="$SHARED" conda create -p "$QA/seed" -c conda-forge --override-channels zlib --yes
+conda env remove -p "$QA/seed" --yes
+touch "$QA/stamp"   # anything in $SHARED newer than this was written by conda
+```
+
+`find "$SHARED" -newer "$QA/stamp"` printing nothing means the shared cache was not modified.
+
+### Steps
+1. **Invalid configuration is rejected.** Write each of these to `$CONDARC` in turn and run `conda config --validate`:
+   - `pkgs_dirs: [{read_only: true}]`: fails with "pkgs_dirs entries must have a 'path'."
+   - `pkgs_dirs: [{path: /a, read_only: maybe}]`: fails with "The value 'maybe' cannot be boolified."
+   - `pkgs_dirs: [{path: /a, always_copy: true, always_softlink: true}]`: fails with "'always_copy' and 'always_softlink' are mutually exclusive. Only one can be set to 'True' for path '/a'."
+   - `pkgs_dirs: [/a, {path: /b, read_only: true, allow_softlinks: true}]`: succeeds silently. Plain paths and maps can be mixed.
+
+   Each invalid file also makes other commands, e.g. `conda info`, exit with the same error.
+
+2. **A read-only cache supplies packages it already has.** Write:
+    ```yaml
+    pkgs_dirs:
+      - path: $SHARED
+        read_only: true
+      - $USER_PKGS
+    ```
+    
+    `conda info` lists both caches.
+    ```
+    $ conda info
+    . . .
+            package cache : /tmp/tmp.42aQAFeHbW/shared-pkgs
+                            /tmp/tmp.42aQAFeHbW/user-pkgs
+    ```
+
+    Run `conda create -p "$QA/env1" -c conda-forge --override-channels zlib --yes`.
+    Ensure that:
+      - zlib is not downloaded.
+      - `find "$SHARED" -newer "$QA/stamp"` prints nothing.
+      - `ls $USER_PKGS` has no `zlib-*` entry.
+
+3. **A cache miss goes to the next writable cache.** With the same condarc, run `conda install -p "$QA/env1" -c conda-forge --override-channels bzip2 --yes`.
+    Ensure that:
+      - bzip2 is downloaded into `$USER_PKGS`. Test this by running  `ls $USER_PKGS` and confirm that a `bzip2-*` entry appears there.
+      - no extra packages are added to `$SHARED`. Test this by running `find "$SHARED" -newer "$QA/stamp"` and confirm that it prints nothing.
+
+4. **Each cache uses its own link policy.** Add `always_softlink: true` to the `$SHARED` entry and keep `$USER_PKGS` as a plain path. The condarc should now look like:
+     ```yaml
+    pkgs_dirs:
+      - path: $SHARED
+        read_only: true
+        always_softlink: true
+      - $USER_PKGS
+    ```
+
+    Run `conda create -p "$QA/env2" -c conda-forge --override-channels zlib bzip2 --yes`.
+    Ensure that:
+      -  zlib's `include/zlib.h` (`Library/include/zlib.h` on Windows) is a soft link pointing into `$SHARED` (since the shared cache preference is to always softlink). You can check this by running `ls -lah $QA/env2/include/` and verifying that `zconf.h` and `zlib.h` point to `$SHARED/zlib...`.
+      - bzip2's `include/bzlib.h` is a regular file, not a soft link (since the user cache preference is to copy). You can check this by running `ls -lah $QA/env2/include/` and verifying that `bzlib.h` does not point to anything.
+
+5. **A cache's own policy overrides the global one, for that cache only.** Write:
+   ```yaml
+   always_softlink: true
+   pkgs_dirs:
+     - path: $SHARED
+       read_only: true
+       allow_softlinks: false
+     - $USER_PKGS
+   ```
+   Run `conda create -p "$QA/env3" -c conda-forge --override-channels zlib bzip2 --yes`.
+   Ensure that:
+      -  zlib's `include/zlib.h` (`Library/include/zlib.h` on Windows) is a not a softlink (since the shared cache preference is to not allow  softlinks). You can check this by running `ls -lah $QA/env2/include/` and verifying that `zconf.h` and `zlib.h` does not point to anything
+      - bzip2's `include/bzlib.h` is a softlink file (since the global preference is for softlinking and the user cache preference does not specify a preference). You can check this by running `ls -lah $QA/env2/include/` and verifying that `bzlib.h` points to `$USER_PKGS/bzip2...`
+
+6. **`conda clean` leaves a read-only cache alone.** run `conda clean --all --yes` and `conda clean --force-pkgs-dirs --yes`.
+    Ensure that:
+      - The `$SHARED` package cache still exists. `find "$SHARED" -newer "$QA/stamp"` prints nothing, and `ls $SHARED` prints some packages.
+      - Unused packages in `$USER_PKGS` are removed. It is possible that the folder does not exist.
+
+7. **A read-only cache is not repaired.** Delete the extracted `zlib-*` directory from `$SHARED` (keep the archive), then `touch "$QA/stamp"`. create a new environment with zlib. Run `conda create -p "$QA/env4" -c conda-forge --override-channels zlib --yes`.
+    Ensure that:
+      - The install succeeds.
+      - zlib is extracted into `$USER_PKGS`. You can check this by running `ls $USER_PKGS | grep zlib`.
+      -`$SHARED` is unchanged. You can check this by running ` find "$SHARED" -newer "$QA/stamp"`, you should see no output. Or, `ls $SHARED` no extracted `zlib-*` directory appears there again.
+
+8. **Configuration respects os level folder permissions.** On Linux or macOS, `chmod -R a-w "$SHARED"`, and set `read_only: false` on the `$SHARED` entry of the condarc. If should now look like
+    ```yaml
+   pkgs_dirs:
+     - path: $SHARED
+       read_only: false
+     - $USER_PKGS
+   ```
+   Install a package that isn't cached yet (e.g. `xz`). For example, run `conda install -p "$QA/env4" -c conda-forge --override-channels xz --yes`
+   Ensure that:
+     - The package is downloaded into `$USER_PKGS` with no permission errors.
+     - No file changes have been made to the shared cache. You can check this by running ` find "$SHARED" -newer "$QA/stamp" ` and expect an empty response.
+   
+   Clean up this test by running `chmod -R u+w "$SHARED"` afterwards.
+
+9. **All caches read-only.** Mark every `pkgs_dirs` entry `read_only: true`. You condarc should now look like:
+   ```yaml
+   pkgs_dirs:
+     - path: $SHARED
+       read_only: true
+     - path: $USER_PKGS
+       read_only: true
+   ```
+    Install a package that isn't cached yet (e.g. `imagesize`). For example, run `conda install -p "$QA/env4" -c conda-forge --override-channels imagesize --yes`
+    Ensure that:
+      - The command fails with `NoWritablePkgsDirError` listing the caches
+      - None of the package caches are modified. Verify this for the shared cache by running `find "$SHARED" -newer "$QA/stamp"`. Verify this manually for the user cache by running `ls $USER_PKGS`.
+
+### Pass criteria
+Each step matches the result written under it. In particular, `find "$SHARED" -newer "$QA/stamp"` never lists anything after a step that marks `$SHARED` read-only.
+
+### Out of scope / notes
+- Global `always_copy`, `always_softlink` and `allow_softlinks` behave as before when no cache sets them; that is covered by `tests/core/test_link.py::test_determine_link_type`.
+- The full matrix of per-cache vs. global link settings is covered by `tests/core/test_link.py` and `tests/test_package_cache_policies.py`; the steps above only need to show it works end to end.
+- Unknown keys in a `pkgs_dirs` map (e.g. `allow_softlink`) are currently ignored without an error.
+- `conda config --show pkgs_dirs` prints only the paths, not each cache's settings.
+- Clean up with `rm -rf "$QA"` (after `chmod -R u+w "$QA"` if step 8 was run).
