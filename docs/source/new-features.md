@@ -19,7 +19,7 @@ This page contains recent additions to `conda` worth your attention, including f
 
 {bdg-light}`Default in conda 26.10 or later` &nbsp; {bdg-success}`Stable`
 
-Starting with **conda 26.10, Rattler** replaces libmamba as **conda's default solver**, delivering faster dependency resolution, especially for medium and large environments.
+Starting with **conda 26.10**, **Rattler** replaces libmamba as **conda's default solver**, delivering faster dependency resolution, especially for medium and large environments.
 
 Rattler also natively supports newer conda capabilities, including {doc}`Installing packages from PyPI with conda </user-guide/tasks/install-packages-from-pypi>`. This transition also paves the way for removing libmamba and classic solvers from the default conda installation, reducing its size and dependencies.
 
@@ -60,13 +60,13 @@ Conda has introduced native support for `win-arm64`, the Windows on ARM platform
 :::{dropdown} How to use it
 :animate: fade-in-slide-down
 
-Specify `win-arm64` target platform when creating an environment:
+Specify the `win-arm64` target platform when creating an environment:
 
 ```bash
 conda create --platform win-arm64 --name myenv-arm64 python
 ```
 
-To select `win-arm64` as your configured target platform:
+Select `win-arm64` as your configured target platform:
 
 ```bash
 conda config --set subdir win-arm64
@@ -153,7 +153,7 @@ For more information, see **{ref}`Installing packages with a timestamp cutoff <i
 
 {bdg-light}`Available in conda 26.9 or later` &nbsp; {bdg-success}`Stable`
 
-The new conda-pypi plugin lets you install supported pure Python wheels from PyPI natively with `conda install` command. Conda resolves dependencies together, without a separate `pip install` step that can introduce conflicts and make environments harder to reproduce. Once installed, these packages are fully managed by conda: they appear in `conda list`, are captured by `conda export`, and can be removed with `conda remove`.
+The new conda-pypi plugin lets you install supported pure Python wheels from PyPI natively with the `conda install` command. Conda resolves dependencies together, without a separate `pip install` step that can introduce conflicts and make environments harder to reproduce. Once installed, these packages are fully managed by conda: they appear in `conda list`, are captured by `conda export`, and can be removed with `conda remove`.
 
 PyPI packages are made available through the free `conda-pypi` channel, which you can now also **[browse on Anaconda.org](https://anaconda.org/channels/conda-pypi)** to discover available packages.
 
@@ -198,19 +198,19 @@ The `conda-lock.yaml` and `pixi.lock` formats are supported natively. No additio
 Export a lockfile for an existing environment:
 
 ```bash
-conda export -n myenv -f conda-lock.yaml
+conda export --name myenv --file conda-lock.yaml
 ```
 
 Create an environment from the lockfile:
 
 ```bash
-conda create -n myenv-copy -f conda-lock.yaml
+conda create --name myenv-copy --file conda-lock.yaml
 ```
 
 Export a lockfile that covers multiple platforms:
 
 ```bash
-conda export -n myenv -f conda-lock.yaml \
+conda export --name myenv --file conda-lock.yaml \
   --platform linux-64 \
   --platform osx-arm64 \
   --platform win-64
