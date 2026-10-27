@@ -236,6 +236,7 @@ class PkgsDirConfig(ConfigurationObject):
         fields = ", ".join(f"{name}={value!r}" for name, value in vars(self).items())
         return f"{type(self).__name__}({fields})"
 
+
 def pkgs_dir_validation(value: PkgsDirConfig) -> str | Literal[True]:
     if not value.path:
         return "pkgs_dirs entries must have a 'path'."
