@@ -305,10 +305,19 @@ class RepodataSubset:
                         requested_extras=extras,
                     )
                     yield self._nodes[node_id]
-                elif self._add_requested_extras(existing, extras):
-                    # Shard is already in memory; revisit for the new groups.
-                    existing.visited = False
-                    yield existing
+                else:
+                    revisit = self._add_requested_extras(existing, extras)
+                    if node.distance + 1 < existing.distance:
+                        # A shorter path was found (e.g. via late-activated
+                        # extras); re-expand so dependencies use the new distance.
+                        existing.distance = node.distance + 1
+                        existing.expanded = False
+                        existing.expanded_extras = frozenset()
+                        revisit = True
+                    if revisit:
+                        # Shard is already in memory; revisit it.
+                        existing.visited = False
+                        yield existing
 
     def _outgoing(self, node: Node):
         """
@@ -661,12 +670,21 @@ class RepodataSubset:
                         )
                         self._nodes[new_node_id] = new_node
                         yield new_node_id
-                    elif self._add_requested_extras_expanded(
-                        existing, requested_extras
-                    ):
-                        # Shard already received; re-process it for the new
-                        # groups without fetching it again.
-                        yield new_node_id
+                    else:
+                        revisit = self._add_requested_extras_expanded(
+                            existing, requested_extras
+                        )
+                        if parent_node.distance + 1 < existing.distance:
+                            # A shorter path was found; re-expand so
+                            # dependencies and extras use the new distance.
+                            existing.distance = parent_node.distance + 1
+                            existing.expanded = False
+                            existing.expanded_extras = frozenset()
+                            revisit = True
+                        if revisit:
+                            # Shard already received; re-process it without
+                            # fetching it again.
+                            yield new_node_id
 
         parent_node.visited = True
 

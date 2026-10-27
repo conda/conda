@@ -781,6 +781,9 @@ def _extras_repodata(packages: dict[str, dict]) -> RepodataDict:
 
 
 def _visited_after(packages, roots, algorithm, root_extras=None, **kwargs):
+    """
+    Run ``algorithm`` over ``packages`` and return the set of visited names.
+    """
     shardlike = ShardLike(_extras_repodata(packages), "https://example.com/noarch/")
     subset = RepodataSubset([shardlike], **kwargs)
     subset.reachable(roots, strategy=algorithm, root_extras=root_extras)
@@ -821,6 +824,7 @@ def test_transitive_extras_from_plain_depends(algorithm, solver_rattler):
 
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
 def test_transitive_extras_unrequested_group_stays_inactive(algorithm, solver_rattler):
+    """Only the group named in the dependency spec is followed, not its siblings."""
     visited = _visited_after(
         {
             "pkg-t": {"extra_depends": {"cli": ["pkg-u[extras=more]"]}},
@@ -862,6 +866,7 @@ def test_transitive_extras_revisit_with_additional_group(algorithm, solver_rattl
 
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
 def test_transitive_extras_cycle_terminates(algorithm, solver_rattler):
+    """Packages that request each other's extras in a cycle do not loop forever."""
     visited = _visited_after(
         {
             "a": {"extra_depends": {"x": ["b[extras=y]"]}},
@@ -877,6 +882,7 @@ def test_transitive_extras_cycle_terminates(algorithm, solver_rattler):
 
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
 def test_transitive_extras_combine_with_root_extras(algorithm, solver_rattler):
+    """Root extras and extras from a dependency spec are both followed."""
     visited = _visited_after(
         {
             "root": {"depends": ["pkg-u[extras=b]"]},
@@ -893,6 +899,7 @@ def test_transitive_extras_combine_with_root_extras(algorithm, solver_rattler):
 
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
 def test_transitive_extras_respect_depth(algorithm, solver_rattler):
+    """Extras traversal stops at the configured depth limit."""
     packages = {
         "pkg-t": {"extra_depends": {"cli": ["pkg-u[extras=more]"]}},
         "pkg-u": {"extra_depends": {"more": ["pkg-v"]}},
@@ -907,6 +914,29 @@ def test_transitive_extras_respect_depth(algorithm, solver_rattler):
     )
     assert "pkg-u" in visited
     assert "pkg-v" not in visited
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_shorter_path_reexpands_node(algorithm, solver_rattler):
+    """
+    "c" is first found at distance 3 via r -> a -> b -> c. When "b" activates
+    "s[extras=x]", the shorter path r -> s -> c puts "c" at distance 2, so its
+    dependency "d" fits within depth=3 and must be reached.
+    """
+    visited = _visited_after(
+        {
+            "r": {"depends": ["a", "s"]},
+            "a": {"depends": ["b"]},
+            "b": {"depends": ["c", "s[extras=x]"]},
+            "s": {"extra_depends": {"x": ["c"]}},
+            "c": {"depends": ["d"]},
+            "d": {},
+        },
+        ["r"],
+        algorithm,
+        depth=3,
+    )
+    assert visited == {"r", "a", "b", "s", "c", "d"}
 
 
 @pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
