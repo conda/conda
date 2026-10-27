@@ -38,24 +38,15 @@ The `-v` flags map to levels in {attr}`context.log_level <conda.base.context.Con
 | `-vvv` / `--debug` | 3 | `DEBUG` |
 | `-vvvv` / `--trace` | 4 | `TRACE` |
 
-Examples from the code:
+For example, a recoverable problem is a warning:
 
 ```python
-# conda/core/link.py: internal diagnostics
-log.debug("no python version found in prefix")
-
-# conda/core/envs_manager.py: a recoverable problem, reported as a warning
+# conda/core/envs_manager.py
 log.warning(
     "Unable to register environment. Could not create %s. Reason: %s",
     user_environments_txt_directory,
     exc,
 )
-
-# Recording a swallowed exception for later debugging
-try:
-    ...
-except OSError as e:
-    log.debug(repr(e), exc_info=True)
 ```
 
 A filter on the CLI handlers redacts channel tokens in URLs (`/t/<token>/`). Log those URLs as
