@@ -1900,8 +1900,9 @@ def test_extra_specs(match_spec_v3):
     # Trailing comma is accepted (YAML flow-sequence semantics) and normalizes silently
     assert MatchSpec("pkg[extras=[a,]]").get("extras") == ("a",)
 
-    # Inner lists MUST have commas
-    assert MatchSpec("package[extras=[a b]]").get("extras") == ("a b",)
+    # Extra names cannot contain internal whitespace.
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec("package[extras=[a b]]")
 
     # Roundtrip
     assert MatchSpec(str(MatchSpec("package[extras=[a, b]]"))) == MatchSpec(
@@ -1909,9 +1910,9 @@ def test_extra_specs(match_spec_v3):
     )
 
     # Ensure YAML parsing doesn't mess with values
-    assert MatchSpec("package[extras=[yes, no, 0, 1, True, False, null, None]]").get(
-        "extras"
-    ) == ("yes", "no", "0", "1", "True", "False", "null", "None")
+    assert MatchSpec(
+        "package[extras=[yes, no, '0', '1', 'true', 'false', 'null', none]]"
+    ).get("extras") == ("yes", "no", "0", "1", "true", "false", "null", "none")
 
     # Using Python syntax for extras is not supported, but let's error out usefully
     # This used to be silently swallowed.
@@ -1957,6 +1958,54 @@ def test_extras_list_any_solver(any_solver, spec, name, channel, extras):
 
 def test_flags_list_any_solver(any_solver):
     assert MatchSpec("pkg[flags=[cpu,avx2]]").get("flags") == ("cpu", "avx2")
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
+@pytest.mark.parametrize("quote", ["", "'", '"'])
+@pytest.mark.parametrize("value", ["true", "001", "1e3", "null"])
+def test_scalar_names_preserve_spelling_any_solver(any_solver, key, quote, value):
+    ms = MatchSpec(f"pkg[{key}={quote}{value}{quote}]")
+    assert ms.get(key) == (value,)
+    assert MatchSpec(str(ms)) == ms
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "001,true",
+        "'001,true'",
+        '"001,true"',
+        "' 001, true '",
+        "001,'true'",
+        '001,"true"',
+        "'001, \"true\"'",
+        "\"001, 'true'\"",
+        "['001','true']",
+        "\"['001', 'true']\"",
+    ],
+)
+def test_comma_names_preserve_spelling_any_solver(any_solver, key, value):
+    ms = MatchSpec(f"pkg[{key}={value}]")
+    assert ms.get(key) == ("001", "true")
+    assert MatchSpec(str(ms)) == ms
+
+
+@pytest.mark.parametrize("value", ["*", "'*'", '"*"', "'*:mkl'"])
+def test_scalar_flag_globs_parse_any_solver(any_solver, value):
+    assert MatchSpec(f"pkg[flags={value}]").get("flags") == (value.strip("'\""),)
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("cpu,blas:*", ("cpu", "blas:*")),
+        ("'\"cpu\",blas:*'", ("cpu", "blas:*")),
+        ("'blas:*,\"cpu\"'", ("blas:*", "cpu")),
+    ],
+)
+def test_comma_flag_globs_parse_any_solver(any_solver, value, expected):
+    assert MatchSpec(f"pkg[flags={value}]").get("flags") == expected
 
 
 @pytest.mark.parametrize(
@@ -2019,28 +2068,16 @@ def test_bracket_without_key_any_solver(any_solver, spec):
 @pytest.mark.parametrize("key", ["extras", "flags"])
 @pytest.mark.parametrize("yaml_version", [(1, 1), (1, 2)])
 @pytest.mark.parametrize(
-    "value,yaml11,yaml12",
-    [
-        ("true", "True", "True"),
-        ("false", "False", "False"),
-        ("null", "null", "null"),
-        ("yes", "True", "yes"),
-        ("no", "False", "no"),
-        ("on", "True", "on"),
-        ("off", "False", "off"),
-        ("y", "True", "y"),
-        ("n", "False", "n"),
-    ],
+    "value", ["true", "false", "null", "yes", "no", "on", "off", "y", "n"]
 )
-def test_list_yaml_scalars(
-    key, yaml_version, value, yaml11, yaml12, match_spec_v3, mocker
+def test_scalar_names_ignore_yaml_version(
+    key, yaml_version, value, match_spec_v3, mocker
 ):
     parser = YAML(typ="rt")
     parser.version = yaml_version
     mocker.patch("conda.common.serialize.yaml._yaml", return_value=parser)
 
-    expected = yaml11 if yaml_version == (1, 1) else yaml12
-    assert MatchSpec(f"pkg[{key}={value}]").get(key) == (expected,)
+    assert MatchSpec(f"pkg[{key}={value}]").get(key) == (value,)
 
 
 @pytest.mark.parametrize(
@@ -2101,7 +2138,7 @@ def test_unquoted_list_invalid_yaml(key, match_spec_v3):
     with pytest.raises(InvalidMatchSpec, match="Invalid"):
         MatchSpec(f'pkg[{key}=a,"b]')
     with pytest.raises(InvalidMatchSpec, match="Invalid"):
-        MatchSpec(f"pkg[{key}=a,*b]")
+        MatchSpec(f"pkg[{key}=a,*?b]")
 
 
 @pytest.mark.parametrize("key", ["extras", "flags"])
@@ -2158,9 +2195,9 @@ def test_flags_specs(match_spec_v3):
     assert str(ms) == "python[flags=['blas:*', 'cpu']]"
 
     # Ensure YAML parsing doesn't mess with values
-    assert MatchSpec("package[flags=[yes, no, 0, 1, True, False, null, None]]").get(
-        "flags"
-    ) == ("yes", "no", "0", "1", "True", "False", "null", "None")
+    assert MatchSpec(
+        "package[flags=[yes, no, '0', '1', 'true', 'false', 'null', none]]"
+    ).get("flags") == ("yes", "no", "0", "1", "true", "false", "null", "none")
 
     for spec in (
         "package[extras=[a]",
@@ -2437,3 +2474,122 @@ def test_flags_serialization_is_sorted(match_spec_v3):
 )
 def test_parse_ecosystem_corpus(spec_str):
     MatchSpec(spec_str)
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("extras", "[001]"),
+        ("extras", "[true]"),
+        ("extras", "[null]"),
+        ("extras", "[{name: cli}]"),
+        ("extras", "['UPPER']"),
+        ("extras", "['cli:all']"),
+        ("extras", "['*']"),
+        ("extras", "['cli all']"),
+        ("extras", "['']"),
+        ("extras", "['   ']"),
+        ("extras", repr("a" * 65)),
+        ("extras", "[cli,\rhttp2]"),
+        ("extras", "[\rcli]"),
+        ("extras", "[cli\r]"),
+        ("flags", "[\x85cpu]"),
+        ("flags", "[cpu\u2028]"),
+        ("extras", "[cli,\x85http2]"),
+        ("extras", "[cli,\u2028http2]"),
+        ("flags", "[001]"),
+        ("flags", "[true]"),
+        ("flags", "[null]"),
+        ("flags", "[{name: cpu}]"),
+        ("flags", "['CPU']"),
+        ("flags", "['cpu-avx']"),
+        ("flags", "['cpu.avx']"),
+        ("flags", "['cpu+avx']"),
+        ("flags", "['gpu:cuda:12']"),
+        ("flags", "['gpu:']"),
+        ("flags", "['cpu?']"),
+        ("flags", "['']"),
+    ],
+)
+def test_cep_invalid_selector_text(any_solver, key, value):
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[{key}={value}]")
+
+
+@pytest.mark.parametrize("mapping", [False, True])
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("extras", "UPPER"),
+        ("extras", ("UPPER",)),
+        ("extras", ["cli", ""]),
+        ("extras", (1,)),
+        ("extras", True),
+        ("extras", {"cli": "http2"}),
+        ("flags", "cpu.avx"),
+        ("flags", ("gpu:cuda:12",)),
+        ("flags", (None,)),
+        ("flags", 1),
+    ],
+)
+def test_cep_invalid_selector_arguments(mapping, key, value):
+    kwargs = {"name": "pkg", key: value}
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(kwargs) if mapping else MatchSpec(**kwargs)
+
+
+@pytest.mark.parametrize("mapping", [False, True])
+@pytest.mark.parametrize("key", ["extras", "flags"])
+@pytest.mark.parametrize("value", [[" 001 ", "true"], (" 001 ", "true"), "001,true"])
+def test_cep_valid_selector_arguments(mapping, key, value):
+    kwargs = {"name": "pkg", key: value}
+    ms = MatchSpec(kwargs) if mapping else MatchSpec(**kwargs)
+    assert ms.get(key) == ("001", "true")
+    assert MatchSpec(str(ms)) == ms
+
+
+@pytest.mark.parametrize(
+    "spec,key,expected",
+    [
+        ("pkg[extras=['001','true','null']]", "extras", ("001", "true", "null")),
+        ("pkg[extras=[yes,no,on,off]]", "extras", ("yes", "no", "on", "off")),
+        ("pkg[extras=[' cli ',http2,]]", "extras", ("cli", "http2")),
+        (f"pkg[extras={'a' * 64}]", "extras", ("a" * 64,)),
+        ("pkg[extras=a+b,a.b,a-b]", "extras", ("a+b", "a.b", "a-b")),
+        ("pkg[flags=['*','gpu:*']]", "flags", ("*", "gpu:*")),
+        ("pkg[flags=cpu,*mkl]", "flags", ("cpu", "*mkl")),
+        ("pkg[extras=[]]", "extras", ()),
+        ("pkg[flags=[]]", "flags", ()),
+    ],
+)
+def test_cep_valid_selector_text(any_solver, spec, key, expected):
+    ms = MatchSpec(spec)
+    assert ms.get(key) == expected
+
+
+@pytest.mark.parametrize("yaml_version", [(1, 1), (1, 2)])
+@pytest.mark.parametrize("key", ["extras", "flags"])
+def test_cep_list_uses_yaml12(any_solver, yaml_version, key, mocker):
+    parser = YAML(typ="rt")
+    parser.version = yaml_version
+    mocker.patch("conda.common.serialize.yaml._yaml", return_value=parser)
+    assert MatchSpec(f"pkg[{key}=[yes,no]]").get(key) == ("yes", "no")
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[{key}=[true]]")
+
+
+@pytest.mark.parametrize(
+    "key", ["version", "build", "channel", "md5", "sha256", "subdir"]
+)
+def test_cep_empty_lists_only_for_list_fields(any_solver, key):
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[{key}=[]]")
+
+
+@pytest.mark.parametrize("key", ["extras", "flags"])
+@pytest.mark.parametrize(
+    "value", ["'[[cli]]'", "'!unknown cli'", "'!!int 001'", "'&x cli'"]
+)
+def test_cep_shorthand_rejects_nested_lists_and_yaml_metadata(any_solver, key, value):
+    with pytest.raises(InvalidMatchSpec):
+        MatchSpec(f"pkg[{key}={value}]")
