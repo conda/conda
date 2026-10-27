@@ -214,10 +214,10 @@ Because "no" is signalled by an exception, code after the call can assume the us
 (rendering_output_logging)=
 ## Loggers
 
-Loggers are for **diagnostics**: information that helps a developer or a user troubleshooting a
-problem, and warnings about conditions that are surprising but do not stop the command. They are
-not how a command shows its results. Conventions for creating a logger, choosing a level, and
-leaving handler configuration to the CLI are documented in {ref}`deep_dive_logging`.
+Loggers record diagnostics that help a developer or a user troubleshoot a problem, including
+warnings about conditions that are surprising but do not stop the command. Command results go
+through the reporter. Conventions for creating a logger, choosing a level, and leaving handler
+configuration to the CLI are in {ref}`deep_dive_logging`.
 
 (rendering_output_logger_or_reporter)=
 ### Choosing between a logger and the reporter

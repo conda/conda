@@ -1,9 +1,9 @@
 (deep_dive_logging)=
 # Logging
 
-Loggers are for **diagnostics**: information that helps a developer or a user troubleshooting a
-problem, and warnings about conditions that are surprising but do not stop the command. They are
-not how a command shows its results.
+Loggers record diagnostics. That includes notes that help a developer or a user troubleshoot a
+problem, and warnings about conditions that are surprising but do not stop the command. Command
+results go through the reporter.
 
 The conventions are:
 
@@ -15,9 +15,9 @@ The conventions are:
   log = getLogger(__name__)
   ```
 
-* Library code **emits** records and never configures handlers, levels, or propagation. When conda
+* Library code emits records and does not configure handlers, levels, or propagation. When conda
   runs as a CLI, `conda.cli.main.init_loggers` attaches the handlers and sets the level from the
-  verbosity flags. When conda is imported as a library, the application using it is in control.
+  verbosity flags. When another program imports conda, that program configures logging.
 * Use lazy `%`-style arguments rather than f-strings so formatting only happens if the record is
   emitted.
 * Pass `exc_info=True` to `log.debug` to record a traceback without showing it to the user.
@@ -38,7 +38,7 @@ The `-v` flags map to levels in {attr}`context.log_level <conda.base.context.Con
 | `-vvv` / `--debug` | 3 | `DEBUG` |
 | `-vvvv` / `--trace` | 4 | `TRACE` |
 
-Examples of typical use in the code base:
+Examples from the code:
 
 ```python
 # conda/core/link.py: internal diagnostics
@@ -58,8 +58,7 @@ except OSError as e:
     log.debug(repr(e), exc_info=True)
 ```
 
-Channel tokens in URLs (`/t/<token>/`) are redacted from log output by a filter attached to the CLI
-handlers. You do not need to redact them when logging, but never log other secrets.
+A filter on the CLI handlers redacts channel tokens in URLs (`/t/<token>/`). Log those URLs as
+they are. Do not log other secrets.
 
-To decide whether a message belongs in a logger or the reporter, see
-{ref}`rendering_output_logger_or_reporter`.
+See {ref}`rendering_output_logger_or_reporter` for whether to log a message or render it.

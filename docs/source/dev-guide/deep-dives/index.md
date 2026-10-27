@@ -48,7 +48,7 @@ sharded
 
 :doc:`Logging <logging>`
     How library code emits diagnostics with ``getLogger(__name__)``, which
-    level to use, and the rule that the CLI configures handlers.
+    level to use, and that the CLI configures handlers.
 
 :doc:`Rendering output <rendering-output>`
     How conda displays output: the reporter backend for command results,
