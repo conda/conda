@@ -23,7 +23,7 @@ from itertools import chain
 from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 from frozendict import frozendict
 
@@ -243,6 +243,14 @@ class PkgsDirConfig(ConfigurationObject):
 
     def __hash__(self):
         return hash(self.path)
+
+
+class LinkPolicy(NamedTuple):
+    """The effective link settings for one package cache."""
+
+    always_copy: bool
+    always_softlink: bool
+    allow_softlinks: bool
 
 
 def pkgs_dir_validation(value: PkgsDirConfig) -> str | Literal[True]:
@@ -913,6 +921,42 @@ class Context(Configuration):
                     setattr(config, attr_name, parameter.default.value)
             config.path = pkg_dir
             return config
+
+    def link_policy(self, pkg_dir: str) -> LinkPolicy:
+        """Get the effective link settings for packages in a package cache.
+
+        Precedence, from highest to lowest:
+
+        1. ``--copy`` on the command line
+        2. the link settings of the ``pkgs_dirs`` entry for the cache
+        3. the global ``always_copy``, ``always_softlink`` and ``allow_softlinks``
+        """
+        pkg_dir_config = self.pkg_dir(pkg_dir)
+        if self._argparse_args.get("copy"):
+            return LinkPolicy(
+                always_copy=True,
+                always_softlink=False,
+                allow_softlinks=pkg_dir_config.allow_softlinks
+                if pkg_dir_config is not None
+                else self.allow_softlinks,
+            )
+
+        always_copy = self.always_copy
+        always_softlink = self.always_softlink
+        allow_softlinks = self.allow_softlinks
+
+        if pkg_dir_config is not None:
+            if pkg_dir_config.always_copy is not None:
+                always_copy = pkg_dir_config.always_copy
+            if pkg_dir_config.allow_softlinks is not None:
+                allow_softlinks = pkg_dir_config.allow_softlinks
+            if pkg_dir_config.always_softlink is not None:
+                always_softlink = pkg_dir_config.always_softlink
+            elif pkg_dir_config.allow_softlinks is False:
+                # a cache that disallows soft links isn't overridden by a global always_softlink
+                always_softlink = False
+
+        return LinkPolicy(always_copy, always_softlink, allow_softlinks)
 
     @property
     def pkgs_dirs(self) -> tuple[PathType, ...]:
