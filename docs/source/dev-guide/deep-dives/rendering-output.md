@@ -281,7 +281,8 @@ in the code base and should not copy them into new code.
 The loggers `conda.stdout`, `conda.stderr`, `conda.stdoutlog`, `conda.stderrlog` and
 `conda.stdout.verbose` wrote straight to stdout/stderr and were configured by
 `conda.gateways.logging.initialize_std_loggers`. That function and the loggers are **pending
-deprecation** and are no longer configured during normal CLI startup. Their meaning was also
+`conda.gateways.logging.initialize_std_loggers`. That function and the loggers are
+**deprecated** (removal in conda 27.3) and are no longer configured during normal CLI startup. Their meaning was also
 ambiguous (what is a `warning` on a logger named `stdout`?).
 
 ### `conda.gateways.streams`
