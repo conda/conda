@@ -18,7 +18,7 @@ The reporter backend is intended to be the **single output system** for the cond
 tracked in [conda/conda#15477](https://github.com/conda/conda/issues/15477). The page you are
 reading documents the current state and the conventions that new code should follow. Parts of the
 legacy channel (the `conda.stdout`, `conda.stderr`, `conda.stdoutlog`, `conda.stderrlog` and
-`conda.stdout.verbose` loggers) are pending deprecation; see {ref}`rendering_output_legacy`.
+`conda.stdout.verbose` loggers) are deprecated (removal in 27.3); see {ref}`rendering_output_legacy`.
 ```
 
 ## The reporter backend
