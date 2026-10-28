@@ -70,7 +70,7 @@ def test_builtin_command_hooks_deprecation(
 @pytest.mark.parametrize(
     "command", ["hook", "reactivate", "mock_activate", "mock_deactivate"]
 )
-def test_plugin_subcommand_hooks_not_deprecated(plugin_manager, command):
+def test_plugin_subcommand_hooks_preserved(plugin_manager, command):
     calls = []
 
     class CommandPlugin:
@@ -97,6 +97,10 @@ def test_plugin_subcommand_hooks_not_deprecated(plugin_manager, command):
         action=lambda args: calls.append(("execute", command)),
     )
 
-    do_call(Namespace(_plugin_subcommand=subcommand), parser=None)
+    with pytest.deprecated_call(
+        match="plugin subcommands.*remain supported"
+    ) as warnings:
+        do_call(Namespace(_plugin_subcommand=subcommand), parser=None)
 
+    assert len(warnings) == 2
     assert calls == [("pre", command), ("execute", command), ("post", command)]

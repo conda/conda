@@ -556,6 +556,28 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"Please make sure that you don't have any incompatible plugins installed."
             )
 
+        if name in {"pre_commands", "post_commands"}:
+            for plugin in plugins:
+                commands = {
+                    "run",
+                    "activate",
+                    "deactivate",
+                    "reactivate",
+                    "hook",
+                    "mock_activate",
+                    "mock_deactivate",
+                }.intersection(plugin.run_for)
+                if commands:
+                    deprecated.topic(
+                        "27.3",
+                        "27.9",
+                        topic=(
+                            f"Support for `{specname}` hook {plugin.name!r} on built-in "
+                            f"or shell commands {', '.join(sorted(commands))} in `run_for`"
+                        ),
+                        addendum="Hooks for plugin subcommands with these names remain supported.",
+                    )
+
         return sorted(plugins, key=lambda plugin: plugin.name)
 
     def get_solvers(self) -> dict[str, CondaSolver]:
@@ -633,42 +655,26 @@ class CondaPluginManager(pluggy.PluginManager):
             for config_param in self.get_hook_results("settings")
         }
 
-    def invoke_pre_commands(self, command: str, *, deprecate: bool = False) -> None:
+    def invoke_pre_commands(self, command: str) -> None:
         """
         Invokes ``CondaPreCommand.action`` functions registered with ``conda_pre_commands``.
 
         Args:
             command: name of the command that is currently being invoked
-            deprecate: warn about pending removal of hooks for this invocation
         """
         for hook in self.get_hook_results("pre_commands"):
             if command in hook.run_for:
-                if deprecate:
-                    deprecated.topic(
-                        "27.3",
-                        "27.9",
-                        topic=f"Pre-command hook {hook.name!r} for {command!r}",
-                        addendum="Remove this command from `run_for`.",
-                    )
                 hook.action(command)
 
-    def invoke_post_commands(self, command: str, *, deprecate: bool = False) -> None:
+    def invoke_post_commands(self, command: str) -> None:
         """
         Invokes ``CondaPostCommand.action`` functions registered with ``conda_post_commands``.
 
         Args:
             command: name of the command that is currently being invoked
-            deprecate: warn about pending removal of hooks for this invocation
         """
         for hook in self.get_hook_results("post_commands"):
             if command in hook.run_for:
-                if deprecate:
-                    deprecated.topic(
-                        "27.3",
-                        "27.9",
-                        topic=f"Post-command hook {hook.name!r} for {command!r}",
-                        addendum="Remove this command from `run_for`.",
-                    )
                 hook.action(command)
 
     def invoke_exception_observers(

@@ -234,10 +234,10 @@ class _Activator(metaclass=abc.ABCMeta):
             plugins_loaded = True
 
         if plugins_loaded:
-            context.plugin_manager.invoke_pre_commands(self.command, deprecate=True)
+            context.plugin_manager.invoke_pre_commands(self.command)
         response = getattr(self, self.command)()
         if plugins_loaded:
-            context.plugin_manager.invoke_post_commands(self.command, deprecate=True)
+            context.plugin_manager.invoke_post_commands(self.command)
         return response
 
     def template_unset_var(self, key: str) -> str:

@@ -352,11 +352,10 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # func_name should always be 'execute'
         module = import_module(module_name)
         command = module_name.split(".")[-1].replace("main_", "")
-        deprecate_hooks = command.removeprefix("mock_") in _PLUGIN_FREE_BUILTIN_COMMANDS
 
-        context.plugin_manager.invoke_pre_commands(command, deprecate=deprecate_hooks)
+        context.plugin_manager.invoke_pre_commands(command)
         result = getattr(module, func_name)(args, parser)
-        context.plugin_manager.invoke_post_commands(command, deprecate=deprecate_hooks)
+        context.plugin_manager.invoke_post_commands(command)
     return result
 
 

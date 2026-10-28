@@ -161,6 +161,10 @@ class CondaSpecs:
            will be deprecated in 27.3 and removed in 27.9. Matching hooks
            continue to run during the deprecation period.
 
+           Warnings are emitted when hook definitions are collected, even for
+           other commands. These ``run_for`` values remain supported for plugin
+           subcommands with the same names.
+
         **Example:**
 
         .. code-block:: python
@@ -198,6 +202,10 @@ class CondaSpecs:
            and ``hook``) are pending deprecation. Hook support for these commands
            will be deprecated in 27.3 and removed in 27.9. Matching hooks
            continue to run during the deprecation period.
+
+           Warnings are emitted when hook definitions are collected, even for
+           other commands. These ``run_for`` values remain supported for plugin
+           subcommands with the same names.
 
         **Example:**
 
