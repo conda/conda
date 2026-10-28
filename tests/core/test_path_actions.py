@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import os
 import sys
+from hashlib import md5, sha256
 from logging import getLogger
 from os.path import basename, dirname, getsize, isdir, isfile, join, lexists
 from typing import TYPE_CHECKING
@@ -12,6 +13,7 @@ from uuid import uuid4
 
 import pytest
 
+from conda import CondaError
 from conda.auxlib.collection import AttrDict
 from conda.auxlib.ish import dals
 from conda.base.context import context
@@ -29,6 +31,7 @@ from conda.common.path import (
 from conda.core.path_actions import (
     CompileMultiPycAction,
     CreatePythonEntryPointAction,
+    ExtractPackageAction,
     LinkPathAction,
     PrefixReplaceLinkAction,
     UnlinkPathAction,
@@ -56,6 +59,62 @@ if TYPE_CHECKING:
     from conda.testing.fixtures import PathFactoryFixture
 
 log = getLogger(__name__)
+
+
+@pytest.mark.parametrize(
+    "algorithms,invalid",
+    [
+        pytest.param((), None, id="no-hashes"),
+        pytest.param(("sha256",), None, id="sha256"),
+        pytest.param(("md5",), None, id="md5"),
+        pytest.param(("sha256", "md5"), None, id="both-hashes"),
+        pytest.param(("sha256",), "sha256", id="bad-sha256"),
+        pytest.param(("md5",), "md5", id="bad-md5"),
+        pytest.param(("sha256", "md5"), "sha256", id="both-hashes-bad-sha256"),
+        pytest.param(("sha256", "md5"), "md5", id="both-hashes-bad-md5"),
+    ],
+)
+def test_prepare_extract_checks_advertised_archive_hashes(
+    tmp_path: Path, algorithms: tuple[str, ...], invalid: str | None
+):
+    payload = b"package archive"
+    archive = tmp_path / "package-1.0-0.custom"
+    archive.write_bytes(payload)
+    digests = {"sha256": sha256(payload).hexdigest(), "md5": md5(payload).hexdigest()}
+    if invalid:
+        digests[invalid] = "0" * len(digests[invalid])
+    record = PackageRecord(
+        name="package",
+        version="1.0",
+        build="0",
+        build_number=0,
+        fn=archive.name,
+        size=len(payload),
+        attestations_sha256="a" * 64,
+        **{algorithm: digests[algorithm] for algorithm in algorithms},
+    )
+    target = tmp_path / "package-1.0-0"
+    target.mkdir()
+    existing_file = target / "existing"
+    existing_file.write_text("cached package")
+    action = ExtractPackageAction(
+        source_full_path=str(archive),
+        target_pkgs_dir=str(tmp_path),
+        target_extracted_dirname=target.name,
+        record_or_spec=record,
+        sha256=record.sha256,
+        md5=record.md5,
+        size=record.size,
+    )
+
+    if invalid:
+        with pytest.raises(CondaError, match=f"archive {invalid} does not match"):
+            action._prepare_extract()
+        action.reverse()
+        assert existing_file.read_text() == "cached package"
+    else:
+        action._prepare_extract()
+        assert not target.exists()
 
 
 def make_test_file(target_dir: Path) -> str:
