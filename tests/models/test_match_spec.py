@@ -8,9 +8,6 @@ import pytest
 from ruamel.yaml import YAML
 
 from conda.base.constants import CONDA_PACKAGE_EXTENSION_V1, CONDA_PACKAGE_EXTENSION_V2
-
-if TYPE_CHECKING:
-    from pytest_benchmark.fixture import BenchmarkFixture
 from conda.base.context import context
 from conda.cli.common import spec_from_line
 from conda.common.compat import on_win
@@ -26,6 +23,9 @@ from conda.models.match_spec import (
 )
 from conda.models.records import PackageRecord
 from conda.models.version import VersionSpec
+
+if TYPE_CHECKING:
+    from pytest_benchmark.fixture import BenchmarkFixture
 
 blas_value = "accelerate" if context.subdir == "osx-64" else "openblas"
 
