@@ -1254,14 +1254,13 @@ def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert package_is_installed(prefix, "python=3")
 
 
-@pytest.mark.skipif(on_win, reason="readline is only a python dependency on unix")
 def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env(PYTHON_SPEC) as prefix:
-        assert package_is_installed(prefix, "readline")
+        assert package_is_installed(prefix, "bzip2")
         assert package_is_installed(prefix, PYTHON_SPEC)
 
-        conda_cli("remove", f"--prefix={prefix}", "readline", "--force-remove", "--yes")
-        assert not package_is_installed(prefix, "readline")
+        conda_cli("remove", f"--prefix={prefix}", "bzip2", "--force-remove", "--yes")
+        assert not package_is_installed(prefix, "bzip2")
         assert package_is_installed(prefix, PYTHON_SPEC)
 
 
