@@ -1,3 +1,3 @@
 ### Bug fixes
 
-* Preserve platform-named parent directories when parsing channel and package URLs, fixing conda-build failures with paths such as `osx-arm64/conda-bld`. (conda/conda-libmamba-solver#1108)
+* Preserve platform-named parent directories when parsing channel and package URLs, fixing conda-build failures with paths such as `osx-arm64/conda-bld`. (conda/conda-libmamba-solver#1108 via #16926)

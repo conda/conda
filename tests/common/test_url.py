@@ -143,8 +143,13 @@ def test_split_platform_before_filename(filename):
         ),
     ],
 )
-def test_split_conda_url_preserves_parts(suffix, platform, filename, path, query):
+def test_split_conda_url_preserves_parts(
+    mocker, suffix, platform, filename, path, query
+):
     url = f"https://user:pass@example.test:8443/t/test-token{suffix}"
+    split_conda_url_easy_parts(KNOWN_SUBDIRS, url)
+    extractor_discovery = mocker.spy(context.plugin_manager, "get_package_extractors")
+
     assert split_conda_url_easy_parts(KNOWN_SUBDIRS, url) == (
         "https",
         "user:pass",
@@ -156,21 +161,6 @@ def test_split_conda_url_preserves_parts(suffix, platform, filename, path, query
         path,
         query,
     )
-
-
-@pytest.mark.parametrize("filename", [None, "package-1.0-0.conda", "repodata.json"])
-def test_split_conda_url_avoids_repeated_extractor_discovery(mocker, filename):
-    url = "https://example.test/channel/linux-64"
-    if filename:
-        url = f"{url}/{filename}"
-    split_conda_url_easy_parts(KNOWN_SUBDIRS, url)
-    extractor_discovery = mocker.spy(context.plugin_manager, "get_package_extractors")
-
-    parts = split_conda_url_easy_parts(KNOWN_SUBDIRS, url)
-
-    assert parts.platform == "linux-64"
-    assert parts.package_filename == filename
-    assert parts.path == "/channel"
     assert extractor_discovery.call_count <= 1
 
 
