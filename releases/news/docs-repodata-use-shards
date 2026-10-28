@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Update the performance guide to describe the `repodata_use_shards` setting, which is enabled by default, in place of the removed conda-libmamba-solver `plugins.use_sharded_repodata` setting (#16923).
+
+### Other
+
+* <news item>
