@@ -41,7 +41,6 @@ The `-v` flags map to levels in {attr}`context.log_level <conda.base.context.Con
 From `conda/core/envs_manager.py`:
 
 ```python
-# conda/core/envs_manager.py
 log.warning(
     "Unable to register environment. Could not create %s. Reason: %s",
     user_environments_txt_directory,
@@ -53,3 +52,16 @@ A filter on the CLI handlers redacts channel tokens in URLs (`/t/<token>/`). Log
 they are. Do not log other secrets.
 
 See {ref}`rendering_output_logger_or_reporter` for whether to log a message or render it.
+
+## How conda configures logging
+
+Module-level loggers named after `__name__` form a hierarchy. `conda.core.link` sits under
+`conda.core`, which sits under `conda`. A parent's level and handlers apply to its children
+unless a child overrides them.
+
+`conda.gateways.logging.initialize_logging` sets the `conda` logger to `WARNING` and attaches a
+stderr handler with `propagate = False`, so conda records do not reach the root logger.
+`conda.cli.main.init_loggers` calls that function, then `set_log_level(context.log_level)`.
+That sets the handler level from the verbosity flags and also attaches stderr handlers on the
+root logger and the `requests` loggers. Importing conda as a library does none of this. The
+embedding application configures logging.
