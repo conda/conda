@@ -381,6 +381,14 @@ class PackageCacheData(metaclass=PackageCacheType):
 
     @property
     def is_writable(self):
+        """
+        Consult conda configuration and file system permissions to confirm
+        if the cache is writeable.
+        """
+        # check if the user has configured the cache to be read only 
+        pkg_dir_config = context.pkg_dir(self.pkgs_dir)
+        if pkg_dir_config and pkg_dir_config.read_only:
+            return False
         # returns None if package cache directory does not exist / has not been created
         if self.__is_writable is NULL:
             return self._check_writable()
@@ -391,9 +399,16 @@ class PackageCacheData(metaclass=PackageCacheType):
         if isfile(magic_file):
             i_wri = file_path_is_writable(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
             self.__is_writable = i_wri
-            pkg_dir_config = context.pkg_dir(self.pkgs_dir)
-            if pkg_dir_config and pkg_dir_config.read_only:
-                self.__is_writable = i_wri = False
+        # returns None if package cache directory does not exist / has not been created
+        if self.__is_writable is NULL:
+            return self._check_writable()
+        return self.__is_writable
+
+    def _check_writable(self):
+        magic_file = join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE)
+        if isfile(magic_file):
+            i_wri = file_path_is_writable(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
+            self.__is_writable = i_wri
             log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         else:
             log.log(TRACE, "package cache directory '%s' does not exist", self.pkgs_dir)
