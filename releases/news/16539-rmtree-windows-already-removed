@@ -1,5 +1,0 @@
-### Bug fixes
-
-* Avoid `FileNotFoundError` on Windows when `rmtree()` deletes a directory that
-  `RD /S /Q` already removed (for example during `conda package` temp cleanup).
-  (#16539 via #16803)
