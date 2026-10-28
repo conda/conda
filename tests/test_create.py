@@ -1717,8 +1717,9 @@ def test_menuinst_v2(
     conda_cli: CondaCLIFixture,
     request: FixtureRequest,
 ):
-    import menuinst
     import warnings
+
+    import menuinst
 
     # This comes from the pytest_mock libary.This is fixed in newer versions
     # of pytest_mock

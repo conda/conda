@@ -86,10 +86,6 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: classic
-      # Skipping some tests:
-      # - tests/test_fetch.py - ignored on defaults until an updated version of responses is available
-      PYTEST_EXTRA: >-
-        ${{ matrix.default-channel == 'defaults' && '--ignore=tests/test_fetch.py' || '' }}
 
     steps:
       - name: Checkout Source
