@@ -969,7 +969,8 @@ def test_general_graph_bfs_simple():
     f = PackageRecord(name="f", version="1", build="0", build_number=0)
     g = PackageRecord(name="g", version="1", build="0", build_number=0)
     records = [a, b, c, d, e, f, g]
-    graph = GeneralGraph(records)
+    with pytest.deprecated_call():
+        graph = GeneralGraph(records)
 
     a_to_c = graph.breadth_first_search_by_name(MatchSpec("a"), MatchSpec("c"))
     assert a_to_c == [MatchSpec("a"), MatchSpec("c")]
@@ -1013,7 +1014,8 @@ def test_general_graph_bfs_version():
     g1 = PackageRecord(name="g", version="1", build="0", build_number=0)
     g2 = PackageRecord(name="g", version="2", build="0", build_number=0)
     records = [a, b, c, d, e, f, g1, g2]
-    graph = GeneralGraph(records)
+    with pytest.deprecated_call():
+        graph = GeneralGraph(records)
 
     assert graph.graph[c] == {g1: None}
     assert graph.graph[d] == {f: None, g2: None}

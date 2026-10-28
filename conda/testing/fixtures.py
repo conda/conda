@@ -169,8 +169,9 @@ def parametrized_solver_fixture(
 ) -> Iterable[Literal["libmamba", "classic"]]:
     """
     A parameterized fixture that sets the solver backend to (1) libmamba
-    and (2) classic for each test. It's using autouse=True, so only import it in
-    modules that actually need it.
+    and (2) classic for each test. Not autouse: activate it with
+    `pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")` in
+    modules that need it (or CI can narrow the backends via `CONDA_TEST_SOLVERS`).
 
     Note that skips and xfails need to be done _inside_ the test body.
     Decorators can't be used because they are evaluated before the
@@ -383,7 +384,7 @@ class PipCLIFixture:
 
 @pytest.fixture(scope="session")
 def pip_cli() -> Iterator[PipCLIFixture]:
-    """A function scoped fixture returning PipCLIFixture instance.
+    """A session scoped fixture returning PipCLIFixture instance.
 
     Use this for calling pip commands in specific conda environments during tests.
     Uses `python -m pip` for reliable cross-platform execution.
@@ -834,8 +835,7 @@ def tmp_envs_dir(
     envs_dir.mkdir(parents=True)
 
     mocker.patch(
-        "conda.base.context.Context.envs_dirs",
-        new_callable=mocker.PropertyMock,
+        "conda.base.context.mockable_context_envs_dirs",
         return_value=(envs_dir_str := str(envs_dir),),
     )
     assert context.envs_dirs == (envs_dir_str,)

@@ -75,6 +75,44 @@
     background-color: var(--pst-color-primary) !important;
   }
 
+/* Feature badges — scoped to the New Features cards */
+
+/* Availability: theme info blue */
+.conda-feature-card .sd-badge.sd-bg-light {
+    background-color: color-mix(
+        in srgb,
+        var(--pst-color-info) 10%,
+        var(--pst-color-background)
+    ) !important;
+    color: var(--pst-color-info) !important;
+    border: 1px solid var(--pst-color-info) !important;
+}
+
+/* Stable: theme success green */
+.conda-feature-card .sd-badge.sd-bg-success,
+.conda-feature-legend .sd-badge.sd-bg-success {
+    background-color: color-mix(
+        in srgb,
+        var(--pst-color-success) 10%,
+        var(--pst-color-background)
+    ) !important;
+    color: var(--pst-color-success) !important;
+    border: 1px solid var(--pst-color-success) !important;
+}
+
+/* Beta: theme warning amber */
+.conda-feature-card .sd-badge.sd-bg-warning,
+.conda-feature-legend .sd-badge.sd-bg-warning {
+    background-color: color-mix(
+        in srgb,
+        var(--pst-color-warning) 10%,
+        var(--pst-color-background)
+    ) !important;
+    color: var(--pst-color-warning) !important;
+    border: 1px solid var(--pst-color-warning) !important;
+}
+
+
   /* Pull the card up to sit right under its H2 heading,
    * so feature title + card body read as one visual unit.
    */

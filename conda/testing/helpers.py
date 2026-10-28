@@ -23,6 +23,7 @@ from ..common.io import captured as common_io_captured
 from ..common.serialize import json
 from ..core.prefix_data import PrefixData
 from ..core.subdir_data import SubdirData
+from ..deprecations import deprecated
 from ..gateways.disk.delete import rm_rf
 from ..gateways.disk.read import lexists
 from ..history import History
@@ -81,17 +82,20 @@ def captured(disallow_stderr=True):
             raise Exception(f"Got stderr output: {c.stderr}")
 
 
+@deprecated("27.3", "27.9", addendum="Use a plain `assert` instead.")
 def assert_equals(a, b, output=""):
     output = f"{a.lower()!r} != {b.lower()!r}" + "\n\n" + output
     assert a.lower() == b.lower(), output
 
 
+@deprecated("27.3", "27.9", addendum="Use a plain `assert` instead.")
 def assert_not_in(a, b, output=""):
     assert a.lower() not in b.lower(), (
         f"{output} {a.lower()!r} should not be found in {b.lower()!r}"
     )
 
 
+@deprecated("27.3", "27.9", addendum="Use a plain `assert` instead.")
 def assert_in(a, b, output=""):
     assert a.lower() in b.lower(), (
         f"{output} {a.lower()!r} cannot be found in {b.lower()!r}"
@@ -130,6 +134,11 @@ def tempdir():
             rm_rf(prefix)
 
 
+@deprecated(
+    "27.3",
+    "27.9",
+    addendum="Use `conda.models.records.PackageRecord.from_objects` instead.",
+)
 def supplement_index_with_repodata(index, repodata, channel, priority):
     repodata_info = repodata["info"]
     arch = repodata_info.get("arch")
@@ -154,6 +163,7 @@ def supplement_index_with_repodata(index, repodata, channel, priority):
         index[rec] = rec
 
 
+@deprecated("27.3", "27.9")
 def add_feature_records_legacy(index):
     all_features = set()
     for rec in index.values():
