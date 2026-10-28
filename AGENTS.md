@@ -82,3 +82,15 @@ Do **not** maintain a name-by-name table here (it goes stale). Discover fixtures
 - **Elsewhere** — additional fixtures may live in **subtree `conftest.py` files** or test modules; prefer reusing a shared fixture from **`conda.testing.*`** or **`tests/conftest.py`** when one fits.
 
 The **Writing tests** chapter under **`docs/source/dev-guide/writing-tests/`** has more context (e.g. **`pytest_plugins`** and the HTTP test server).
+
+### Common fixture recipes
+
+Before writing setup code, check whether a shared fixture already covers the task. Do not hand-roll what these provide (manual `repodata.json` writing, manual prefix creation, hand-patched `Context` properties, stacked `@patch` decorators); if a fixture almost fits, extend the fixture rather than the test.
+
+- **Running conda CLI:** request **`conda_cli`** and call it like the CLI (`stdout, stderr, code = conda_cli("info", "--json")`); pass **`raises=SomeError`** to intercept exceptions instead of wrapping in `pytest.raises`. Use **`tmp_env`** for throwaway environments (`with tmp_env("python=3") as prefix:`; an empty prefix when called without args). Session-scoped variants (**`session_conda_cli`**, **`session_tmp_env`**) exist for state shared across tests but cannot capture output.
+- **Solver selection:** activate **`parametrized_solver_fixture`** via **`pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")`** (CI can narrow backends via **`CONDA_TEST_SOLVERS`**), or pin one backend with **`solver_classic`** / **`solver_libmamba`** / **`solver_rattler`**. Decorators evaluate before fixtures run, so put **`pytest.skip`** / **`pytest.xfail`** inside the test body, conditioned on `context.solver`.
+- **Configuration and env vars:** use **`monkeypatch.setenv("CONDA_*")`**—the suite's `monkeypatch` resets `context` in teardown when `CONDA_*` variables were touched. Call **`reset_context()`** explicitly only when config must change *within* a test.
+- **Package cache and env dirs:** use **`temp_package_cache`** (isolated package cache via `CONDA_PKGS_DIRS`), **`tmp_pkgs_dir`**, or **`tmp_envs_dir`** instead of patching `Context.pkgs_dirs` / `Context.envs_dirs` inline.
+- **Channels:** prefer **`test_recipes_channel`** / **`mock_channels`** for the checked-in test recipes; **`tmp_repodata_channel`** for synthetic metadata-only channels (supports arbitrary record fields, e.g. `timestamp`, and `--dry-run` solves); **`tmp_channel`** when real package archives must be present; **`http_test_server`** for plain HTTP file serving.
+- **Mocking:** always **`mocker`** (pytest-mock), even for one-off patches; **`monkeypatch`** for `setenv` / `chdir` / attribute restoration; `unittest.mock` only for constructing stand-in objects.
+- **Temporary paths:** **`tmp_path`** or **`path_factory`** (unique, non-existent paths); avoid `tempfile.mkdtemp` / `mktemp` in tests—they leak and race.
