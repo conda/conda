@@ -5,10 +5,10 @@ dependencies:
   - pip:
 
     # Global options can be tweaked.
-    # For example, use the NJU PyPI mirror alongside the official index:
-    - --index-url https://mirror.nju.edu.cn/pypi/web/simple
+    # For example, use Posit's PyPI mirror alongside the official index:
+    - --index-url https://packagemanager.posit.co/pypi/latest/simple
     - --extra-index-url https://pypi.org/simple
-    # See https://help.mirror.nju.edu.cn/pypi/
+    # See https://docs.posit.co/rspm/user/configure-python.html
 
     # Current syntax still works
     - xmltodict==0.10.2
