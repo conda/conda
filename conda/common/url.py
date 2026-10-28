@@ -348,8 +348,19 @@ def split_anaconda_token(url: str):
     return cleaned_url.rstrip("/"), token
 
 
-def split_platform(known_subdirs: Iterable[str], url: str) -> tuple[str, str | None]:
+def split_platform(
+    known_subdirs: Iterable[str],
+    url: str,
+    *,
+    package_extensions: Iterable[str] | None = None,
+) -> tuple[str, str | None]:
     """Remove a trailing platform subdir, optionally followed by a known filename.
+
+    Args:
+        known_subdirs: Recognized platform subdirectory names.
+        url: Channel or package URL to split.
+        package_extensions: Registered lowercase package extensions to reuse
+            instead of discovering them through plugins.
 
     Examples:
         >>> from conda.base.constants import KNOWN_SUBDIRS
@@ -359,7 +370,7 @@ def split_platform(known_subdirs: Iterable[str], url: str) -> tuple[str, str | N
     """
     url_parts = _urlparse(url)
     path = url_parts.path.rstrip("/")
-    _, extension = strip_pkg_extension(path)
+    _, extension = strip_pkg_extension(path, package_extensions=package_extensions)
     path, filename = path.rsplit("/", 1) if extension and "/" in path else (path, None)
     if match := _split_platform_re(known_subdirs).search(path):
         path = path[: match.start()]
@@ -424,10 +435,16 @@ class _SplitUrlParts(NamedTuple):
 def split_conda_url_easy_parts(
     known_subdirs: Iterable[str], url: str
 ) -> _SplitUrlParts:
+    from ..base.context import context
+
     # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
-    cleaned_url, platform = split_platform(known_subdirs, cleaned_url)
-    _, ext = strip_pkg_extension(cleaned_url)
+    # Platform removal can expose a filename. Both checks reuse this registry.
+    package_extensions = context.plugin_manager.get_package_extractors()
+    cleaned_url, platform = split_platform(
+        known_subdirs, cleaned_url, package_extensions=package_extensions
+    )
+    _, ext = strip_pkg_extension(cleaned_url, package_extensions=package_extensions)
     cleaned_url, package_filename = (
         cleaned_url.rsplit("/", 1)
         if ext and "/" in cleaned_url

@@ -8,6 +8,7 @@ from typing import NamedTuple
 import pytest
 
 from conda.base.constants import KNOWN_SUBDIRS
+from conda.base.context import context
 from conda.common.url import (
     Url,
     add_username_and_password,
@@ -15,6 +16,7 @@ from conda.common.url import (
     is_ipv6_address,
     is_url,
     maybe_add_auth,
+    split_conda_url_easy_parts,
     split_platform,
     split_scheme_auth_token,
     url_to_s3_info,
@@ -95,6 +97,81 @@ def test_split_platform_before_filename(filename):
         f"https://example.test/linux-64/channel/{filename}",
         "noarch",
     )
+
+
+@pytest.mark.parametrize(
+    "suffix,platform,filename,path,query",
+    [
+        ("/channel", None, None, "/channel", ""),
+        ("/channel/linux-64", "linux-64", None, "/channel", ""),
+        ("/channel.json/linux-64", "linux-64", "channel.json", "", ""),
+        ("/linux-64/conda-bld", None, None, "/linux-64/conda-bld", ""),
+        (
+            "/linux-64/conda-bld/noarch/package-1.0-0.conda",
+            "noarch",
+            "package-1.0-0.conda",
+            "/linux-64/conda-bld",
+            "",
+        ),
+        (
+            "/channel/noarch/repodata.json.zst",
+            "noarch",
+            "repodata.json.zst",
+            "/channel",
+            "",
+        ),
+        (
+            "/channel/noarch/package-1.0-0.conda?download=1",
+            "noarch",
+            None,
+            "/channel/package-1.0-0.conda",
+            "download=1",
+        ),
+        (
+            "/channel/noarch/package-1.0-0.conda#fragment",
+            "noarch",
+            None,
+            "/channel/package-1.0-0.conda",
+            "",
+        ),
+        (
+            "/channel/noarch?filename=repodata.json",
+            "noarch",
+            "channel?filename=repodata.json",
+            "",
+            "",
+        ),
+    ],
+)
+def test_split_conda_url_preserves_parts(suffix, platform, filename, path, query):
+    url = f"https://user:pass@example.test:8443/t/test-token{suffix}"
+    assert split_conda_url_easy_parts(KNOWN_SUBDIRS, url) == (
+        "https",
+        "user:pass",
+        "test-token",
+        platform,
+        filename,
+        "example.test",
+        8443,
+        path,
+        query,
+    )
+
+
+@pytest.mark.parametrize("filename", [None, "package-1.0-0.conda", "repodata.json"])
+def test_split_conda_url_avoids_repeated_extractor_discovery(mocker, filename):
+    url = "https://example.test/channel/linux-64"
+    if filename:
+        url = f"{url}/{filename}"
+    split_conda_url_easy_parts(KNOWN_SUBDIRS, url)
+    extractor_discovery = mocker.spy(context.plugin_manager, "get_package_extractors")
+
+    parts = split_conda_url_easy_parts(KNOWN_SUBDIRS, url)
+
+    assert parts.platform == "linux-64"
+    assert parts.package_filename == filename
+    assert parts.path == "/channel"
+    assert extractor_discovery.call_count <= 1
 
 
 def test_maybe_add_auth():
