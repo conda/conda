@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+from argparse import Namespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -658,3 +659,32 @@ def test_determine_link_type_default_cache_policy(
     )
 
     assert link_type == expected
+
+
+@pytest.mark.usefixtures("reset_conda_context")
+def test_determine_link_type_cli_copy_overrides_cache_policy(
+    mocker: MockerFixture,
+    tmp_path: Path,
+):
+    """An explicit --copy wins over a cache that sets always_copy: false."""
+    mocker.patch.object(link, "hardlink_supported", return_value=True)
+    mocker.patch.object(link, "softlink_supported", return_value=True)
+    cache = tmp_path / "pkgs"
+    load_condarc(
+        mocker,
+        dals(
+            f"""
+            pkgs_dirs:
+              - path: {cache}
+                always_copy: false
+                allow_softlinks: true
+            """
+        ),
+    )
+    context._set_argparse_args(Namespace(copy=True))
+
+    link_type = link.determine_link_type(
+        str(cache / "pkg-1.0-0"), str(tmp_path / "prefix")
+    )
+
+    assert link_type == LinkType.copy
