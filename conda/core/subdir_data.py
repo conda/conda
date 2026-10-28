@@ -833,7 +833,12 @@ def _search_package_via_shards(
             rec = PackageRecord(channel=channel, **record_data)
             if spec.match(rec):
                 records.append(rec)
-    return records
+    from ..models.version import VersionOrder
+
+    return sorted(
+        records,
+        key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
+    )
 
 
 def _search_package(
