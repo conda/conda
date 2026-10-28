@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 import conda
-from conda.base.context import context, non_x86_machines
+from conda.base.context import context, non_x86_machines, reset_context
 from conda.common.compat import on_linux, on_mac, on_win
 from conda.core.index import (
     Index,
@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from pytest import FixtureRequest, MonkeyPatch
 
     from conda.core.index import ReducedIndex
+    from conda.testing.fixtures import TmpRepodataChannelFixture
 
 log = getLogger(__name__)
 
@@ -247,6 +248,37 @@ def test_dist_str_in_index(test_recipes_channel: Path) -> None:
     idx = Index((Channel(str(test_recipes_channel)),), prepend=False)
     assert not dist_str_in_index(idx.data, "test-1.4.0-0")
     assert dist_str_in_index(idx.data, "other_dependent-1.0-0")
+
+
+@pytest.mark.usefixtures("tmp_pkgs_dir")
+@pytest.mark.parametrize("parent", ["osx-arm64", "linux-64"])
+def test_empty_channel_under_platform_directory(
+    tmp_path: Path,
+    tmp_repodata_channel: TmpRepodataChannelFixture,
+    monkeypatch: MonkeyPatch,
+    parent: str,
+) -> None:
+    """Load empty build channels without dropping platform-named parent directories."""
+    monkeypatch.setenv("CONDA_ALLOW_NON_CHANNEL_URLS", "false")
+    reset_context()
+    source, _ = tmp_repodata_channel(subdirs=("osx-arm64", "noarch"))
+    channel = tmp_path / parent / "conda-bld"
+    channel.parent.mkdir()
+    source.rename(channel)
+    channel_url = channel.as_uri()
+
+    index = Index(
+        channels=[channel_url],
+        prepend=False,
+        subdirs=("osx-arm64", "noarch"),
+        use_cache=False,
+    )
+
+    assert index.data == index.features
+    assert [channel.url() for channel in index.expanded_channels] == [
+        f"{channel_url}/osx-arm64",
+        f"{channel_url}/noarch",
+    ]
 
 
 def test_copy_does_not_realize_index() -> None:

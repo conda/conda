@@ -7,6 +7,7 @@ from typing import NamedTuple
 
 import pytest
 
+from conda.base.constants import KNOWN_SUBDIRS
 from conda.common.url import (
     Url,
     add_username_and_password,
@@ -14,12 +15,86 @@ from conda.common.url import (
     is_ipv6_address,
     is_url,
     maybe_add_auth,
+    split_platform,
     split_scheme_auth_token,
     url_to_s3_info,
     urlparse,
 )
 
 log = getLogger(__name__)
+
+
+@pytest.mark.parametrize(
+    "url,expected_url,platform",
+    [
+        (
+            "file:///tmp/example/osx-arm64/conda-bld",
+            "file:///tmp/example/osx-arm64/conda-bld",
+            None,
+        ),
+        (
+            "file:///tmp/example/osx-arm64/conda-bld/",
+            "file:///tmp/example/osx-arm64/conda-bld",
+            None,
+        ),
+        (
+            "file:///tmp/example/osx-arm64/conda-bld/osx-arm64",
+            "file:///tmp/example/osx-arm64/conda-bld",
+            "osx-arm64",
+        ),
+        (
+            "file:///tmp/example/osx-arm64/conda-bld/noarch/",
+            "file:///tmp/example/osx-arm64/conda-bld",
+            "noarch",
+        ),
+        (
+            "https://example.test/linux-64-backup/channel/linux-64",
+            "https://example.test/linux-64-backup/channel",
+            "linux-64",
+        ),
+        (
+            "https://example.test/channel/LINUX-64",
+            "https://example.test/channel",
+            "LINUX-64",
+        ),
+        ("defaults/linux-64", "defaults", "linux-64"),
+        (
+            "https://example.test/channel?source=/linux-64",
+            "https://example.test/channel?source=/linux-64",
+            None,
+        ),
+        (
+            "https://example.test/channel#linux-64/noarch",
+            "https://example.test/channel#linux-64/noarch",
+            None,
+        ),
+        (
+            "https://example.test/channel/linux-64?source=/noarch#fragment",
+            "https://example.test/channel?source=/noarch#fragment",
+            "linux-64",
+        ),
+    ],
+)
+def test_split_platform_preserves_parent_directories(url, expected_url, platform):
+    assert split_platform(KNOWN_SUBDIRS, url) == (expected_url, platform)
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "package-1.0-0.conda",
+        "package-1.0-0.tar.bz2",
+        "repodata.json",
+        "repodata.json.zst",
+        "repodata_shards.msgpack.zst",
+    ],
+)
+def test_split_platform_before_filename(filename):
+    url = f"https://example.test/linux-64/channel/noarch/{filename}"
+    assert split_platform(KNOWN_SUBDIRS, url) == (
+        f"https://example.test/linux-64/channel/{filename}",
+        "noarch",
+    )
 
 
 def test_maybe_add_auth():
