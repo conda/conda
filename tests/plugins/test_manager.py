@@ -181,6 +181,33 @@ def test_command_hooks_warn_for_current_run_for(
 
 
 @pytest.mark.parametrize("hook", ["pre", "post"])
+def test_command_hooks_accept_membership_only_run_for(
+    plugin_manager: CondaPluginManager, hook: str
+) -> None:
+    class AlwaysContains:
+        def __contains__(self, command):
+            return True
+
+    calls = []
+    run_for = AlwaysContains()
+
+    class CommandPlugin:
+        @plugins.hookimpl
+        def conda_pre_commands():
+            yield plugins.types.CondaPreCommand("custom-pre", calls.append, run_for)
+
+        @plugins.hookimpl
+        def conda_post_commands():
+            yield plugins.types.CondaPostCommand("custom-post", calls.append, run_for)
+
+    plugin_manager.register(CommandPlugin)
+    with pytest.deprecated_call(match=r"will be removed in 27\.9"):
+        getattr(plugin_manager, f"invoke_{hook}_commands")("info")
+
+    assert calls == ["info"]
+
+
+@pytest.mark.parametrize("hook", ["pre", "post"])
 def test_command_hooks_without_callbacks_do_not_warn(
     plugin_manager: CondaPluginManager, hook: str
 ) -> None:

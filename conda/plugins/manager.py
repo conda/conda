@@ -558,15 +558,19 @@ class CondaPluginManager(pluggy.PluginManager):
 
         if name in {"pre_commands", "post_commands"}:
             for plugin in plugins:
-                commands = {
-                    "run",
-                    "activate",
-                    "deactivate",
-                    "reactivate",
-                    "hook",
-                    "mock_activate",
-                    "mock_deactivate",
-                }.intersection(plugin.run_for)
+                commands = [
+                    command
+                    for command in (
+                        "run",
+                        "activate",
+                        "deactivate",
+                        "reactivate",
+                        "hook",
+                        "mock_activate",
+                        "mock_deactivate",
+                    )
+                    if command in plugin.run_for
+                ]
                 if commands:
                     deprecated.topic(
                         "27.3",
