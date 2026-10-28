@@ -551,7 +551,8 @@ class PackageCacheData(metaclass=PackageCacheType):
                         package_tarball_full_path,
                         e,
                     )
-                    rm_rf(package_tarball_full_path)
+                    if self.is_writable:
+                        rm_rf(package_tarball_full_path)
                     return None
 
             # we were able to read info/index.json, so let's continue
