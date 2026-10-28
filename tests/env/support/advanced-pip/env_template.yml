@@ -5,10 +5,10 @@ dependencies:
   - pip:
 
     # Global options can be tweaked.
-    # For example, use Posit's PyPI mirror alongside the official index:
-    - --index-url https://packagemanager.posit.co/pypi/latest/simple
+    # For example, use Kakao's PyPI mirror alongside the official index:
+    - --index-url https://mirror.kakao.com/pypi/simple
     - --extra-index-url https://pypi.org/simple
-    # See https://docs.posit.co/rspm/user/configure-python.html
+    # See https://mirror.kakao.com/
 
     # Current syntax still works
     - xmltodict==0.10.2
