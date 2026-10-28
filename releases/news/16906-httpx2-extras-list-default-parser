@@ -1,0 +1,7 @@
+### Enhancements
+
+* Parse `MatchSpec` strings with the v3 parser for all solvers, instead of only for `rattler`. This keeps complete `extras` and `flags` lists (e.g. `httpx2[extras=[cli,http2]]` or `httpx2[extras=cli,http2]`) and accepts nested `when` expressions. (#16724 via #16906)
+
+### Deprecations
+
+* Mark `conda.models.match_spec._parse_spec_str` as pending deprecation, to be removed in 27.9. Use `conda.models.match_spec._parse_spec_str_v3` instead. (#16724 via #16906)

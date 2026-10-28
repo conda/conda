@@ -595,16 +595,37 @@ class MatchSpec(metaclass=MatchSpecType):
             matcher = value
             return field_name, matcher
 
+        if field_name in _LIST_NAME_RE and isinstance(value, list):
+            value = tuple(value)
         _MATCHER_CACHE = MatchSpec._MATCHER_CACHE
         cache_key = (field_name, value)
-        cached_matcher = _MATCHER_CACHE.get(cache_key)
+        try:
+            cached_matcher = _MATCHER_CACHE.get(cache_key)
+        except TypeError:
+            if field_name not in _LIST_NAME_RE:
+                raise
+            cached_matcher = None
         if cached_matcher:
             return field_name, cached_matcher
+        # Constructor inputs must follow the same name rules as parsed specs.
+        if field_name in _LIST_NAME_RE:
+            if value is None:
+                value = ()
+            elif isinstance(value, str):
+                value = value.split(",")
+            if not isinstance(value, (list, tuple)) or not all(
+                isinstance(item, str)
+                and _LIST_NAME_RE[field_name].fullmatch(item.strip())
+                for item in value
+            ):
+                raise InvalidSpec(f"Invalid {field_name} names: {value!r}")
+            value = tuple(item.strip() for item in value)
+
         if field_name in _implementors:
             matcher = _implementors[field_name](value)
         else:
             matcher = ExactStrMatch(str(value))
-        _MATCHER_CACHE[(field_name, value)] = matcher
+        _MATCHER_CACHE[cache_key] = matcher
         return field_name, matcher
 
     @property
@@ -838,11 +859,14 @@ def _parse_spec_str_dispatcher(spec_str) -> dict[str, object]:
     """
     Temporary dispatcher while we introduce the new v3 features
     """
-    if context.solver == "rattler":
-        return _parse_spec_str_v3(spec_str)
-    return _parse_spec_str(spec_str)
+    return _parse_spec_str_v3(spec_str)
 
 
+@deprecated(
+    "27.3",
+    "27.9",
+    addendum="Use `conda.models.match_spec._parse_spec_str_v3` instead.",
+)
 def _parse_spec_str(spec_str):
     cached_result = _PARSE_CACHE.get(spec_str)
     if cached_result:
@@ -1023,25 +1047,54 @@ def _parse_spec_str(spec_str):
     return components
 
 
-_PLAIN_LIST_ITEM_RE: re.Pattern[str] = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]*")
-_YAML_SCALAR_WORDS = frozenset(
-    {"true", "false", "null", "yes", "no", "on", "off", "y", "n"}
-)
+_LIST_NAME_RE = {
+    "extras": re.compile(r"[a-z0-9_.+-]{1,64}"),
+    "flags": re.compile(r"[a-z0-9_*]+(?::[a-z0-9_*]+)?"),
+}
+_PLAIN_LIST_ITEM_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]*")
+_PLAIN_SCALAR_ITEM_RE = re.compile(r"[A-Za-z0-9_.+*:-]+")
+_YAML_SCALAR_WORDS = frozenset({"true", "false", "null"})
+
+_MATCH_SPEC_YAML = None
 
 
-def _parse_list_of_str(inner: str) -> tuple[str, ...]:
-    """Parse extras or flags, using YAML for values that need it."""
-    # YAML permits one trailing comma.
-    content = inner.rstrip(" ").removesuffix(",")
-    items = tuple(item.strip(" ") for item in content.split(","))
-    if all(
-        _PLAIN_LIST_ITEM_RE.fullmatch(item) and item.lower() not in _YAML_SCALAR_WORDS
-        for item in items
-    ):
+def _parse_list_of_str(inner: str, *, list_syntax: bool) -> tuple[str, ...]:
+    """Parse names without converting scalar spelling or accepting typed lists."""
+    global _MATCH_SPEC_YAML
+
+    # YAML folds line breaks, but these fields require single-line lists.
+    if any(char in inner for char in "\r\n\x85\u2028\u2029"):
+        raise InvalidSpec("Extras and flags lists cannot contain newlines")
+    if not list_syntax and any(char in inner for char in "!&"):
+        raise InvalidSpec("Scalar names cannot contain YAML tags or anchors")
+    content = inner.strip().removesuffix(",")
+    items = tuple(item.strip() for item in content.split(","))
+    if list_syntax:
+        plain_strings = all(
+            _PLAIN_LIST_ITEM_RE.fullmatch(item)
+            and item.lower() not in _YAML_SCALAR_WORDS
+            for item in items
+        )
+    else:
+        # Scalar shorthand keeps names such as 001 and true as literal strings.
+        plain_strings = all(_PLAIN_SCALAR_ITEM_RE.fullmatch(item) for item in items)
+    if plain_strings:
         return items
-    return tuple(
-        str(item) if item is not None else "null" for item in yaml.loads(f"[{inner}]")
-    )
+    # Keep YAML lazy and separate from the parser used for configuration files.
+    if _MATCH_SPEC_YAML is None:
+        from ruamel.yaml import YAML
+
+        parser = YAML(typ="safe", pure=True)
+        parser.version = (1, 2)
+        _MATCH_SPEC_YAML = parser
+    # compose() preserves spelling and exposes non-string nodes in explicit lists.
+    nodes = _MATCH_SPEC_YAML.compose(f"[{inner}]").value
+    if any(
+        node.id != "scalar" or (list_syntax and node.tag != "tag:yaml.org,2002:str")
+        for node in nodes
+    ):
+        raise InvalidSpec("Extras and flags lists must contain only strings")
+    return tuple(node.value for node in nodes)
 
 
 def _parse_spec_str_v3(spec_str):
@@ -1117,14 +1170,21 @@ def _parse_spec_str_v3(spec_str):
                     f"Each key can only be specified once: repeated '{key}' "
                 )
             value = groups["value"] or groups["value_list"]
-            if not (key and value):
+            if (
+                not key
+                or value is None
+                or (
+                    not value
+                    and (groups["value_list"] is None or key not in ("extras", "flags"))
+                )
+            ):
                 raise InvalidSpec(
                     "key-value mismatch in brackets; a key or a value is missing",
                 )
             if "][" in value:
                 raise InvalidSpec("Multiple bracket sections are not allowed")
             if key in ("flags", "extras"):
-                if (value[0] == "[") ^ (value[-1] == "]"):
+                if value and ((value[0] == "[") ^ (value[-1] == "]")):
                     # mismatched single-item list, raise
                     raise InvalidSpec(f"'{key}' value has unbalanced brackets: {value}")
                 next_start = (
@@ -1153,11 +1213,18 @@ def _parse_spec_str_v3(spec_str):
                     else:
                         inner = value
                 else:
-                    inner = value.strip("[]")
+                    inner = value.strip(" \t")
+                    if groups["value_list"] is None and inner.startswith("["):
+                        # Remove one quoted wrapper without hiding nested lists.
+                        inner = inner[1:-1]
                     if _LIST_EMPTY_ITEM_RE.search(inner):
                         raise InvalidSpec(f"'{key}' list has an empty item: {value!r}")
                 try:
-                    value = _parse_list_of_str(inner)
+                    value = _parse_list_of_str(
+                        inner,
+                        list_syntax=groups["value_list"] is not None
+                        or value.lstrip().startswith("["),
+                    )
                 except yaml.YAMLError as exc:
                     raise InvalidSpec(f"Invalid '{key}' list: {inner!r}") from exc
             elif key == "when":
@@ -1199,11 +1266,9 @@ def _parse_spec_str_v3(spec_str):
                     f"did you mean `extras=[{brackets_str}]`?",
                 )
 
-    # Re-process version field, whose syntax depends on the presence of a build field
+    # Preserve bracket-version matching independently of the build constraint.
     if version_value := brackets.get("version"):
-        brackets["version"] = _sanitize_version_str(
-            version_value, brackets.get("build")
-        )
+        brackets["version"] = _sanitize_version_str(version_value, None)
 
     # Step 4. strip off parens portion
     m4 = _PARENS_RE.match(spec_str)
