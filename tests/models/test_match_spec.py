@@ -1923,16 +1923,11 @@ def test_extra_specs(match_spec_v3):
 
 
 @pytest.fixture(params=["libmamba", "classic", "rattler"])
-def parametrized_solver_fixture(parametrized_solver_fixture):
-    """Exercise every parser backend regardless of CI's solver selection."""
-    return parametrized_solver_fixture
-
-
-@pytest.fixture
-def any_solver(parametrized_solver_fixture):
+def any_solver(request):
     """Parse MatchSpec strings under every solver (the parser must not depend on it)."""
+    request.getfixturevalue(f"solver_{request.param}")
     _PARSE_CACHE.clear()
-    yield parametrized_solver_fixture
+    yield request.param
     _PARSE_CACHE.clear()
 
 
