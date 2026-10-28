@@ -6,6 +6,7 @@ import sys
 import warnings
 from argparse import ArgumentParser, _StoreAction, _StoreTrueAction
 from contextlib import nullcontext
+from inspect import isgeneratorfunction
 from types import ModuleType
 from typing import TYPE_CHECKING
 
@@ -116,6 +117,25 @@ def test_class(
 
         with pytest.warns(warning, match=message):
             assert Foo()
+
+
+@parametrize_dev
+def test_generator(
+    deprecated: DeprecationHandler,
+    warning: type[Warning] | None,
+    message: str | None,
+) -> None:
+    """A deprecated generator function stays a generator (e.g. pytest yield-fixtures)."""
+    with nullcontext() if warning else pytest.raises(DeprecatedError):
+
+        @deprecated("2.0", "3.0")
+        def foo():
+            yield True
+
+        assert isgeneratorfunction(foo)
+
+        with pytest.warns(warning, match=message):
+            assert list(foo()) == [True]
 
 
 @parametrize_dev

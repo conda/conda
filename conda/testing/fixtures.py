@@ -29,6 +29,7 @@ from ..common.serialize import json, yaml
 from ..common.url import path_to_url
 from ..core.package_cache_data import PackageCacheData
 from ..core.subdir_data import SubdirData
+from ..deprecations import deprecated
 from ..exceptions import CondaExitZero
 from ..gateways.disk.create import TemporaryDirectory
 from ..models.records import PackageRecord
@@ -201,6 +202,11 @@ def solver_classic(
 
 
 @pytest.fixture
+@deprecated(
+    "27.3",
+    "27.9",
+    addendum="Use the `parametrized_solver_fixture` fixture instead.",
+)
 def solver_libmamba(
     request: FixtureRequest,
 ) -> Iterable[Literal["libmamba"]]:
@@ -835,8 +841,7 @@ def tmp_envs_dir(
     envs_dir.mkdir(parents=True)
 
     mocker.patch(
-        "conda.base.context.Context.envs_dirs",
-        new_callable=mocker.PropertyMock,
+        "conda.base.context.mockable_context_envs_dirs",
         return_value=(envs_dir_str := str(envs_dir),),
     )
     assert context.envs_dirs == (envs_dir_str,)
