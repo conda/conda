@@ -385,7 +385,7 @@ class PackageCacheData(metaclass=PackageCacheType):
         Consult conda configuration and file system permissions to confirm
         if the cache is writeable.
         """
-        # check if the user has configured the cache to be read only 
+        # check if the user has configured the cache to be read only
         pkg_dir_config = context.pkg_dir(self.pkgs_dir)
         if pkg_dir_config and pkg_dir_config.read_only:
             return False
