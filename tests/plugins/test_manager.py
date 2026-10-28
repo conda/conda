@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
+from contextlib import nullcontext
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -136,6 +137,44 @@ def test_get_hook_results(plugin_manager: CondaPluginManager):
         ),
     ):
         plugin_manager.get_hook_results(name)
+
+
+@pytest.mark.parametrize("hook", ["pre", "post"])
+@pytest.mark.parametrize("deprecate", [True, False])
+@pytest.mark.parametrize("matches", [True, False])
+def test_command_hooks_deprecate_matching_callbacks(
+    plugin_manager: CondaPluginManager, hook: str, deprecate: bool, matches: bool
+) -> None:
+    calls = []
+    run_for = {"run"} if matches else {"config"}
+
+    class CommandPlugin:
+        @plugins.hookimpl
+        def conda_pre_commands():
+            yield plugins.types.CondaPreCommand("custom-pre", calls.append, run_for)
+
+        @plugins.hookimpl
+        def conda_post_commands():
+            yield plugins.types.CondaPostCommand("custom-post", calls.append, run_for)
+
+    plugin_manager.register(CommandPlugin)
+
+    with (
+        pytest.deprecated_call(match=r"will be removed in 27\.9")
+        if matches and deprecate
+        else nullcontext()
+    ):
+        getattr(plugin_manager, f"invoke_{hook}_commands")("run", deprecate=deprecate)
+
+    assert calls == (["run"] if matches else [])
+
+
+@pytest.mark.parametrize("hook", ["pre", "post"])
+@pytest.mark.parametrize("deprecate", [True, False])
+def test_command_hooks_without_callbacks_do_not_warn(
+    plugin_manager: CondaPluginManager, hook: str, deprecate: bool
+) -> None:
+    getattr(plugin_manager, f"invoke_{hook}_commands")("run", deprecate=deprecate)
 
 
 def test_load_plugins_error(plugin_manager: CondaPluginManager):

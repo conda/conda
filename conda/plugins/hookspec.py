@@ -149,12 +149,17 @@ class CondaSpecs:
         """
         Register pre-command functions in conda.
 
+        Shell activation commands avoid loading the plugin manager for startup
+        performance. These hooks run for ``conda shell.* activate``,
+        ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
+        was already loaded by another code path.
+
         .. note::
-           Pre-command hooks are not invoked for ``conda run`` or shell
+           Pre-command hooks for ``conda run`` and shell
            activation commands (``activate``, ``deactivate``, ``reactivate``,
-           and ``hook``). These commands intentionally skip plugin discovery
-           to preserve their startup fast paths. Use ``run_for`` to select
-           from the remaining built-in and plugin subcommands.
+           and ``hook``) are pending deprecation. Hook support for these commands
+           will be deprecated in 27.3 and removed in 27.9. Matching hooks
+           continue to run during the deprecation period.
 
         **Example:**
 
@@ -182,12 +187,17 @@ class CondaSpecs:
         """
         Register post-command functions in conda.
 
+        Shell activation commands avoid loading the plugin manager for startup
+        performance. These hooks run for ``conda shell.* activate``,
+        ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
+        was already loaded by another code path.
+
         .. note::
-           Post-command hooks are not invoked for ``conda run`` or shell
+           Post-command hooks for ``conda run`` and shell
            activation commands (``activate``, ``deactivate``, ``reactivate``,
-           and ``hook``). These commands intentionally skip plugin discovery
-           to preserve their startup fast paths. Use ``run_for`` to select
-           from the remaining built-in and plugin subcommands.
+           and ``hook``) are pending deprecation. Hook support for these commands
+           will be deprecated in 27.3 and removed in 27.9. Matching hooks
+           continue to run during the deprecation period.
 
         **Example:**
 

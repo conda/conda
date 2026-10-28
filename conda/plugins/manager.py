@@ -33,6 +33,7 @@ from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist
 from ..common.iterators import groupby_to_dict
+from ..deprecations import deprecated
 from ..exceptions import (
     AmbiguousEnvironmentSpecPlugin,
     CondaValueError,
@@ -632,26 +633,42 @@ class CondaPluginManager(pluggy.PluginManager):
             for config_param in self.get_hook_results("settings")
         }
 
-    def invoke_pre_commands(self, command: str) -> None:
+    def invoke_pre_commands(self, command: str, *, deprecate: bool = False) -> None:
         """
         Invokes ``CondaPreCommand.action`` functions registered with ``conda_pre_commands``.
 
         Args:
             command: name of the command that is currently being invoked
+            deprecate: warn about pending removal of hooks for this invocation
         """
         for hook in self.get_hook_results("pre_commands"):
             if command in hook.run_for:
+                if deprecate:
+                    deprecated.topic(
+                        "27.3",
+                        "27.9",
+                        topic=f"Pre-command hook {hook.name!r} for {command!r}",
+                        addendum="Remove this command from `run_for`.",
+                    )
                 hook.action(command)
 
-    def invoke_post_commands(self, command: str) -> None:
+    def invoke_post_commands(self, command: str, *, deprecate: bool = False) -> None:
         """
         Invokes ``CondaPostCommand.action`` functions registered with ``conda_post_commands``.
 
         Args:
             command: name of the command that is currently being invoked
+            deprecate: warn about pending removal of hooks for this invocation
         """
         for hook in self.get_hook_results("post_commands"):
             if command in hook.run_for:
+                if deprecate:
+                    deprecated.topic(
+                        "27.3",
+                        "27.9",
+                        topic=f"Post-command hook {hook.name!r} for {command!r}",
+                        addendum="Remove this command from `run_for`.",
+                    )
                 hook.action(command)
 
     def invoke_exception_observers(

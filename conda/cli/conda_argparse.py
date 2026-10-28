@@ -262,7 +262,7 @@ BUILTIN_COMMANDS = {
 """Names (and aliases) of built-in commands; these cannot be overridden by plugin subcommands."""
 
 _PLUGIN_FREE_BUILTIN_COMMANDS = frozenset({"activate", "deactivate", "run"})
-"""Built-in commands that intentionally skip plugin discovery and command hooks."""
+"""Built-in commands whose parsers skip plugin discovery."""
 
 
 def _configure_builtin_subcommand(sub_parsers, name: str) -> ArgumentParser:
@@ -352,15 +352,11 @@ def do_call(args: argparse.Namespace, parser: ArgumentParser):
         # func_name should always be 'execute'
         module = import_module(module_name)
         command = module_name.split(".")[-1].replace("main_", "")
-        invoke_command_hooks = (
-            command.removeprefix("mock_") not in _PLUGIN_FREE_BUILTIN_COMMANDS
-        )
+        deprecate_hooks = command.removeprefix("mock_") in _PLUGIN_FREE_BUILTIN_COMMANDS
 
-        if invoke_command_hooks:
-            context.plugin_manager.invoke_pre_commands(command)
+        context.plugin_manager.invoke_pre_commands(command, deprecate=deprecate_hooks)
         result = getattr(module, func_name)(args, parser)
-        if invoke_command_hooks:
-            context.plugin_manager.invoke_post_commands(command)
+        context.plugin_manager.invoke_post_commands(command, deprecate=deprecate_hooks)
     return result
 
 

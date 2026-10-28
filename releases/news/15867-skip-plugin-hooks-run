@@ -1,7 +1,3 @@
-### Enhancements
+### Deprecations
 
-* Skip plugin discovery and pre-command and post-command hooks for `conda run` and shell activation commands. (#15867 via #15883)
-
-### Docs
-
-* Document which commands do not invoke pre-command and post-command hooks. (#15867 via #15883)
+* Mark pre-command and post-command hooks for `conda run` and shell activation commands (`activate`, `deactivate`, `reactivate`, and `hook`) as pending deprecation for removal in 27.9. (#15867 via #15883)
