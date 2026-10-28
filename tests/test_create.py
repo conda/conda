@@ -1708,15 +1708,7 @@ def test_menuinst_v2(
     conda_cli: CondaCLIFixture,
     request: FixtureRequest,
 ):
-    import warnings
-
     import menuinst
-
-    # This comes from the pytest_mock libary.This is fixed in newer versions
-    # of pytest_mock
-    warnings.filterwarnings(
-        "ignore", category=DeprecationWarning, message=".*asyncio.iscoroutinefunction.*"
-    )
 
     install = mocker.spy(menuinst, "install")
 
@@ -2617,15 +2609,7 @@ def test_force_remove(
 def test_download_only_flag(
     tmp_env: TmpEnvFixture, mocker: MockerFixture, conda_cli: CondaCLIFixture
 ):
-    import warnings
-
     from conda.core.link import UnlinkLinkTransaction
-
-    # This comes from the pytest_mock libary.This is fixed in newer versions
-    # of pytest_mock
-    warnings.filterwarnings(
-        "ignore", category=DeprecationWarning, message=".*asyncio.iscoroutinefunction.*"
-    )
 
     with tmp_env() as prefix:
         spy = mocker.spy(UnlinkLinkTransaction, "execute")
