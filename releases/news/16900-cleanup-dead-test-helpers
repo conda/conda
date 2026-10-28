@@ -12,4 +12,3 @@
 * Mark `conda.testing.integration.escape_for_winpath` as pending deprecation, to be removed in 27.9. Use `re.escape` instead. (#16900)
 * Mark the `conda.testing.integration` constants `UNICODE_CHARACTERS`, `UNICODE_CHARACTERS_RESTRICTED`, `SPACER_CHARACTER`, and `cp_or_copy` as pending deprecation, to be removed in 27.9. (#16900)
 * Mark `conda.testing.solver_helpers.temp_simple_env` as pending deprecation, to be removed in 27.9. Use `conda.testing.solver_helpers.SimpleEnvironment` instead. (#16900)
-* Mark `conda.testing.fixtures.solver_libmamba` as pending deprecation, to be removed in 27.9. Use the `parametrized_solver_fixture` fixture instead. (#16900)
