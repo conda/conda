@@ -5,10 +5,10 @@ dependencies:
   - pip:
 
     # Global options can be tweaked.
-    # For example, if you want to use a pypi mirror first:
-    - --index-url https://pypi.doubanio.com/simple
-    - --extra-index-url https://pypi.python.org/simple
-    # (check https://www.pypi-mirrors.org/)
+    # For example, use the NJU PyPI mirror alongside the official index:
+    - --index-url https://mirror.nju.edu.cn/pypi/web/simple
+    - --extra-index-url https://pypi.org/simple
+    # See https://help.mirror.nju.edu.cn/pypi/
 
     # Current syntax still works
     - xmltodict==0.10.2
