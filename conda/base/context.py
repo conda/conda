@@ -236,6 +236,14 @@ class PkgsDirConfig(ConfigurationObject):
         fields = ", ".join(f"{name}={value!r}" for name, value in vars(self).items())
         return f"{type(self).__name__}({fields})"
 
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.path == other.path
+        return NotImplemented
+
+    def __hash__(self):
+        return hash(self.path)
+
 
 def pkgs_dir_validation(value: PkgsDirConfig) -> str | Literal[True]:
     if not value.path:
