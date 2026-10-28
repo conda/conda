@@ -211,7 +211,6 @@ confirm_yn("Remove these files", default="no")
 
 Because "no" is signalled by an exception, code after the call can assume the user agreed.
 
-(rendering_output_logging)=
 ## Loggers
 
 {ref}`deep_dive_logging` covers creating a logger with `getLogger(__name__)`, choosing a level,
