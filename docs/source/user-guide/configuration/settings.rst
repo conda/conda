@@ -820,6 +820,36 @@ Your ``override_virtual_packages`` dictionary could look like the following:
       osx: "11.0"
       archspec: "x86_64"
 
+.. _repodata-use-shards:
+
+``repodata_use_shards``: Disable sharded repodata
+-------------------------------------------------
+
+.. versionadded:: 26.5.0
+
+Sharded repodata splits a channel's package metadata into multiple small files,
+one per package name, which dramatically speeds up conda operations. This happens
+because conda only fetches the metadata that a solve needs instead of the whole
+``repodata.json`` file. This makes environment creation and updates noticeably
+faster on channels that provide shards, such as conda-forge and channels hosted
+on prefix.dev. See `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_ for the
+format and the :doc:`developer guide </dev-guide/deep-dives/sharded>`
+for how conda uses it.
+
+Sharded repodata is used by default whenever a channel provides it, and channels
+without shards fall back to ``repodata.json`` on their own. There is usually
+no reason to turn it off. However, if you need to, set ``repodata_use_shards``
+to ``false`` to always fetch the full ``repodata.json``:
+
+.. code-block:: yaml
+
+  repodata_use_shards: false
+
+For a single command, pass ``--no-repodata-use-shards`` to any command that
+accepts channel options, such as ``conda create``, ``conda install``, or
+``conda search``. The matching ``--repodata-use-shards`` option turns it back
+on for that command.
+
 Conda-build configuration
 =========================
 
