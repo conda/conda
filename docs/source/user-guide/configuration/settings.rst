@@ -556,7 +556,7 @@ as a comma-separated list::
 
 .. _disable-updating:
 
-``update_dependencies``: Disable updating of dependencies
+``update_modifier``: Control how dependencies are updated
 ---------------------------------------------------------
 
 By default, ``conda install`` updates the given package to the
@@ -565,17 +565,32 @@ that package. However, if dependencies that satisfy the package's
 requirements are already installed, conda will not update those
 packages to the latest version.
 
-In this case, if you would prefer that conda update all dependencies
-to the latest version that is compatible with the environment,
-set ``update_dependencies`` to ``True``.
+If you would prefer that conda update all dependencies to the latest
+version that is compatible with the environment, set ``update_modifier``
+to ``update_deps``. This is the same as passing ``--update-deps`` to
+``conda install`` or ``conda update``.
 
-The default is ``False``.
+The accepted values are:
+
+* ``update_specs``: update only the requested packages and the dependencies
+  they need. This is the default.
+* ``update_deps``: also update dependencies that have newer compatible
+  versions available.
+* ``freeze_installed``: do not update or change already-installed
+  dependencies. This is the same as ``--freeze-installed``.
+* ``update_all``: update every installed package in the environment. This is
+  the same as ``--update-all``.
+* ``specs_satisfied_skip_solve``: exit early without running the solver if the
+  requested specifications are already satisfied. This is the same as
+  ``--satisfied-skip-solve``.
 
 **Example:**
 
 .. code-block:: yaml
 
-   update_dependencies: True
+   update_modifier: update_deps
+
+You can also set this with the ``CONDA_UPDATE_MODIFIER`` environment variable.
 
 .. note::
 
