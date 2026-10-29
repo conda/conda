@@ -10,7 +10,6 @@ from os.path import exists, isfile
 from pathlib import Path
 from tempfile import mktemp
 from typing import TYPE_CHECKING
-from unittest.mock import patch
 
 import pytest
 import responses.matchers
@@ -47,6 +46,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
 pytestmark = pytest.mark.usefixtures("clear_conda_session_cache")
 
@@ -102,7 +102,7 @@ def test_tmpDownload(monkeypatch: MonkeyPatch):
 
 
 @responses.activate
-def test_resume_download(tmp_path):
+def test_resume_download(mocker: MockerFixture, tmp_path):
     # This test works offline.
     test_file = [b"first:", b"second:", b"last"]
     size = len(b"".join(test_file))
@@ -124,11 +124,11 @@ def test_resume_download(tmp_path):
         yield test_file[1]
         raise ConnectionAbortedError("Aborted")
 
+    iter_content_mock = mocker.patch("requests.Response.iter_content")
+
     # Download gets interrupted by an exception
-    with (
-        pytest.raises(ConnectionAbortedError),
-        patch("requests.Response.iter_content", side_effect=iter_content_interrupted),
-    ):
+    iter_content_mock.side_effect = iter_content_interrupted
+    with pytest.raises(ConnectionAbortedError):
         download(url, output_path, size=size, sha256=sha256)
 
     # Check that only the partial file is present
@@ -148,8 +148,8 @@ def test_resume_download(tmp_path):
         status=206,  # partial content
     )
 
-    with patch("requests.Response.iter_content", side_effect=iter_content_resumed):
-        download(url, output_path, size=size, sha256=sha256)
+    iter_content_mock.side_effect = iter_content_resumed
+    download(url, output_path, size=size, sha256=sha256)
 
     assert os.path.exists(output_path)
     assert not os.path.exists(str(output_path) + PARTIAL_EXTENSION)
@@ -166,16 +166,14 @@ def test_resume_download(tmp_path):
 
     # Download gets interrupted by HTTP 4xx exception; assert partial file deleted
     assert not os.path.exists(str(output_path) + PARTIAL_EXTENSION)
-    with (
-        pytest.raises(CondaHTTPError),
-        patch("requests.Response.iter_content", side_effect=iter_content_interrupted_2),
-    ):
+    iter_content_mock.side_effect = iter_content_interrupted_2
+    with pytest.raises(CondaHTTPError):
         download(url, output_path, size=size, sha256=sha256)
     assert not os.path.exists(str(output_path) + PARTIAL_EXTENSION)
 
 
 @responses.activate
-def test_download_when_ranges_not_supported(tmp_path):
+def test_download_when_ranges_not_supported(mocker: MockerFixture, tmp_path):
     # partial mechanism and partial files sidestepped when size, hash not given
     # This test works offline.
     test_file = [b"first:", b"second:", b"last"]
@@ -200,23 +198,22 @@ def test_download_when_ranges_not_supported(tmp_path):
         yield test_file[1]
         raise ConnectionAbortedError("aborted")
 
-    with (
-        pytest.raises(ConnectionAbortedError),
-        patch("requests.Response.iter_content", side_effect=iter_content_interrupted),
-    ):
+    iter_content_mock = mocker.patch("requests.Response.iter_content")
+
+    # Download gets interrupted by an exception
+    iter_content_mock.side_effect = iter_content_interrupted
+    with pytest.raises(ConnectionAbortedError):
         download(url, output_path, size=size, sha256=sha256)
 
     assert not os.path.exists(output_path)
     assert os.path.exists(partial_path)
 
     # Accept-Ranges is not supported, send full content
-    with patch("requests.Response.iter_content") as iter_content_mock:
+    def iter_content_resumed(*args, **kwargs):
+        yield b"".join(test_file)
 
-        def iter_content_resumed(*args, **kwargs):
-            yield b"".join(test_file)
-
-        iter_content_mock.side_effect = iter_content_resumed
-        download(url, output_path, size=size, sha256=sha256)
+    iter_content_mock.side_effect = iter_content_resumed
+    download(url, output_path, size=size, sha256=sha256)
 
     assert os.path.exists(output_path)
     assert not os.path.exists(partial_path)

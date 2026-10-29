@@ -1,0 +1,14 @@
+### Bug fixes
+
+* Fix `conda.deprecations.deprecated` and `conda.deprecations.deprecated.argument` to preserve generator functions when decorating, instead of wrapping them in a plain function and losing generator semantics (e.g. `pytest` yield-fixtures now warn and yield correctly when stacked under `@pytest.fixture`). (#16900)
+
+### Deprecations
+
+* Mark `conda.testing.cases` as pending deprecation, to be removed in 27.9. Use native `pytest` fixtures instead. (#16900)
+* Mark `conda.testing.helpers.assert_equals`, `assert_in`, and `assert_not_in` as pending deprecation, to be removed in 27.9. Use a plain `assert` instead. (#16900)
+* Mark `conda.testing.helpers.supplement_index_with_repodata` as pending deprecation, to be removed in 27.9. Use `conda.models.records.PackageRecord.from_objects` instead. (#16900)
+* Mark `conda.testing.helpers.add_feature_records_legacy` as pending deprecation, to be removed in 27.9. (#16900)
+* Mark `conda.testing.integration.Commands` as pending deprecation, to be removed in 27.9. Use the `conda_cli` fixture instead. (#16900)
+* Mark `conda.testing.integration.escape_for_winpath` as pending deprecation, to be removed in 27.9. Use `re.escape` instead. (#16900)
+* Mark the `conda.testing.integration` constants `UNICODE_CHARACTERS`, `UNICODE_CHARACTERS_RESTRICTED`, `SPACER_CHARACTER`, and `cp_or_copy` as pending deprecation, to be removed in 27.9. (#16900)
+* Mark `conda.testing.solver_helpers.temp_simple_env` as pending deprecation, to be removed in 27.9. Use `conda.testing.solver_helpers.SimpleEnvironment` instead. (#16900)

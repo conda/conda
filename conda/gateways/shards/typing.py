@@ -72,8 +72,8 @@ class BuildRepodataSubset(typing.Protocol):
             root_extras: Optional mapping of root package name to an iterable
                 of CEP 44 extras requested for it (e.g. `{"httpx": ["cli"]}`),
                 so that shards for its requested `extra_depends` groups are
-                also fetched. Only honored for the given root packages
-                themselves (root-only scope).
+                also fetched. Extras explicitly requested by dependency specs
+                of fetched packages are followed transitively.
         Returns:
             A dictionary mapping channel URLs to Shards objects containing
             the subset of packages needed, or None if shards are unavailable
