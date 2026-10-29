@@ -104,25 +104,3 @@ This section goes over some of the best practices we recommend for addressing pe
        :width: 50%
    .. figure:: ../../img/strict-enabled.png
        :width: 50%
-
-4. **Keep sharded repodata enabled.** Sharded repodata splits a channel's metadata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
-
-   .. note::
-
-      Sharded repodata is currently available for conda-forge and prefix.dev for all channels as of March 2026.
-
-   Since conda 26.5, sharded repodata is fetched by conda itself and enabled by default through the ``repodata_use_shards`` setting. Follow these steps to make sure it is in use:
-
-   #. Update conda-libmamba-solver, if needed:
-
-      .. code-block:: shell
-
-         conda install --name base "conda-libmamba-solver>=26.6.0"
-
-   #. Make sure ``repodata_use_shards`` is set to ``true``. It is enabled by default, so this is only needed if it was turned off:
-
-      .. code-block:: shell
-
-         conda config --set repodata_use_shards true
-
-   You can also toggle it for a single command with ``--repodata-use-shards`` or ``--no-repodata-use-shards``.
