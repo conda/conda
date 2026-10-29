@@ -457,6 +457,8 @@ The default is ``False``.
 
   allow_softlinks: False
 
+You can also set this with the ``CONDA_ALLOW_SOFTLINKS`` environment variable.
+
 .. _set-ch-alias:
 
 .. _channel-alias:
@@ -504,6 +506,8 @@ is the same as::
 
   conda install --channel https://your.repo.com/jsmith <package>
 
+You can also set this with the ``CONDA_CHANNEL_ALIAS`` environment variable.
+
 .. _config-add-default-pkgs:
 
 ``create_default_packages``: Always add packages by default
@@ -524,6 +528,11 @@ include any packages.
     - ipython
     - scipy=0.15.0
 
+You can also set this with the ``CONDA_CREATE_DEFAULT_PACKAGES`` environment
+variable, as a comma-separated list::
+
+  CONDA_CREATE_DEFAULT_PACKAGES=pip,ipython,scipy=0.15.0
+
 .. _track-features:
 
 ``track_features``: Track features
@@ -539,6 +548,11 @@ the ``create_default_packages`` list.
 
   track_features:
     - mkl
+
+You can also set this with the ``CONDA_TRACK_FEATURES`` environment variable,
+as a comma-separated list::
+
+  CONDA_TRACK_FEATURES=mkl,debug
 
 .. _disable-updating:
 
@@ -609,6 +623,8 @@ benefits, tradeoffs, and limitations.
 
   exclude_newer: 7d
 
+You can also set this with the ``CONDA_EXCLUDE_NEWER`` environment variable.
+
 Channel-specific cutoffs can be set with ``exclude_newer`` entries in
 :ref:`channel_settings <channel-settings>`, and per-package overrides can be set
 with :ref:`exclude_newer_package <exclude-newer-package>`. Package-specific
@@ -637,6 +653,8 @@ the policy.
     openssl: false
     numpy: 30d
 
+This setting is a mapping, so it cannot be set with an environment variable.
+
 .. _disallow-install:
 
 ``disallow``: Disallow installation of specific packages
@@ -651,6 +669,12 @@ allow installation of all packages.
 
   disallow:
     - anaconda
+
+You can also set this with the ``CONDA_DISALLOW`` environment variable. Because
+package specifications can contain commas, such as ``numpy>=1.20,<2``, entries
+are separated with ``&`` instead::
+
+  CONDA_DISALLOW='anaconda&numpy>=1.20,<2'
 
 .. _add-anaconda-token:
 
@@ -671,6 +695,8 @@ The default is ``True``.
 .. code-block:: yaml
 
   add_anaconda_token: False
+
+You can also set this with the ``CONDA_ADD_ANACONDA_TOKEN`` environment variable.
 
 .. note::
 
@@ -700,7 +726,9 @@ directory, for which the normal ``root_dir/pkgs`` is used.
     - ~/my-envs
     - /opt/anaconda/envs
 
-The ``CONDA_ENVS_PATH`` environment variable overwrites the ``envs_dirs`` setting:
+The ``CONDA_ENVS_PATH`` environment variable overwrites the ``envs_dirs`` setting.
+``CONDA_ENVS_DIRS`` is accepted as well. Directories are separated with the
+path separator of your operating system:
 
 * For macOS and Linux:
   ``CONDA_ENVS_PATH=~/my-envs:/opt/anaconda/envs``
@@ -729,13 +757,14 @@ directory, for which the normal ``root_dir/pkgs`` is used.
     - /opt/anaconda/pkgs
 
 The ``CONDA_PKGS_DIRS`` environment variable overwrites the
-``pkgs_dirs`` setting:
+``pkgs_dirs`` setting. Unlike ``CONDA_ENVS_PATH``, multiple directories are
+separated with commas on every operating system:
 
 * For macOS and Linux:
-  ``CONDA_PKGS_DIRS=/opt/anaconda/pkgs``
+  ``CONDA_PKGS_DIRS=/opt/anaconda/pkgs,/shared/pkgs``
 
 * For Windows:
-  ``set CONDA_PKGS_DIRS=C:\Anaconda\pkgs``
+  ``set CONDA_PKGS_DIRS=C:\Anaconda\pkgs,D:\shared\pkgs``
 
 .. _use-only-tar-bz2:
 
@@ -756,6 +785,8 @@ The default is ``False``.
 .. code-block:: yaml
 
   use_only_tar_bz2: True
+
+You can also set this with the ``CONDA_USE_ONLY_TAR_BZ2`` environment variable.
 
 .. note::
 
@@ -786,6 +817,8 @@ or specify it on the command line with the ``--console`` option
 .. code-block:: commandline
 
    conda info --console=colors
+
+You can also set this with the ``CONDA_CONSOLE`` environment variable.
 
 .. _override-virtual-packages:
 
