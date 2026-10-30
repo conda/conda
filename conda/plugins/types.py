@@ -284,11 +284,14 @@ class CondaPreCommand(CondaPlugin):
         name: Pre-command name (e.g., ``custom_plugin_pre_commands``).
         action: Callable which contains the code to be run.
         run_for: Represents the command(s) this will be run on (e.g. ``install`` or ``create``).
+        priority: Execution order, with lower values running first. Equal priorities
+            retain alphabetical name order. The default is zero.
     """
 
     name: str
     action: Callable[[str], None]
     run_for: set[str]
+    priority: int = 0
 
 
 @dataclass
