@@ -469,6 +469,20 @@ class _Activator(metaclass=abc.ABCMeta):
             )
             deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
+            # Restore or unset environment variables of the replaced environment
+            # that the new environment does not set itself
+            for env_var in self._get_environment_env_vars(old_conda_prefix):
+                if context.envvars_force_uppercase:
+                    env_var = env_var.upper()
+                if env_var in export_vars:
+                    continue
+                if save_value := os.getenv(
+                    f"__CONDA_SHLVL_{old_conda_shlvl - 1}_{env_var}"
+                ):
+                    export_vars[env_var] = save_value
+                elif env_var not in unset_vars:
+                    unset_vars.append(env_var)
+
         set_vars = {}
         if context.changeps1:
             self._update_prompt(set_vars, conda_prompt_modifier)

@@ -1206,6 +1206,53 @@ def test_build_activate_restore_unset_env_vars(
     }
 
 
+def apply_builder_result(monkeypatch: MonkeyPatch, result: dict) -> None:
+    for name in result["unset_vars"]:
+        monkeypatch.delenv(name, raising=False)
+    for name, value in {
+        **result["export_vars"],
+        **result.get("export_path", {}),
+    }.items():
+        monkeypatch.setenv(name, str(value))
+
+
+@pytest.mark.parametrize("original_value", [None, "user_value"])
+def test_build_activate_replaces_previous_env_vars(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    original_value: str | None,
+):
+    """Env vars of a replaced (non-stacked) environment don't leak into the next one."""
+    # https://github.com/conda/conda/issues/11726
+    if original_value is None:
+        monkeypatch.delenv("FOO", raising=False)
+    else:
+        monkeypatch.setenv("FOO", original_value)
+    monkeypatch.delenv("SHARED", raising=False)
+
+    with tmp_env() as envvars, tmp_env() as noenvvars:
+        write_state_file(envvars, FOO="bar", SHARED="one")
+        write_state_file(noenvvars, SHARED="two")
+        activator = PosixActivator()
+
+        apply_builder_result(monkeypatch, activator.build_activate(str(envvars)))
+        assert os.environ["FOO"] == "bar"
+        assert os.environ["SHARED"] == "one"
+
+        apply_builder_result(monkeypatch, activator.build_activate(str(noenvvars)))
+        assert os.getenv("FOO") == original_value
+        assert os.environ["SHARED"] == "two"
+
+        # deactivating returns to the replaced environment and its env vars
+        apply_builder_result(monkeypatch, activator.build_deactivate())
+        assert os.environ["FOO"] == "bar"
+        assert os.environ["SHARED"] == "one"
+
+        apply_builder_result(monkeypatch, activator.build_deactivate())
+        assert os.getenv("FOO") == original_value
+        assert os.getenv("SHARED") is None
+
+
 def make_dot_d_files(prefix: str | os.PathLike, extension: str) -> None:
     (activated := Path(prefix, "etc", "conda", "activate.d")).mkdir(parents=True)
     (deactivated := Path(prefix, "etc", "conda", "deactivate.d")).mkdir(parents=True)
