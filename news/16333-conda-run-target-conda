@@ -1,0 +1,11 @@
+### Enhancements
+
+### Bug fixes
+
+### Deprecations
+
+* Mark `conda run --prefix <prefix> conda ...` resolving `conda` from the invoking installation on POSIX as pending deprecation. In 27.9, it will resolve from the target environment's `PATH`. Use `$CONDA_EXE` to select the invoking installation or `python -m conda` to select the target installation. (#16333)
+
+### Docs
+
+### Other
