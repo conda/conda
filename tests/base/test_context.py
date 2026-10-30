@@ -8,6 +8,7 @@ from argparse import Namespace
 from contextlib import nullcontext
 from itertools import chain
 from os.path import abspath, join
+from textwrap import indent
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
@@ -137,6 +138,19 @@ def test_client_ssl_cert(context_testdata: None):
         "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
     }
     context._set_raw_data(rd)
+    pytest.raises(ValidationError, context.validate_configuration)
+
+
+def test_validate_config_pkg_dirs(context_testdata: None):
+    string = dals(
+        """
+        pkgs_dirs:
+          - path: /path_two
+            always_softlink: true
+            always_copy: true
+        """
+    )
+    _set_pkgs_dirs_testdata(testdata=string)
     pytest.raises(ValidationError, context.validate_configuration)
 
 
@@ -539,6 +553,11 @@ def test_expandvars(context_testdata: None, monkeypatch: MonkeyPatch):
     assert any("foo" in d for d in envs_dirs)
 
     pkgs_dirs = _get_expandvars_context("pkgs_dirs", "['${TEST_VAR}']", "/foo")
+    assert any("foo" in d for d in pkgs_dirs)
+
+    pkgs_dirs = _get_expandvars_context(
+        "pkgs_dirs", "[{'path': '${TEST_VAR}', 'read_only': true}]", "/foo"
+    )
     assert any("foo" in d for d in pkgs_dirs)
 
 
@@ -1174,3 +1193,112 @@ def test_reset_callbacks_survive_reset_context():
         assert Channel._reset_state in context._reset_callbacks
     finally:
         context._reset_callbacks.pop(callback, None)
+
+
+def _set_pkgs_dirs_testdata(**sources: str) -> None:
+    reset_context(())
+    context._set_raw_data(
+        {
+            source: YamlRawParameter.make_raw_parameters(source, yaml.loads(string))
+            for source, string in sources.items()
+        }
+    )
+
+
+def test_pkgs_dirs_condarc(monkeypatch: pytest.MonkeyPatch, context_testdata: None):
+    """Test when pkgs_dirs is configured in condarc."""
+    monkeypatch.setenv("CONDA_PKGS_DIRS", "/env_path")
+    string = dals(
+        """
+        pkgs_dirs:
+          - /path_one
+          - path: /path_two
+            always_softlink: true
+            read_only: true
+            allow_softlinks: true
+          - path: /path_three
+            always_copy: true
+            read_only: true
+        """
+    )
+    _set_pkgs_dirs_testdata(testdata=string)
+
+    assert context.pkgs_dirs == tuple(
+        map(expand, ("/path_one", "/path_two", "/path_three", "/env_path"))
+    )
+    assert context._pkgs_dirs[0].path == "/path_one"
+    assert context._pkgs_dirs[0].allow_softlinks is None
+    assert context._pkgs_dirs[1].path == "/path_two"
+    assert context._pkgs_dirs[1].always_softlink is True
+    assert context._pkgs_dirs[1].read_only is True
+    assert context._pkgs_dirs[1].allow_softlinks is True
+    assert context._pkgs_dirs[2].path == "/path_three"
+    assert context._pkgs_dirs[2].always_softlink is None
+    assert context._pkgs_dirs[2].always_copy is True
+    assert context._pkgs_dirs[3].path == "/env_path"
+    assert context._pkgs_dirs[3].allow_softlinks is None
+
+
+@pytest.mark.parametrize(
+    "entry,match",
+    [
+        pytest.param("- read_only: true", "must have a 'path'", id="missing-path"),
+        pytest.param(
+            "- path: /a\n  read_only: maybe", "cannot be boolified", id="bad-boolean"
+        ),
+        pytest.param(
+            "- path: /a\n  always_copy: true\n  always_softlink: true",
+            "are mutually exclusive",
+            id="mutually-exclusive",
+        ),
+    ],
+)
+def test_pkgs_dirs_invalid_entry(context_testdata: None, entry: str, match: str):
+    _set_pkgs_dirs_testdata(testdata=f"pkgs_dirs:\n{indent(entry, '  ')}")
+
+    with pytest.raises(ValidationError, match=match):
+        context.pkgs_dirs
+
+
+def test_pkgs_dirs_duplicate_path_first_entry_wins(context_testdata: None):
+    _set_pkgs_dirs_testdata(
+        testdata=dals(
+            """
+            pkgs_dirs:
+              - /path_one
+              - path: /path_one
+                read_only: true
+            """
+        )
+    )
+
+    assert context.pkgs_dirs == (expand("/path_one"),)
+    assert context.pkg_dir("/path_one").read_only is False
+
+
+def test_pkg_dir(context_testdata: None):
+    _set_pkgs_dirs_testdata(
+        testdata=dals(
+            """
+            pkgs_dirs:
+              - /path_two
+              - path: /path_one
+                read_only: true
+            """
+        )
+    )
+
+    assert context.pkg_dir("/path_one") is not None
+    assert context.pkg_dir("/path_one").read_only
+    assert context.pkg_dir("/path_two") is not None
+    assert context.pkg_dir("/path_two").read_only is False
+    assert context.pkg_dir("/path_three") is None
+    assert all(context.pkg_dir(pkgs_dir) is not None for pkgs_dir in context.pkgs_dirs)
+
+
+def test_pkg_dir_unconfigured(context_testdata: None):
+    _set_pkgs_dirs_testdata()
+
+    # the default pkgs_dirs come from root_prefix and ~/.conda, not from config
+    assert context.pkgs_dirs
+    assert all(context.pkg_dir(pkgs_dir) is not None for pkgs_dir in context.pkgs_dirs)
