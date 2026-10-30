@@ -831,8 +831,7 @@ Sharded repodata splits a channel's package metadata into multiple small files,
 one per package name, which dramatically speeds up conda operations. This happens
 because conda only fetches the metadata that a solve needs instead of the whole
 ``repodata.json`` file. This makes environment creation and updates noticeably
-faster on channels that provide shards, such as conda-forge and channels hosted
-on prefix.dev. See `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_ for the
+faster on channels that provide shards. See `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_ for the
 format and the :doc:`developer guide </dev-guide/deep-dives/sharded>`
 for how conda uses it.
 
