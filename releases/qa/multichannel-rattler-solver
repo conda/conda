@@ -1,0 +1,145 @@
+### Title
+Multichannel behavior with the default `conda-rattler-solver`
+
+### Why
+The next release makes `conda-rattler-solver` the default solver. It passes each multichannel (`defaults`, `local`, condarc `custom_multichannels`) to rattler as a priority group, which differs from the classic solver (members ranked separately) and is only complete once conda-rattler-solver#182 lands.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+- Network access to `repo.anaconda.com` and `conda.anaconda.org`.
+- A conda build whose default solver is `conda-rattler-solver` including conda-rattler-solver#182 (py-rattler >=0.27.1). Check with `conda info` (solver `rattler`) and `conda list -n base conda-rattler-solver`.
+- Isolate configuration. Replace `<scratch>` with a new empty directory and set for the whole session:
+  - Unix: `export CONDARC=<scratch>/condarc CONDA_PKGS_DIRS=<scratch>/pkgs`
+  - PowerShell: `$env:CONDARC="<scratch>\condarc"; $env:CONDA_PKGS_DIRS="<scratch>\pkgs"`
+- Do not pass `--solver`; the default is what is tested. Every command uses `--override-channels` and a throwaway `--prefix`.
+- Expected results below come from reading the conda-rattler-solver#182 source and from repodata checked on 2026-10-30 (`linux-64`, `osx-arm64`, `win-64`). They were not produced by running conda. Where the exact result depends on rattler internals, the step says "record" instead of giving a pass/fail value.
+
+### Steps
+
+#### Part 1: Sanity check (every platform)
+1. Create an environment from `defaults`:
+   ```console
+   conda create --prefix <scratch>/sanity --override-channels --channel defaults python zlib --yes
+   conda list --prefix <scratch>/sanity --show-channel-urls
+   ```
+2. Use the multichannel name and a member name in specs:
+   ```console
+   conda create --prefix <scratch>/sanity-q --override-channels --channel defaults defaults::zlib pkgs/main::sqlite --dry-run
+   ```
+3. Update the environment from step 1:
+   ```console
+   conda update --prefix <scratch>/sanity --override-channels --channel defaults --all --dry-run
+   ```
+4. Windows only: add `m2-bash` to the step 1 specs. It is served by the `pkgs/msys2` member of `defaults`.
+5. Linux and macOS only: solve for Windows, where `defaults` has an extra member:
+   ```console
+   conda create --prefix <scratch>/sanity-win --override-channels --channel defaults --platform win-64 python --dry-run
+   ```
+6. Remove the step 1 environment: `conda remove --prefix <scratch>/sanity --all --yes`.
+
+#### Part 2: Several multichannels mixed with standalone channels
+Three real channels are used, all fully populated on every platform:
+- `pkgs/main` (`https://repo.anaconda.com/pkgs/main`).
+- `anaconda` (`https://conda.anaconda.org/anaconda`), a byte-identical mirror of `pkgs/main` (same filenames and sha256).
+- `conda-forge`.
+
+Because `pkgs/main` and `anaconda` serve identical packages, only channel priority can decide which one supplies a package, and the answer is visible in the record's channel label. The probes `fzf` and `hicolor-icon-theme` have no dependencies and exist in all three channels.
+
+7. Create `<scratch>/condarc` with exactly this content, then run `conda config --show custom_multichannels` to confirm it loads:
+   ```yaml
+   channel_priority: strict
+   custom_multichannels:
+     mirrors:
+       - https://repo.anaconda.com/pkgs/main
+       - anaconda
+     forge:
+       - conda-forge
+   ```
+8. Run each case. For each, note the channel of `fzf` and of `hicolor-icon-theme` from the `LINK` records of the JSON output (the `channel` field):
+   ```console
+   conda create --prefix <scratch>/p --override-channels <channels> fzf hicolor-icon-theme --dry-run --json
+   ```
+   | Case | `<channels>` |
+   | --- | --- |
+   | M1 | `--channel pkgs/main --channel conda-forge` |
+   | M2 | `--channel conda-forge --channel pkgs/main` |
+   | M3 | `--channel forge --channel mirrors` |
+   | M4 | `--channel mirrors --channel forge` |
+   | M5 | `--channel anaconda --channel conda-forge --channel mirrors` |
+   | M6 | `--channel mirrors --channel conda-forge --channel anaconda` |
+   | M7 | `--channel conda-forge --channel anaconda --channel mirrors` |
+   | M8 | `--channel pkgs/main --channel mirrors --channel conda-forge` |
+9. Group-qualified and member-qualified specs, with `--channel mirrors --channel forge` on all three:
+   ```console
+   conda create --prefix <scratch>/p --override-channels --channel mirrors --channel forge mirrors::fzf forge::hicolor-icon-theme --dry-run --json
+   conda create --prefix <scratch>/p --override-channels --channel mirrors --channel forge conda-forge::fzf anaconda::hicolor-icon-theme --dry-run --json
+   conda create --prefix <scratch>/p --override-channels --channel mirrors --channel forge pkgs/main::fzf --dry-run --json
+   ```
+10. A dependency available in only one channel. The `conda-forge` build of `sqlite` needs `libsqlite`, which `pkgs/main` does not have:
+    ```console
+    conda create --prefix <scratch>/p --override-channels --channel conda-forge sqlite --dry-run --json
+    conda create --prefix <scratch>/p --override-channels --channel mirrors --channel forge sqlite --dry-run --json
+    ```
+11. Real install and update through the groups:
+    ```console
+    conda create --prefix <scratch>/mix --override-channels --channel mirrors --channel forge hicolor-icon-theme --yes
+    conda install --prefix <scratch>/mix --override-channels --channel forge --channel mirrors fzf --yes
+    conda list --prefix <scratch>/mix --show-channel-urls
+    conda update --prefix <scratch>/mix --override-channels --channel forge --channel mirrors --all --dry-run
+    ```
+12. Repeat M1 to M8 with `channel_priority: flexible`, and again with `--solver classic` for comparison.
+13. Channel with nothing for the platform. Add `bioconda` (no `win-64` packages) to a group and solve for Windows, either on Windows or with `--platform win-64`:
+    ```console
+    conda config --add custom_multichannels.sparse pkgs/main
+    conda config --add custom_multichannels.sparse bioconda
+    conda create --prefix <scratch>/p --override-channels --channel sparse fzf --platform win-64 --dry-run --json
+    ```
+15. Remove the environments and unset `CONDARC` and `CONDA_PKGS_DIRS`.
+
+### Pass criteria
+
+Part 1:
+- Steps 1 to 3 solve without errors and `conda list --show-channel-urls` shows `pkgs/main` (and `pkgs/r` or `pkgs/msys2` only when a spec requires it).
+- Step 2 accepts both `defaults::zlib` and `pkgs/main::sqlite`, with both served from `pkgs/main`. The member name resolves through `defaults` and does not fail with a missing-channel error.
+- Step 4 installs `m2-bash` from `pkgs/msys2` on Windows.
+- Step 5 solves for `win-64` without a 404 or missing-channel error.
+
+Part 2, firm results (the first-listed channel wins; read the winner from the `channel` field):
+- M1: both probes come from `pkgs/main`.
+- M2: both probes come from `conda-forge`.
+- M3: both probes come from `conda-forge`.
+- M4: both probes come from `pkgs/main` or `anaconda` (members of `mirrors` are interchangeable, so either label is acceptable), never from `conda-forge`.
+- M5: both probes come from `anaconda`. This is the key regression check: `anaconda` is listed first on its own, and a solver that pulls the whole `mirrors` group forward when one member is listed alone would pick `pkgs/main` instead.
+- M6: both probes come from `pkgs/main` or `anaconda`, never from `conda-forge`.
+- M7: both probes come from `conda-forge`.
+- M8: both probes come from `pkgs/main` or `anaconda`, never from `conda-forge`. `pkgs/main` is a member of `mirrors`, so it may share a group with `anaconda`.
+- Step 9: all three commands solve. `conda-forge::fzf` gives the `conda-forge` build (0.74.5) and `pkgs/main::fzf` gives the `pkgs/main` build (0.74.0). `anaconda::hicolor-icon-theme` comes from `anaconda` or `pkgs/main` (0.18).
+- Step 10: both commands install `sqlite` together with `libsqlite` from `conda-forge` (the only place it exists), with no unsatisfiable-dependency error.
+- Step 11: `conda list --show-channel-urls` shows channel names (not raw URLs and not `<unknown>`), and every package downloads without 404 or authentication errors. The final `--all` update completes and reports a consistent plan.
+- Step 13: the solve succeeds. A listed channel with no packages for the platform must not cause an error or change which channel serves `fzf`.
+- Step 14 is informational. A successful solve is a pass. Failing with `HTTP 404 Not Found for channel defaults` is the known #15829; any other failure is new and should be reported.
+
+Part 2, record only (do not fail on these, but attach the output to the QA issue):
+- Step 8 results for M1 to M8 under `flexible` priority and under `--solver classic` (step 12). Differences from strict, or from the classic solver, are expected; a solve that fails where strict succeeded is not.
+- In step 9, which of `pkgs/main` and `anaconda` supplies `mirrors::fzf`. Both are valid because the members share a group.
+
+### Out of scope / notes
+- The classic solver ranks group members separately. Differences from it are not regressions.
+- Already covered by conda-rattler-solver tests, so not repeated here: group-qualified and build-qualified specs on a single `file://` multichannel, member-first ordering with one custom multichannel, grouped update build floors, authenticated and CDN `base_url` records, and empty multichannels such as `local` without conda-build paths.
+- Not covered by those tests, and the reason for Part 2: real channels served over HTTPS, several multichannels at once, a member listed alone while its group is also listed, standalone channels interleaved with groups, `flexible` priority, cross-channel dependencies (`libsqlite`), and a channel with no content for the platform.
+- Not tested here because the result depends on rattler internals that were not verified: how rattler orders two multichannels that share members, and CEP-42 `channel_relations` (`base`/`overrides`) around a group.
+- `pkgs/r` is not used for probes. It is empty on `osx-arm64` and stale on `win-64`. `pkgs/msys2` exists only for `win-64`. `nvidia` has no `osx-arm64` packages and `pytorch` has large dependency trees, so neither is used.
+
+### Reference data
+Checked against repodata on 2026-10-30. `fzf` and `hicolor-icon-theme` have no dependencies and a build for each of `linux-64`, `osx-arm64` and `win-64`. `anaconda` is identical to `pkgs/main` for both.
+
+| Package | `pkgs/main` / `anaconda` | `conda-forge` | Used for |
+| --- | --- | --- | --- |
+| `fzf` | 0.74.0 | 0.74.5 | Probe; version also shows which channel served it. |
+| `hicolor-icon-theme` | 0.18 | 0.17 | Probe; opposite version ordering to `fzf`. |
+| `sqlite` | 3.53.4 | 3.54.1 | `conda-forge` build depends on `libsqlite`, which only `conda-forge` has. |
+| `m2-bash` | not available | available on `win-64` | Served by `pkgs/msys2` when only `defaults` is used (Windows sanity check). |
