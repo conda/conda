@@ -2,7 +2,7 @@
 Multichannel behavior with the default `conda-rattler-solver`
 
 ### Why
-The next release makes `conda-rattler-solver` the default solver. It passes each multichannel (`defaults`, `local`, condarc `custom_multichannels`) to rattler as a priority group, which differs from the classic solver (members ranked separately) and is only complete once conda-rattler-solver#182 lands.
+The next release makes `conda-rattler-solver` the default solver. It passes each multichannel (`defaults`, `local`, condarc `custom_multichannels`) to rattler as a priority group, which differs from the classic solver (members ranked separately) and is only complete once conda-rattler-solver#182 lands and a new conda-rattler-solver release is available.
 
 ### Platforms
 - [ ] Windows
@@ -28,7 +28,7 @@ The next release makes `conda-rattler-solver` the default solver. It passes each
    ```
 2. Use the multichannel name and a member name in specs:
    ```console
-   conda create --prefix <scratch>/sanity-q --override-channels --channel defaults defaults::zlib pkgs/main::sqlite --dry-run
+   conda create --dry-run --override-channels --channel defaults defaults::zlib pkgs/main::sqlite
    ```
 3. Update the environment from step 1:
    ```console
@@ -37,7 +37,7 @@ The next release makes `conda-rattler-solver` the default solver. It passes each
 4. Windows only: add `m2-bash` to the step 1 specs. It is served by the `pkgs/msys2` member of `defaults`.
 5. Linux and macOS only: solve for Windows, where `defaults` has an extra member:
    ```console
-   conda create --prefix <scratch>/sanity-win --override-channels --channel defaults --platform win-64 python --dry-run
+   conda create --dry-run --override-channels --channel defaults --platform win-64 python
    ```
 6. Remove the step 1 environment: `conda remove --prefix <scratch>/sanity --all --yes`.
 
@@ -61,7 +61,7 @@ Because `pkgs/main` and `anaconda` serve identical packages, only channel priori
    ```
 8. Run each case. For each, note the channel of `fzf` and of `hicolor-icon-theme` from the `LINK` records of the JSON output (the `channel` field):
    ```console
-   conda create --prefix <scratch>/p --override-channels <channels> fzf hicolor-icon-theme --dry-run --json
+   conda create --dry-run --override-channels <channels> fzf hicolor-icon-theme --json
    ```
    | Case | `<channels>` |
    | --- | --- |
@@ -75,14 +75,14 @@ Because `pkgs/main` and `anaconda` serve identical packages, only channel priori
    | M8 | `--channel pkgs/main --channel mirrors --channel conda-forge` |
 9. Group-qualified and member-qualified specs, with `--channel mirrors --channel forge` on all three:
    ```console
-   conda create --prefix <scratch>/p --override-channels --channel mirrors --channel forge mirrors::fzf forge::hicolor-icon-theme --dry-run --json
-   conda create --prefix <scratch>/p --override-channels --channel mirrors --channel forge conda-forge::fzf anaconda::hicolor-icon-theme --dry-run --json
-   conda create --prefix <scratch>/p --override-channels --channel mirrors --channel forge pkgs/main::fzf --dry-run --json
+   conda create --dry-run --override-channels --channel mirrors --channel forge mirrors::fzf forge::hicolor-icon-theme --json
+   conda create --dry-run --override-channels --channel mirrors --channel forge conda-forge::fzf anaconda::hicolor-icon-theme --json
+   conda create --dry-run --override-channels --channel mirrors --channel forge pkgs/main::fzf --json
    ```
 10. A dependency available in only one channel. The `conda-forge` build of `sqlite` needs `libsqlite`, which `pkgs/main` does not have:
     ```console
-    conda create --prefix <scratch>/p --override-channels --channel conda-forge sqlite --dry-run --json
-    conda create --prefix <scratch>/p --override-channels --channel mirrors --channel forge sqlite --dry-run --json
+    conda create --dry-run --override-channels --channel conda-forge sqlite --json
+    conda create --dry-run --override-channels --channel mirrors --channel forge sqlite --json
     ```
 11. Real install and update through the groups:
     ```console
@@ -96,7 +96,7 @@ Because `pkgs/main` and `anaconda` serve identical packages, only channel priori
     ```console
     conda config --add custom_multichannels.sparse pkgs/main
     conda config --add custom_multichannels.sparse bioconda
-    conda create --prefix <scratch>/p --override-channels --channel sparse fzf --platform win-64 --dry-run --json
+    conda create --dry-run --override-channels --channel sparse fzf --platform win-64 --json
     ```
 15. Remove the environments and unset `CONDARC` and `CONDA_PKGS_DIRS`.
 
