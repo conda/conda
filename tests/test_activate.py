@@ -2245,40 +2245,36 @@ def plugin(
     "command",
     ["activate", "deactivate", "reactivate", "hook"],
 )
-def test_pre_post_command_invoked(plugin: PrePostCommandPlugin, command: str) -> None:
+def test_pre_post_command_deprecated(
+    plugin: PrePostCommandPlugin, command: str
+) -> None:
     activator = PosixActivator([command])
-    activator.execute()
-
-    assert len(plugin.pre_command_action.mock_calls) == 1
-    assert len(plugin.post_command_action.mock_calls) == 1
-
-
-@pytest.mark.parametrize(
-    "command",
-    ["activate", "deactivate", "reactivate", "hook"],
-)
-def test_pre_post_command_raises(plugin: PrePostCommandPlugin, command: str) -> None:
-    exc_message = "💥"
-
-    # first test post-command exceptions (sine they happen last)
-    plugin.post_command_action.side_effect = Exception(exc_message)
-
-    activator = PosixActivator([command])
-    with pytest.raises(Exception, match=exc_message):
+    with pytest.deprecated_call(match="will be removed in 27.9") as warnings:
         activator.execute()
 
-    assert len(plugin.pre_command_action.mock_calls) == 1
-    assert len(plugin.post_command_action.mock_calls) == 1
+    assert len(warnings) == 2
+    plugin.pre_command_action.assert_called_once_with(command)
+    plugin.post_command_action.assert_called_once_with(command)
 
-    # now test pre-command exceptions
-    plugin.pre_command_action.side_effect = Exception(exc_message)
 
-    activator = PosixActivator([command])
-    with pytest.raises(Exception, match=exc_message):
-        activator.execute()
+@pytest.mark.parametrize("command", ["activate", "deactivate", "reactivate", "hook"])
+@pytest.mark.parametrize("stage", ["pre", "post"])
+def test_pre_post_command_raises(
+    plugin: PrePostCommandPlugin, command: str, stage: str
+) -> None:
+    getattr(plugin, f"{stage}_command_action").side_effect = RuntimeError("hook failed")
 
-    assert len(plugin.pre_command_action.mock_calls) == 2
-    assert len(plugin.post_command_action.mock_calls) == 1
+    with (
+        pytest.deprecated_call(match="will be removed in 27.9"),
+        pytest.raises(RuntimeError, match="hook failed"),
+    ):
+        PosixActivator([command]).execute()
+
+    plugin.pre_command_action.assert_called_once_with(command)
+    if stage == "pre":
+        plugin.post_command_action.assert_not_called()
+    else:
+        plugin.post_command_action.assert_called_once_with(command)
 
 
 @pytest.mark.parametrize(

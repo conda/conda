@@ -245,7 +245,7 @@ class _Activator(metaclass=abc.ABCMeta):
         try:
             plugins_loaded = get_plugin_manager.cache_info().currsize > 0
         except (AttributeError, TypeError):
-            # Tests may patch the cached factory; keep hooks enabled then.
+            # Keep hooks enabled when tests patch the cached factory.
             plugins_loaded = True
 
         if plugins_loaded:

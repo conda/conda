@@ -33,6 +33,7 @@ from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist
 from ..common.iterators import groupby_to_dict
+from ..deprecations import deprecated
 from ..exceptions import (
     AmbiguousEnvironmentSpecPlugin,
     CondaValueError,
@@ -569,6 +570,32 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"Multiple conda plugins are registered via the `{specname}` hook. "
                 f"Please make sure that you don't have any incompatible plugins installed."
             )
+
+        if name in {"pre_commands", "post_commands"}:
+            for plugin in plugins:
+                commands = [
+                    command
+                    for command in (
+                        "run",
+                        "activate",
+                        "deactivate",
+                        "reactivate",
+                        "hook",
+                        "mock_activate",
+                        "mock_deactivate",
+                    )
+                    if command in plugin.run_for
+                ]
+                if commands:
+                    deprecated.topic(
+                        "27.3",
+                        "27.9",
+                        topic=(
+                            f"Support for `{specname}` hook {plugin.name!r} on built-in "
+                            f"or shell commands {', '.join(sorted(commands))} in `run_for`"
+                        ),
+                        addendum="Hooks for plugin subcommands with these names remain supported.",
+                    )
 
         return sorted(plugins, key=lambda plugin: plugin.name)
 

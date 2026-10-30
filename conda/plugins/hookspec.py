@@ -154,6 +154,17 @@ class CondaSpecs:
         ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
         was already loaded by another code path.
 
+        .. note::
+           Pre-command hooks for ``conda run`` and shell
+           activation commands (``activate``, ``deactivate``, ``reactivate``,
+           and ``hook``) are pending deprecation. Hook support for these commands
+           will be deprecated in 27.3 and removed in 27.9. Matching hooks
+           continue to run during the deprecation period.
+
+           Warnings are emitted when hook definitions are collected, even for
+           other commands. These ``run_for`` values remain supported for plugin
+           subcommands with the same names.
+
         **Example:**
 
         .. code-block:: python
@@ -184,6 +195,17 @@ class CondaSpecs:
         performance. These hooks run for ``conda shell.* activate``,
         ``deactivate``, ``reactivate``, and ``hook`` only if the plugin manager
         was already loaded by another code path.
+
+        .. note::
+           Post-command hooks for ``conda run`` and shell
+           activation commands (``activate``, ``deactivate``, ``reactivate``,
+           and ``hook``) are pending deprecation. Hook support for these commands
+           will be deprecated in 27.3 and removed in 27.9. Matching hooks
+           continue to run during the deprecation period.
+
+           Warnings are emitted when hook definitions are collected, even for
+           other commands. These ``run_for`` values remain supported for plugin
+           subcommands with the same names.
 
         **Example:**
 
