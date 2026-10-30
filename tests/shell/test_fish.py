@@ -28,6 +28,13 @@ def test_shell_available(shell: Shell) -> None:
 @PARAMETRIZE_FISH
 def test_fish_basic_integration(shell: Shell) -> None:
     """Test basic Fish shell integration with conda activation/deactivation."""
+    import warnings
+
+    # This warning comes from within the pexpect library
+    warnings.filterwarnings(
+        "ignore", category=DeprecationWarning, message=".*forkpty.*"
+    )
+
     with shell.interactive() as sh:
         # Verify initial state
         sh.assert_env_var("CONDA_SHLVL", "0")
