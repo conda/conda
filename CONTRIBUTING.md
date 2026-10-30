@@ -39,6 +39,7 @@ You're welcome to use generative AI tools when contributing to conda. However, p
 - You have read and understood the [conda license](https://github.com/conda/conda/blob/main/LICENSE) and [conda contributor license agreement](https://docs.conda.io/en/latest/contributing.html#conda-contributor-license-agreement), especially in terms of submitting your contribution as an original work of authorship.
 - Be prepared to engage during contribution review. Reviewers expect to discuss the changes with you directly. Do not copy and paste AI responses.
 - Make minimal, focused changes. AI tools sometimes rewrite more than necessary, making reviews harder. Prefer small, targeted edits that match the existing style and patterns.
+- Keep straightforward, single-use logic inline. Adding helper functions or methods can make a short operation harder to follow across calls. Extract a helper when it removes meaningful existing duplication or makes a substantial operation easier to understand from its name, inputs, and result. A single caller is fine when that benefit is clear. Review the complete call sequence, including the data passed between helpers. Do not split code solely to meet a line-count or complexity target.
 - Don't bypass tests. Ensure AI-assisted changes actually fix the underlying problem rather than altering tests to make them pass.
 - Do not use AI agents or similar automated systems to submit your contributions or review Pull Requests autonomously.
 

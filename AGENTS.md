@@ -28,6 +28,14 @@ Bootstrap and set up an environment for **development and testing** from the rep
 - **This repo** configures formatting and lint with **[Ruff](https://docs.astral.sh/ruff/)** in **`pyproject.toml`** and **`.pre-commit-config.yaml`** (`ruff format`, `ruff check`). Hooks are **[prek](https://prek.j178.dev/)**-compatible (drop-in for **[pre-commit](https://pre-commit.com/)**); assume **prek** / **pre-commit** is already set up locally—this document does not cover installing or enabling hooks. CI enforces the same checks if a change bypasses hooks.
 - **Docstrings** use **Google-style** (`Args:`, `Returns:`, `Raises:`). Napoleon renders these natively. Do **not** repeat types (annotations are the source of truth). Keep docstrings short. See the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) for reference.
 
+### Functions and methods
+
+- Keep straightforward, single-use logic inline. Prefer a readable sequence of local statements when extracting helpers would make readers jump between definitions to follow the same operation.
+- Before adding a helper, look for an existing function, method, or test fixture that already provides the behavior. Avoid wrappers that only forward arguments unless an existing API requires them. Do not add helpers that only rename an obvious expression.
+- Extract a helper when it removes meaningful existing duplication or separates a substantial operation whose name, inputs, and result make the caller easier to understand. A single caller is fine when that benefit is clear. Do not extract for hypothetical future reuse.
+- Review each new helper together with its callers. Check whether readers can follow the control flow and state changes without immediately opening another helper. Keep tightly coupled steps together, especially when helpers pass the same state through a chain of calls.
+- Do not split code solely to meet a line-count or complexity target. Do not extract trivial helpers solely to test them separately. Test observable behavior through existing entry points where practical. Apply this guidance to the requested change, and follow the deprecation policy before removing released functions or methods.
+
 ## Changelog (`releases/news/`)
 
 - Add **one file per significant change** under **`releases/news/`** at the repo root. Use a copy of **`releases/news/TEMPLATE`** as the template. Do **not** edit **`CHANGELOG.md`** directly; releases fold in `releases/news/` fragments.
