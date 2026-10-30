@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Document the `repodata_use_shards` setting on the settings page, and remove the outdated sharded repodata step (the removed conda-libmamba-solver `plugins.use_sharded_repodata` setting), from the performance guide (#16923).
+
+### Other
+
+* <news item>
