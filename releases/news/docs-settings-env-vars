@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* List environment variables for each setting in the "Advanced configuration" settings (#16930).
+* Replace the outdated reference to the `update_dependencies` settings entry with `update_modifier` (#16930).
+
+### Other
+
+* <news item>
