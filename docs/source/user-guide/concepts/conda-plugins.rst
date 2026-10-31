@@ -9,6 +9,30 @@ In order to enable customization and extra features that are compatible with and
 (but do not necessarily ship as a default part of the conda codebase), an official conda plugin mechanism
 has been implemented as of version ``22.11.0``.
 
+Installing plugins
+==================
+
+Use ``conda plugins install`` to install a conda plugin package into an environment.
+Select the environment containing the conda installation you want to extend with
+``--name`` or ``--prefix``. For example, to install ``conda-tree`` into ``base``:
+
+.. code-block:: console
+
+   conda plugins install --name base --override-channels --channel conda-forge conda-tree
+
+``--channel`` (``-c``) selects a package source for this command. Repeat it to search
+multiple sources in the specified order. ``--override-channels`` excludes the
+configured channels, so explicit sources can be used before a ``.condarc`` exists.
+These options do not create or modify channel configuration. Without
+``--override-channels``, conda also searches the configured channels.
+
+Channel aliases, authentication, network settings, and channel restrictions are
+handled by conda in the same way as ``conda install``. Plugin packages are checked
+for a conda entry point before the installation transaction is confirmed.
+
+Start a new conda process from the target environment to load an installed plugin.
+
+
 Implementation
 ==============
 
