@@ -54,6 +54,11 @@ argument. The following optional arguments are supported:
   Python.
   ``0`` indicates Python won't be registered as the system's default. ``1``
   indicates Python will be registered as the system's default.
+* ``/NoRegistry=[0|1]``---Default is ``0``.
+  ``1`` prevents the installer from writing any registry entries,
+  which is useful for creating portable installations.
+* ``/NoShortcuts=[0|1]``---Default is ``0``.
+  ``1`` prevents the installer from creating any Start Menu shortcuts.
 * ``/S``---Install in silent mode.
 * ``/D=<installation path>``---Destination installation path.
   Must be the last argument. Do not wrap in quotation marks.
@@ -67,6 +72,14 @@ current user without registering Python as the system's default:
 .. code-block:: bat
 
    start /wait "" Miniconda3-latest-Windows-x86_64.exe /InstallationType=JustMe /RegisterPython=0 /S /D=%UserProfile%\Miniconda3
+
+**Example:** The following command installs Miniconda for the
+current user without creating Start Menu shortcuts or registry entries
+(useful for portable installations):
+
+.. code-block:: bat
+
+   start /wait "" Miniconda3-latest-Windows-x86_64.exe /InstallationType=JustMe /RegisterPython=0 /NoRegistry=1 /NoShortcuts=1 /S /D=%UserProfile%\Miniconda3
 
 
 Updating conda
