@@ -30,15 +30,15 @@ def human_bytes(n):
     """
     Return the number of bytes n in more human readable form.
 
-    Note: Uses SI prefixes (KB, MB, GB) instead of binary prefixes (KiB, MiB, GiB).
+    Note: Uses IEC binary prefixes (KiB, MiB, GiB), matching the base-2 arithmetic used internally.
 
     Examples:
         >>> human_bytes(42)
         '42 B'
         >>> human_bytes(1042)
-        '1 KB'
+        '1 KiB'
         >>> human_bytes(10004242)
-        '9.5 MB'
+        '9.5 MiB'
         >>> human_bytes(100000004242)
         '93.13 GB'
     """
