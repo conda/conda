@@ -36,6 +36,7 @@ from ..gateways.repodata import (
 from ..models.channel import Channel, all_channel_urls
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageRecord
+from ..models.version import VersionOrder
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
@@ -839,7 +840,10 @@ def _search_package_via_shards(
             rec = PackageRecord(channel=channel, **record_data)
             if spec.match(rec):
                 records.append(rec)
-    return records
+    return sorted(
+        records,
+        key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
+    )
 
 
 def _search_package(

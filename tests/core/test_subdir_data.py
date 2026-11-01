@@ -29,6 +29,7 @@ from conda.utils import url_path
 
 if TYPE_CHECKING:
     from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
 log = getLogger(__name__)
 
@@ -445,3 +446,55 @@ def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
     sd = SubdirData(channel=local_channel)
     with pytest.deprecated_call():
         sd._read_pickled({})  # type: ignore
+
+
+@pytest.mark.parametrize(
+    "use_shards",
+    (True, False),
+)
+def test_query_all_version_order(
+    monkeypatch: MonkeyPatch, mocker: MockerFixture, use_shards: bool
+):
+    """Ensure query_all returns records ordered by (name, VersionOrder(version), build)."""
+    versions = ["1.11.5", "1.14.0", "1.3.0", "1.9.4"]
+    expected_versions = ["1.3.0", "1.9.4", "1.11.5", "1.14.0"]
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true" if use_shards else "false")
+    reset_context()
+
+    if use_shards:
+        fake_shard = mocker.MagicMock()
+        fake_shard.package_names = ["testpkg"]
+        fake_shard.base_url = "https://example.com"
+        fake_shard.iter_records_v3.return_value = [
+            (
+                (f"testpkg-{v}-0.conda", "packages.conda"),
+                {"name": "testpkg", "version": v, "build": "0", "build_number": 0},
+            )
+            for v in versions
+        ]
+
+        monkeypatch.setattr(
+            "conda._private.shards.shards.fetch_channels",
+            lambda *args, **kwargs: {"https://example.com/noarch": fake_shard},
+        )
+        monkeypatch.setattr(
+            "conda._private.shards.subset.RepodataSubset.reachable",
+            lambda *args, **kwargs: None,
+        )
+    else:
+        records_monolithic = [
+            PackageRecord(name="testpkg", version=v, build="0", build_number=0)
+            for v in versions
+        ]
+        monkeypatch.setattr(
+            "conda.core.subdir_data.SubdirData.query_all",
+            lambda *args, **kwargs: records_monolithic,
+        )
+
+    results = query_all(
+        MatchSpec("testpkg"),
+        ["https://example.com/noarch"],
+        subdirs=["noarch"],
+    )
+    assert [r.version for r in results] == expected_versions
