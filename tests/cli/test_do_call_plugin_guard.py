@@ -51,8 +51,7 @@ def test_builtin_command_hooks_deprecation(
         return 0
 
     plugin_manager.register(CommandPlugin())
-    module = import_module(f"conda.cli.{module_name}")
-    mocker.patch.object(module, "execute", side_effect=execute)
+    mocker.patch(f"conda.cli.{module_name}.execute", side_effect=execute)
 
     args = Namespace(func=f"conda.cli.{module_name}.execute")
     with (
