@@ -15,6 +15,7 @@ import pytest
 from ..base.context import context
 from ..common.serialize import json
 from ..core.solve import Solver
+from ..deprecations import deprecated
 from ..exceptions import (
     PackagesNotFoundError,
     ResolvePackageNotFound,
@@ -178,6 +179,11 @@ def empty_prefix():
 
 
 @pytest.fixture()
+@deprecated(
+    "27.3",
+    "27.9",
+    addendum="Use `conda.testing.solver_helpers.SimpleEnvironment` instead.",
+)
 def temp_simple_env(solver_class=Solver) -> SimpleEnvironment:
     with empty_prefix() as prefix:
         yield SimpleEnvironment(prefix, solver_class)

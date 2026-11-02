@@ -188,6 +188,24 @@ def spec_to_package_name(spec: str) -> str | None:
         return None
 
 
+def spec_to_package_extras(spec: str) -> frozenset[str]:
+    """
+    Given a dependency spec, return the CEP 44 extras it explicitly requests
+    (e.g. ``pkg[extras=more]`` -> ``frozenset({"more"})``), or an empty set if
+    there are none or the spec is not parseable.
+
+    Not cached with ``functools.cache``: which extras syntaxes parse depends on
+    the active MatchSpec parser (see ``context.solver``), and MatchSpec already
+    caches parse results per parser. Specs without ``extras`` skip parsing.
+    """
+    if "extras" not in spec:
+        return frozenset()
+    try:
+        return frozenset(MatchSpec(spec).get("extras", ()))
+    except InvalidMatchSpec:
+        return frozenset()
+
+
 def filter_redundant_packages(repodata: ShardDict, use_only_tar_bz2=False) -> ShardDict:
     """
     Given repodata or a single shard, remove any .tar.bz2 packages that have a

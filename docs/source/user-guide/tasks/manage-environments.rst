@@ -384,7 +384,7 @@ Create a lockfile for different platforms:
     --platform win-64
 
 For more information on conda lockfiles, see the conda-lockfiles
-`GitHub documentation <https://conda-incubator.github.io/conda-lockfiles/getting-started/>`_.
+`GitHub documentation <https://conda.github.io/conda-lockfiles/>`_.
 
 Explicit spec files
 -------------------

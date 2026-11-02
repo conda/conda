@@ -270,6 +270,17 @@ test_yaml_raw = {
     ),
     # Used to make sure when nothing is defined appropriate defaults are set
     "objectFile4": "",
+    "objectEnvVars": dals(
+        """
+        env_var_object:
+            str_field: $EXPANDED_VAR
+            seq_field:
+                - $EXPANDED_VAR
+        env_var_object_list:
+            - str_field: $EXPANDED_VAR
+            - str_field: $UNEXPANDED_VAR
+        """
+    ),
 }
 
 
@@ -321,6 +332,12 @@ class SampleConfiguration(Configuration):
     )
 
     test_object = ParameterLoader(ObjectParameter(DummyTestObject()))
+    env_var_object = ParameterLoader(
+        ObjectParameter(DummyTestObject()), expandvars=True
+    )
+    env_var_object_list = ParameterLoader(
+        SequenceParameter(ObjectParameter(DummyTestObject())), expandvars=True
+    )
 
 
 def load_from_string_data(*seq):
@@ -786,6 +803,18 @@ def test_object_defaults_completely_empty():
     assert test_object.str_field == ""
     assert test_object.map_field == {}
     assert test_object.seq_field == tuple()
+
+
+def test_object_expanded_variables(monkeypatch: MonkeyPatch):
+    monkeypatch.setenv("EXPANDED_VAR", "itsexpanded")
+    config = SampleConfiguration()._set_raw_data(load_from_string_data("objectEnvVars"))
+
+    assert config.env_var_object.str_field == "itsexpanded"
+    assert config.env_var_object.seq_field == ("itsexpanded",)
+    assert [obj.str_field for obj in config.env_var_object_list] == [
+        "itsexpanded",
+        "$UNEXPANDED_VAR",
+    ]
 
 
 def test_pretty_list():

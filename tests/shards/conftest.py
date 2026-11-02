@@ -8,15 +8,10 @@ Adapted from conda-libmamba-solver/tests
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
-import http.server
 import json
 import logging
-import queue
-import socket
 import tempfile
-import threading
 import time
 from collections import defaultdict
 from contextlib import contextmanager
@@ -31,6 +26,7 @@ from conda._private.shards import cache, shards, subset
 from conda.base.context import context, reset_context
 from conda.models.channel import Channel, all_channel_urls
 from conda.testing.helpers import TEST_DATA_DIR
+from conda.testing.http_test_server import run_test_server
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
@@ -69,7 +65,14 @@ ROOT_PACKAGES = [
     "zlib",
 ]
 
-# Fake repodata for testing shards
+# Fake repodata for testing shards. 'foo' and 'bar' have circular dependencies on
+# each other; dependencies on missing shards (which are not an error during
+# traversal; the solver may or may not complain if ran); and 'constrains' to
+# exercise other parts of the code.
+#
+# TODO may need to give these unique prefixes, version numbers ending in
+# '.tar.bz2', '.conda' to avoid confusing tar-vs-conda code. May need to create
+# a few more packages giving a richer dependency graph.
 FAKE_REPODATA: RepodataDict = {
     "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
     "packages": {
@@ -189,57 +192,6 @@ FAKE_SHARD = shard_for_name(FAKE_REPODATA, "foo")
 FAKE_SHARD_2 = shard_for_name(FAKE_REPODATA, "bar")
 
 
-def _run_test_server(
-    directory: str, finish_request_action: Callable | None = None
-) -> http.server.ThreadingHTTPServer:
-    """
-    Run a test server on a random port serving files from a directory.
-
-    Adapted from conda-libmamba-solver/tests/http_test_server.py
-
-    :param directory: The directory to serve files from
-    :param finish_request_action: Optional callable after each request
-    :return: The running ThreadingHTTPServer instance
-    """
-
-    class DualStackServer(http.server.ThreadingHTTPServer):
-        daemon_threads = False  # Per-request threads
-        allow_reuse_address = True  # Good for tests
-        request_queue_size = 64  # Should be more than test packages
-
-        def server_bind(self):
-            # Suppress exception when protocol is IPv4
-            with contextlib.suppress(Exception):
-                self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
-            return super().server_bind()
-
-        def finish_request(self, request, client_address):
-            if finish_request_action:
-                finish_request_action()
-            self.RequestHandlerClass(request, client_address, self, directory=directory)
-
-    def start_server(q: queue.Queue):
-        try:
-            with DualStackServer(
-                ("127.0.0.1", 0), http.server.SimpleHTTPRequestHandler
-            ) as httpd:
-                q.put(httpd)
-                try:
-                    httpd.serve_forever()
-                except KeyboardInterrupt:
-                    pass
-        except Exception as exc:
-            q.put(exc)
-
-    started: queue.Queue = queue.Queue()
-    threading.Thread(target=start_server, args=(started,), daemon=True).start()
-
-    result = started.get(timeout=1)
-    if isinstance(result, Exception):
-        raise result
-    return result
-
-
 def write_shards_repository(shards_repository: Path) -> None:
     """Write fake shard files into *shards_repository* for use in tests."""
     shards_repository.mkdir(parents=True, exist_ok=True)
@@ -334,7 +286,7 @@ class ShardFactory:
         shards_repository = self.root / dir_name / "sharded_repo"
         write_shards_repository(shards_repository)
 
-        httpd = _run_test_server(
+        httpd = run_test_server(
             str(shards_repository), finish_request_action=finish_request_action
         )
         self._http_servers.append(httpd)
@@ -443,7 +395,7 @@ def http_server_benchmark_shards(
         zstd.compress(msgpack.dumps(index))
     )
 
-    httpd = _run_test_server(str(repository))
+    httpd = run_test_server(str(repository))
     host, port = httpd.socket.getsockname()[:2]
     url_host = f"[{host}]" if ":" in host else host
     try:

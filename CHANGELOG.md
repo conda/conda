@@ -1,5 +1,16 @@
 [//]: # (current developments)
 
+## 26.9.4 (2026-10-21)
+
+### Bug fixes
+
+* Require `certifi >=2026.10.19` and `ca-certificates >=2026.10.19` to update the packaged CA bundles following the eMudhra intermediate CA compromise. (#16880 via #16881)
+
+### Contributors
+
+* @jezdez
+
+
 ## 26.9.3 (2026-10-14)
 
 ### Bug fixes

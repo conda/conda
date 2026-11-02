@@ -24,6 +24,7 @@ from ...deprecations import deprecated
 from ...exceptions import (
     BasicClobberError,
     CondaOSError,
+    LinkSourceNotFoundError,
     NoWritableEnvsDirError,
     maybe_raise,
 )
@@ -289,10 +290,7 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
         return
 
     if not lexists(src):
-        raise CondaError(
-            f"Cannot link a source that does not exist. {src}\n"
-            "Running `conda clean --packages` may resolve your problem."
-        )
+        raise LinkSourceNotFoundError(src)
 
     if lexists(dst):
         if not force:

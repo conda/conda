@@ -36,15 +36,6 @@ if TYPE_CHECKING:
 MD5_HEX_RE = re.compile(r"#[0-9a-f]{32}")
 
 
-@pytest.fixture
-def tmp_envs_dirs(mocker: MockerFixture, tmp_path: Path) -> Path:
-    mocker.patch(
-        "conda.base.context.mockable_context_envs_dirs",
-        return_value=(str(tmp_path),),
-    )
-    return tmp_path
-
-
 # conda list
 def test_list(
     tmp_env: TmpEnvFixture,
@@ -109,7 +100,7 @@ def test_list_reverse(
 
 
 # conda list --json
-def test_list_json(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture):
+def test_list_json(tmp_envs_dir: Path, conda_cli: CondaCLIFixture):
     stdout, _, _ = conda_cli("list", "--json")
     parsed = json.loads(stdout.strip())
     assert isinstance(parsed, list)
@@ -144,7 +135,7 @@ def test_list_specific_version(
 
 
 # conda list --revisions --json
-def test_list_revisions(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture) -> None:
+def test_list_revisions(tmp_envs_dir: Path, conda_cli: CondaCLIFixture) -> None:
     stdout, _, _ = conda_cli("list", "--revisions", "--json")
     parsed = json.loads(stdout.strip())
     assert isinstance(parsed, list) or (isinstance(parsed, dict) and "error" in parsed)
@@ -154,7 +145,7 @@ def test_list_revisions(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture) -> None
 
 
 # conda list PACKAGE
-def test_list_package(tmp_envs_dirs: Path, conda_cli: CondaCLIFixture) -> None:
+def test_list_package(tmp_envs_dir: Path, conda_cli: CondaCLIFixture) -> None:
     stdout, _, _ = conda_cli("list", "python", "--json")
     parsed = json.loads(stdout.strip())
     assert isinstance(parsed, list)

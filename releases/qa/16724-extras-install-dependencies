@@ -1,0 +1,40 @@
+### Title
+Install a package with extras and verify the extra's dependencies are installed
+
+### Why
+Requesting an extra through a MatchSpec (e.g. `httpx[extras=cli]`) was accepted but did not add the extra's packages to the solve, so users silently ended up without them (#16724).
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+- Network access to the `conda-pypi` and `conda-forge` channels on anaconda.org.
+- A conda-pypi channel that publishes CEP 44 `extra_depends` for the package under test (`httpx2` is used below; its `cli` extra is `click`, `pygments` and `rich`).
+- Use the `rattler` solver and install `conda-rattler-solver` from the `conda-canary/label/dev` channel.
+- Use `--override-channels` and a fresh environment name each time so the host `.condarc` does not skew channel priority.
+
+### Steps
+1. Baseline, no extra: run `conda create -n httpx2-plain -c conda-pypi -c conda-forge --override-channels "conda-pypi::httpx2" --yes --solver rattler`, then `conda list -n httpx2-plain`.
+2. With the extra: run `conda create -n httpx2-cli -c conda-pypi -c conda-forge --override-channels "conda-pypi::httpx2[extras=cli]" --yes --solver rattler`, then `conda list -n httpx2-cli`.
+3. Repeat step 2 without the channel prefix: `"httpx2[extras=cli]"`.
+4. Repeat step 2 with an explicit version: `"conda-pypi::httpx2[extras=cli, version=<version published by conda-pypi>]"`.
+5. Request two extras at once, if the package defines them (e.g. `"conda-pypi::httpx2[extras=[cli,http2]]"`), and check `conda list`.
+6. Request an extra that does not exist (e.g. `"conda-pypi::httpx2[extras=doesnotexist]"`).
+7. Activate `httpx2-cli` and run `python -c "import httpx2, click, pygments, rich"`.
+8. Remove the environments with `conda remove -n <name> --all --yes`.
+
+### Pass criteria
+- Step 1: `click`, `pygments` and `rich` are not installed.
+- Steps 2-4: `click`, `pygments` and `rich` are installed in addition to everything from step 1, and `httpx2` comes from the `conda-pypi` channel for the channel-qualified specs.
+- Step 5: the union of both extras' packages is installed.
+- Step 6: behavior is deterministic and does not crash with a traceback (either a clear error or the plain package is installed; record which).
+- Step 7: the imports succeed.
+- With rattler, results are the same with and without sharded repodata.
+
+### Out of scope / notes
+- Pre-fix, `httpx[cli]` (without `extras=`) raises `InvalidMatchSpec`; that syntax is not expected to work.
+- If the solver picks `httpx` from conda-forge (which has no extras metadata) instead of conda-pypi, note it but do not fail this item; channel priority handling is tracked in conda/conda-rattler-solver#125.
+- Parsing and matching of extras is covered by `tests/models/test_match_spec.py::test_extras_specs_match_records`; collection of `extra_depends` in sharded repodata is covered by pytest in the `shards` tests.
+- Complements `16822-pypi-channel-extras`, which only checks that the solve does not crash.

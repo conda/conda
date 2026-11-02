@@ -1,45 +1,67 @@
 (deep_dive_logging)=
 # Logging
 
-Logging in conda is based on the [Python logging framework](https://docs.python.org/3/library/logging.html).
-In this guide, we'll describe the loggers and handlers used in conda, as well as how they are used.
+Loggers record diagnostics: notes that help a developer or a user troubleshoot a problem, and
+warnings about conditions that are surprising but do not stop the command. Command results go
+through the reporter.
 
-## Logger hierarchy
-Python logging uses loggers as the source of logging messages.
-These loggers are organized as a single hierarchy defined by names given to individual loggers, with one nameless root logger.
-Other logger names are given as dot separated strings, such that, for example, the logger named `a.b.c` has the parent `a.b`, which in turn has the parent `a`, which in turn has the root logger as its parent.
-Python programs are free to use any name for loggers they like, but often the name will bear a relationship to the Python entity that is using it, most commonly there will be a module level logger, which is called `__name__`, i.e. `conda.<pkg>.<module>`, e.g. `conda.gateways.logging`.
-This approach naturally arranges loggers used in a single code base into a hierarchy that follows the package structure.
+The conventions are:
 
-```{mermaid}
-:caption: The conda logger hierarchy. Dotted lines represent relations with `propagate = False`.
+* Every module creates one logger named after itself, at import time:
 
-flowchart LR
-    root["&lt;root&gt;"] -.-> conda
-    conda --> modules["conda.&lt;pkg&gt;.&lt;module&gt;"]
-    root --> auxlib
+  ```python
+  from logging import getLogger
+
+  log = getLogger(__name__)
+  ```
+
+* Library code emits records and does not configure handlers, levels, or propagation. When conda
+  runs as a CLI, `conda.cli.main.init_loggers` attaches the handlers and sets the level from the
+  verbosity flags. When another program imports conda, that program configures logging.
+* Use lazy `%`-style arguments rather than f-strings so formatting only happens if the record is
+  emitted.
+* Pass `exc_info=True` to `log.debug` to record a traceback without showing it to the user.
+
+| Level | Use for | Visible when |
+| --- | --- | --- |
+| `debug` | Internal state, decisions taken, caught-and-ignored exceptions | `-vvv` / `--debug` |
+| `info` | Notable steps in normal operation | `-vv` |
+| `warning` | Something is wrong or degraded, but conda can continue | Always (default level) |
+
+The `-v` flags map to levels in {attr}`context.log_level <conda.base.context.Context.log_level>`:
+
+| Flags | `context.verbosity` | Logging level |
+| --- | --- | --- |
+| *(none)* | 0 | `WARNING` |
+| `-v` | 1 | `WARNING` (and more detailed command output) |
+| `-vv` | 2 | `INFO` |
+| `-vvv` / `--debug` | 3 | `DEBUG` |
+| `-vvvv` / `--trace` | 4 | `TRACE` |
+
+From `conda/core/envs_manager.py`:
+
+```python
+log.warning(
+    "Unable to register environment. Could not create %s. Reason: %s",
+    user_environments_txt_directory,
+    exc,
+)
 ```
 
-The full hierarchy of all module level loggers is given below at {ref}`full-module-loggers`.
+A filter on the CLI handlers redacts channel tokens in URLs (`/t/<token>/`). Log those URLs as
+they are. Do not log other secrets.
 
-### The root logger
+See {ref}`rendering_output_logger_or_reporter` for whether to log a message or render it.
 
-The root logger is not used directly as a logging target, but it is used as a building block in the configuration of the logging system.
+## How conda configures logging
 
-### The `conda` subhierarchy
+Module-level loggers named after `__name__` form a hierarchy. `conda.core.link` sits under
+`conda.core`, which sits under `conda`. A parent's level and handlers apply to its children
+unless a child overrides them.
 
-The `conda` subhierarchy consists of all loggers whose name starts with `conda.` and it is mostly configured via the `conda` logger itself in {func}`conda.gateways.logging.initialize_logging`.
-
-Historically, additional loggers were used for user-facing CLI text to stdout/stderr (`conda.stdout`, `conda.stderr`, `conda.stdoutlog`, `conda.stderrlog`, `conda.stdout.verbose`). They are **pending deprecation** (removal in 27.3) and are **no longer configured during normal CLI startup**. For new code, use `logging.getLogger(__name__)`.
-
-### Other loggers
-
-The `auxlib` logger a remnant from before the auxlib code was completely absorbed into conda.
-
-## Potential effect on other loggers
-
-There are three other functions that use {func}`logging.getLogger` and hence might affect other loggers. They are {func}`conda.gateways.logging.set_file_logging` that is never used in the code base and the context managers {func}`conda.common.io.disable_logger` and {func}`conda.common.io.stderr_log_level`, which are only used in testing.
-
-## Root logger in auxlib
-
-In {mod}`conda.auxlib.logz`, the root logger is modified.
+`conda.gateways.logging.initialize_logging` sets the `conda` logger to `WARNING` and attaches a
+stderr handler with `propagate = False`, so conda records do not reach the root logger.
+`conda.cli.main.init_loggers` calls that function, then `set_log_level(context.log_level)`.
+That sets the handler level from the verbosity flags and also attaches stderr handlers on the
+root logger and the `requests` loggers. Importing conda as a library does none of this. The
+embedding application configures logging.
