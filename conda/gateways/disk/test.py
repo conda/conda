@@ -61,7 +61,9 @@ def hardlink_supported(source_file, dest_dir):
     try:
         # BeeGFS is a file system that does not support hard links between files in different
         # directories. Sometimes a soft link will be created with the hard link system call.
-        create_link(source_file, test_file, LinkType.hardlink, force=True, fallback_copy=False)
+        create_link(
+            source_file, test_file, LinkType.hardlink, force=True, fallback_copy=False
+        )
         is_supported = not islink(test_file)
         if is_supported:
             log.log(TRACE, "hard link supported for %s => %s", source_file, dest_dir)
