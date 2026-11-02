@@ -17,7 +17,13 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from requests.exceptions import ConnectionError, HTTPError, SSLError
+from requests.exceptions import (
+    ChunkedEncodingError,
+    ConnectionError,
+    HTTPError,
+    ReadTimeout,
+    SSLError,
+)
 
 import conda.gateways.repodata
 from conda._private.shards import cache as shards_cache
@@ -1081,7 +1087,12 @@ def test_pipelined_shard_http_error(http_server_shards, tmp_path, mocker, status
 
 @pytest.mark.parametrize(
     "request_error,conda_error",
-    [(ConnectionError, CondaHTTPError), (SSLError, CondaSSLError)],
+    [
+        (ConnectionError, CondaHTTPError),
+        (ReadTimeout, CondaHTTPError),
+        (ChunkedEncodingError, CondaHTTPError),
+        (SSLError, CondaSSLError),
+    ],
 )
 def test_pipelined_shard_connection_error(
     http_server_shards, tmp_path, mocker, request_error, conda_error
