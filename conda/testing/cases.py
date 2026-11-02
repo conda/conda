@@ -6,6 +6,10 @@ import unittest
 
 import pytest
 
+from ..deprecations import deprecated
+
+deprecated.module("27.3", "27.9", addendum="Use native `pytest` fixtures instead.")
+
 
 class BaseTestCase(unittest.TestCase):
     fixture_names = ("tmpdir",)

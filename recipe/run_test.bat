@@ -12,16 +12,22 @@ CALL %PREFIX%\condabin\conda_hook.bat
 
 :: display conda details
 CALL conda info --all
+IF NOT %ERRORLEVEL% == 0 EXIT /B 1
+
+"%PREFIX%\python.exe" -c "import os, sysconfig; from conda.base.context import context; assert context.subdir == os.environ['SUBDIR'], context.subdir; assert context._native_subdir() == context.subdir, sysconfig.get_platform()"
+IF NOT %ERRORLEVEL% == 0 EXIT /B 1
 
 :: create, activate, and deactivate a conda environment
-CALL conda create --yes --prefix ".\built-conda-test-env" "m2-patch"
+CALL conda create --yes --prefix ".\built-conda-test-env" "python=%PY_VER%" wheel
 IF NOT %ERRORLEVEL% == 0 EXIT /B 1
 
 CALL conda activate ".\built-conda-test-env"
 ECHO "CONDA_PREFIX=%CONDA_PREFIX%"
 
 IF NOT "%CONDA_PREFIX%" == "%CD%\built-conda-test-env" EXIT /B 1
-%CONDA_PREFIX%\Library\usr\bin\patch.exe --version
+"%CONDA_PREFIX%\python.exe" --version
+IF NOT %ERRORLEVEL% == 0 EXIT /B 1
+"%CONDA_PREFIX%\Scripts\wheel.exe" version
 IF NOT %ERRORLEVEL% == 0 EXIT /B 1
 
 CALL conda deactivate

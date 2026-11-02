@@ -1,3 +1,0 @@
-### Bug fixes
-
-* Show metadata for disabled plugins in `conda plugins info`. (#16356)

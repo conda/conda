@@ -385,9 +385,11 @@ class MatchSpec(metaclass=MatchSpecType):
 
             rec = PackageRecord.from_objects(rec)
         for field_name, v in self._match_components.items():
-            if field_name == "when":
+            if field_name in ("when", "extras"):
                 # Conditions do not apply to check whether a record
-                # matches a given match spec.
+                # matches a given match spec. Extras select optional
+                # dependency groups (CEP 44) and are resolved by the
+                # solver.
                 continue
             if not self._match_individual(rec, field_name, v):
                 return False
@@ -593,16 +595,37 @@ class MatchSpec(metaclass=MatchSpecType):
             matcher = value
             return field_name, matcher
 
+        if field_name in _LIST_NAME_RE and isinstance(value, list):
+            value = tuple(value)
         _MATCHER_CACHE = MatchSpec._MATCHER_CACHE
         cache_key = (field_name, value)
-        cached_matcher = _MATCHER_CACHE.get(cache_key)
+        try:
+            cached_matcher = _MATCHER_CACHE.get(cache_key)
+        except TypeError:
+            if field_name not in _LIST_NAME_RE:
+                raise
+            cached_matcher = None
         if cached_matcher:
             return field_name, cached_matcher
+        # Constructor inputs must follow the same name rules as parsed specs.
+        if field_name in _LIST_NAME_RE:
+            if value is None:
+                value = ()
+            elif isinstance(value, str):
+                value = value.split(",")
+            if not isinstance(value, (list, tuple)) or not all(
+                isinstance(item, str)
+                and _LIST_NAME_RE[field_name].fullmatch(item.strip())
+                for item in value
+            ):
+                raise InvalidSpec(f"Invalid {field_name} names: {value!r}")
+            value = tuple(item.strip() for item in value)
+
         if field_name in _implementors:
             matcher = _implementors[field_name](value)
         else:
             matcher = ExactStrMatch(str(value))
-        _MATCHER_CACHE[(field_name, value)] = matcher
+        _MATCHER_CACHE[cache_key] = matcher
         return field_name, matcher
 
     @property
@@ -836,11 +859,14 @@ def _parse_spec_str_dispatcher(spec_str) -> dict[str, object]:
     """
     Temporary dispatcher while we introduce the new v3 features
     """
-    if context.solver == "rattler":
-        return _parse_spec_str_v3(spec_str)
-    return _parse_spec_str(spec_str)
+    return _parse_spec_str_v3(spec_str)
 
 
+@deprecated(
+    "27.3",
+    "27.9",
+    addendum="Use `conda.models.match_spec._parse_spec_str_v3` instead.",
+)
 def _parse_spec_str(spec_str):
     cached_result = _PARSE_CACHE.get(spec_str)
     if cached_result:
@@ -1021,6 +1047,56 @@ def _parse_spec_str(spec_str):
     return components
 
 
+_LIST_NAME_RE = {
+    "extras": re.compile(r"[a-z0-9_.+-]{1,64}"),
+    "flags": re.compile(r"[a-z0-9_*]+(?::[a-z0-9_*]+)?"),
+}
+_PLAIN_LIST_ITEM_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_.-]*")
+_PLAIN_SCALAR_ITEM_RE = re.compile(r"[A-Za-z0-9_.+*:-]+")
+_YAML_SCALAR_WORDS = frozenset({"true", "false", "null"})
+
+_MATCH_SPEC_YAML = None
+
+
+def _parse_list_of_str(inner: str, *, list_syntax: bool) -> tuple[str, ...]:
+    """Parse names without converting scalar spelling or accepting typed lists."""
+    global _MATCH_SPEC_YAML
+
+    # YAML folds line breaks, but these fields require single-line lists.
+    if any(char in inner for char in "\r\n\x85\u2028\u2029"):
+        raise InvalidSpec("Extras and flags lists cannot contain newlines")
+    if not list_syntax and any(char in inner for char in "!&"):
+        raise InvalidSpec("Scalar names cannot contain YAML tags or anchors")
+    content = inner.strip().removesuffix(",")
+    items = tuple(item.strip() for item in content.split(","))
+    if list_syntax:
+        plain_strings = all(
+            _PLAIN_LIST_ITEM_RE.fullmatch(item)
+            and item.lower() not in _YAML_SCALAR_WORDS
+            for item in items
+        )
+    else:
+        # Scalar shorthand keeps names such as 001 and true as literal strings.
+        plain_strings = all(_PLAIN_SCALAR_ITEM_RE.fullmatch(item) for item in items)
+    if plain_strings:
+        return items
+    # Keep YAML lazy and separate from the parser used for configuration files.
+    if _MATCH_SPEC_YAML is None:
+        from ruamel.yaml import YAML
+
+        parser = YAML(typ="safe", pure=True)
+        parser.version = (1, 2)
+        _MATCH_SPEC_YAML = parser
+    # compose() preserves spelling and exposes non-string nodes in explicit lists.
+    nodes = _MATCH_SPEC_YAML.compose(f"[{inner}]").value
+    if any(
+        node.id != "scalar" or (list_syntax and node.tag != "tag:yaml.org,2002:str")
+        for node in nodes
+    ):
+        raise InvalidSpec("Extras and flags lists must contain only strings")
+    return tuple(node.value for node in nodes)
+
+
 def _parse_spec_str_v3(spec_str):
     """
     New parser engine only used
@@ -1086,7 +1162,7 @@ def _parse_spec_str_v3(spec_str):
         spec_str = spec_str.replace(brackets_str, "")
         brackets_str = brackets_str[1:-1]
         m3b = list(_BRACKETS_KV_RE_V3.finditer(brackets_str))
-        for match in m3b:
+        for i, match in enumerate(m3b):
             groups = match.groupdict()
             key = groups["key"]
             if key in brackets:
@@ -1094,30 +1170,82 @@ def _parse_spec_str_v3(spec_str):
                     f"Each key can only be specified once: repeated '{key}' "
                 )
             value = groups["value"] or groups["value_list"]
-            if not (key and value):
+            if (
+                not key
+                or value is None
+                or (
+                    not value
+                    and (groups["value_list"] is None or key not in ("extras", "flags"))
+                )
+            ):
                 raise InvalidSpec(
                     "key-value mismatch in brackets; a key or a value is missing",
                 )
             if "][" in value:
                 raise InvalidSpec("Multiple bracket sections are not allowed")
             if key in ("flags", "extras"):
-                if (value[0] == "[") ^ (value[-1] == "]"):
+                if value and ((value[0] == "[") ^ (value[-1] == "]")):
                     # mismatched single-item list, raise
                     raise InvalidSpec(f"'{key}' value has unbalanced brackets: {value}")
-                inner = value.strip("[]")
-                if _LIST_EMPTY_ITEM_RE.search(inner):
-                    raise InvalidSpec(f"'{key}' list has an empty item: {value!r}")
-                value = tuple(
-                    str(x) if x is not None else "null"
-                    for x in yaml.loads(f"[{inner}]")
+                next_start = (
+                    m3b[i + 1].start() if i + 1 < len(m3b) else len(brackets_str)
                 )
+                # Unquoted extras/flags stop at the first comma in the KV regex
+                # (e.g. extras=http2,cli). Collect names until the next key.
+                if groups["value_list"] is None and not groups["quote_s"]:
+                    if match.end() > match.end("value"):
+                        continuation = brackets_str[match.end() - 1 : next_start]
+                    else:
+                        continuation = ""
+                    if continuation.strip():
+                        remainder = continuation.strip(", ")
+                        if "=" in continuation or not continuation.lstrip().startswith(
+                            ","
+                        ):
+                            raise InvalidSpec(
+                                f"Unrecognized content in brackets: {remainder!r}"
+                            )
+                        if _LIST_EMPTY_ITEM_RE.search(continuation):
+                            raise InvalidSpec(
+                                f"'{key}' list has an empty item: {continuation!r}"
+                            )
+                        inner = f"{value}{continuation}"
+                    else:
+                        inner = value
+                else:
+                    inner = value.strip(" \t")
+                    if groups["value_list"] is None and inner.startswith("["):
+                        # Remove one quoted wrapper without hiding nested lists.
+                        inner = inner[1:-1]
+                    if _LIST_EMPTY_ITEM_RE.search(inner):
+                        raise InvalidSpec(f"'{key}' list has an empty item: {value!r}")
+                try:
+                    value = _parse_list_of_str(
+                        inner,
+                        list_syntax=groups["value_list"] is not None
+                        or value.lstrip().startswith("["),
+                    )
+                except yaml.YAMLError as exc:
+                    raise InvalidSpec(f"Invalid '{key}' list: {inner!r}") from exc
             elif key == "when":
                 _validate_when_spec(value)
             brackets[key] = value
         if m3b:
             remainder = brackets_str[m3b[-1].end() :].strip(", ")
             if remainder:
-                raise InvalidSpec(f"Unrecognized content in brackets: {remainder!r}")
+                last = m3b[-1]
+                last_groups = last.groupdict()
+                # Unquoted extras/flags already folded this leftover in the loop.
+                # Quoted / [list] extras must still reject trailing junk.
+                unquoted_list = (
+                    last.group("key") in ("flags", "extras")
+                    and last_groups["value_list"] is None
+                    and not last_groups["quote_s"]
+                )
+                if not unquoted_list:
+                    raise InvalidSpec(
+                        f"Unrecognized content in brackets: {remainder!r}"
+                    )
         if not brackets:
             # No key-value pairs found but there was a outer square brackets match?
             # That's invalid syntax (e.g. accidental `package[extra]`)
@@ -1138,11 +1266,9 @@ def _parse_spec_str_v3(spec_str):
                     f"did you mean `extras=[{brackets_str}]`?",
                 )
 
-    # Re-process version field, whose syntax depends on the presence of a build field
+    # Preserve bracket-version matching independently of the build constraint.
     if version_value := brackets.get("version"):
-        brackets["version"] = _sanitize_version_str(
-            version_value, brackets.get("build")
-        )
+        brackets["version"] = _sanitize_version_str(version_value, None)
 
     # Step 4. strip off parens portion
     m4 = _PARENS_RE.match(spec_str)

@@ -9,7 +9,6 @@ import os
 from base64 import b64encode
 from collections import namedtuple
 from errno import ENOENT
-from functools import partial
 from itertools import chain
 from logging import getLogger
 from os.path import isdir, isfile, join  # noqa
@@ -69,12 +68,8 @@ def compute_sum(path: str | os.PathLike, algo: Literal["md5", "sha256"]) -> str:
     if not path.is_file():
         raise PathNotFoundError(path)
 
-    # FUTURE: Python 3.11+, replace with hashlib.file_digest
-    hasher = hashlib.new(algo)
     with path.open("rb") as fh:
-        for chunk in iter(partial(fh.read, 8192), b""):
-            hasher.update(chunk)
-    return hasher.hexdigest()
+        return hashlib.file_digest(fh, algo).hexdigest()
 
 
 # ####################################################

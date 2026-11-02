@@ -33,51 +33,72 @@ The fixture can be configured via `@pytest.mark.parametrize("http_test_server", 
 to specify the directory to serve, or used without parametrize (or with `None`) for dynamic content generation.
 """
 
-import contextlib
-import http.server
-import queue
-import socket
-import threading
+from collections.abc import Callable
+from contextlib import suppress
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from queue import Queue
+from socket import IPPROTO_IPV6, IPV6_V6ONLY
+from threading import Thread
 
 
-def run_test_server(directory: str) -> http.server.ThreadingHTTPServer:
+def run_test_server(
+    directory: str,
+    finish_request_action: Callable[[], None] | None = None,
+) -> ThreadingHTTPServer:
     """
     Run a test server on a random port. Inspect returned server to get port,
     shutdown etc.
+
+    Args:
+        directory: Directory to serve files from.
+        finish_request_action: Optional callable invoked before each request is
+            handled (e.g. to inject latency or failures).
     """
 
-    class DualStackServer(http.server.ThreadingHTTPServer):
+    class DualStackServer(ThreadingHTTPServer):
         daemon_threads = False  # These are per-request threads
         allow_reuse_address = True  # Good for tests
         request_queue_size = 64  # Should be more than the number of test packages
 
         def server_bind(self):
             # suppress exception when protocol is IPv4
-            with contextlib.suppress(Exception):
-                self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            with suppress(Exception):
+                self.socket.setsockopt(IPPROTO_IPV6, IPV6_V6ONLY, 0)
             return super().server_bind()
 
         def finish_request(self, request, client_address):
-            self.RequestHandlerClass(request, client_address, self, directory=directory)
+            if finish_request_action:
+                finish_request_action()
+            super().finish_request(request, client_address)
 
     def start_server(queue):
-        with DualStackServer(
-            ("127.0.0.1", 0), http.server.SimpleHTTPRequestHandler
-        ) as httpd:
-            host, port = httpd.socket.getsockname()[:2]
-            queue.put(httpd)
-            url_host = f"[{host}]" if ":" in host else host
-            print(f"Serving HTTP on {host} port {port} (http://{url_host}:{port}/) ...")
-            try:
-                httpd.serve_forever()
-            except KeyboardInterrupt:
-                print("\nKeyboard interrupt received, exiting.")
+        try:
+            with DualStackServer(
+                ("127.0.0.1", 0),
+                partial(SimpleHTTPRequestHandler, directory=directory),
+            ) as httpd:
+                host, port = httpd.socket.getsockname()[:2]
+                queue.put(httpd)
+                url_host = f"[{host}]" if ":" in host else host
+                print(
+                    f"Serving HTTP on {host} port {port} (http://{url_host}:{port}/) ..."
+                )
+                try:
+                    httpd.serve_forever()
+                except KeyboardInterrupt:
+                    print("\nKeyboard interrupt received, exiting.")
+        except Exception as exc:
+            queue.put(exc)
 
-    started = queue.Queue()
+    started: Queue[ThreadingHTTPServer | Exception] = Queue()
 
-    threading.Thread(target=start_server, args=(started,), daemon=True).start()
+    Thread(target=start_server, args=(started,), daemon=True).start()
 
-    return started.get(timeout=1)
+    result = started.get(timeout=1)
+    if isinstance(result, Exception):
+        raise result
+    return result
 
 
 if __name__ == "__main__":

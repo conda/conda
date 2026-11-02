@@ -1,6 +1,5 @@
 <!-- edit this in https://github.com/conda/infrastructure -->
 
-[epic template]: https://github.com/conda/conda/issues/new?assignees=&labels=epic&template=epic.yml
 [compare]: https://github.com/conda/conda/compare
 [new release]: https://github.com/conda/conda/releases/new
 [infrastructure]: https://github.com/conda/infrastructure
@@ -44,14 +43,14 @@ Placeholder for `conda YY.MM.x` release.
 
 [milestone]: https://github.com/conda/conda/milestone/<milestone>
 [process]: https://github.com/conda/conda/blob/main/RELEASE.md
+[merge-back]: https://github.com/conda/conda/blob/main/RELEASE.md#8-merge-the-release-branch-back-into-main
 [releases]: https://github.com/conda/conda/releases
 [main]: https://github.com/AnacondaRecipes/conda-feedstock
 [conda-forge]: https://github.com/conda-forge/conda-feedstock
 [ReadTheDocs]: https://readthedocs.com/projects/continuumio-conda/
 [zulip]: https://conda.zulipchat.com/#narrow/channel/480811-releases
 
-<details open>  <!-- feel free to remove the open attribute once this section is completed -->
-<summary><h4>The week before release week</h4></summary>
+#### The week before release week
 
 - [ ] Create release branch (named `YY.MM.x`)
 - [ ] Ensure release candidates are being successfully built (see `conda-canary/label/conda-conda-rc-YY.MM.x`)
@@ -60,16 +59,13 @@ Placeholder for `conda YY.MM.x` release.
 - [ ] Test release candidates
     <!-- indicate here who has signed off on testing -->
 
-</details>
-
-<details open>  <!-- feel free to remove the open attribute once this section is completed -->
-<summary><h4>Release week</h4></summary>
+#### Release week
 
 - [ ] Create release PR (see [release process][process])
 - [ ] Create Zulip thread on [#releases][zulip]
     - [ ] Announce `YY.MM.MICRO` in-progress
 - [ ] [Publish release][releases]
-- [ ] Merge `YY.MM.x` back into `main`
+- [ ] Review and merge the automated merge-back pull request (see [step 8][merge-back])
 - [ ] Activate the `YY.MM.x` branch on [ReadTheDocs][ReadTheDocs]
 - [ ] Bump/update feedstocks
     - [ ] [Anaconda, Inc.'s feedstock][main]
@@ -78,8 +74,6 @@ Placeholder for `conda YY.MM.x` release.
 - [ ] Announce release
     - [ ] Create & publish conda.org blog post
     - [ ] Post on Zulip thread
-
-</details>
 ```
 </details>
 
@@ -95,29 +89,28 @@ Release `YY.MM.MICRO`
 
 #### Body:
 ```markdown
-<details open>  <!-- feel free to remove the open attribute once this section is completed -->
-<summary><h4>Patch YY.MM.MICRO</h4></summary>
+[process]: https://github.com/conda/conda/blob/main/RELEASE.md
+[merge-back]: https://github.com/conda/conda/blob/main/RELEASE.md#8-merge-the-release-branch-back-into-main
+[releases]: https://github.com/conda/conda/releases
+[main]: https://github.com/AnacondaRecipes/conda-feedstock
+[conda-forge]: https://github.com/conda-forge/conda-feedstock
+[zulip]: https://conda.zulipchat.com/#narrow/channel/480811-releases
 
 - [ ] <!-- list issues & PRs that need to be resolved here -->
 - [ ] Create release PR (see [release process][process])
 - [ ] Update Zulip thread on [#releases][zulip]
     - [ ] Announce `YY.MM.MICRO` in-progress
 - [ ] [Publish release][releases]
-- [ ] Merge `YY.MM.x` back into `main`
+- [ ] Review and merge the automated merge-back pull request (see [step 8][merge-back])
 - [ ] Bump/update feedstocks
     - [ ] [Anaconda, Inc.'s feedstock][main]
     - [ ] [conda-forge feedstock][conda-forge]
 - [ ] Hand off to packaging team(s)
 - [ ] Announce release
     - [ ] Post on Zulip thread
-
-</details>
 ```
 
 </details>
-
-> [!NOTE]
-> The [epic template][epic template] is perfect for this; remember to remove the **`epic`** label.
 
 > [!NOTE]
 > A patch release is like a regular, i.e., follow the same steps in the process as you would for a regular release. Most patches are authored by existing contributors (most likely maintainers themselves) so running `rever <VERSION>` may succeed on the first pass.
@@ -174,163 +167,9 @@ Currently, there are only 2 activities we use rever for, (1) aggregating the aut
     $ git checkout -b changelog-YY.MM.MICRO
     ```
 
-2. Run `rever --activities authors <VERSION>`:
-
-    > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
-    > Include `--force` when re-running any rever commands for the same `<VERSION>`, otherwise, rever will skip the activity and no changes will be made (i.e., rever remembers if an activity has been run for a given version).
-
-    ```bash
-    $ rever --activities authors --force <VERSION>
-    ```
-
-    - If rever finds that any of the authors are not correctly represented in `.authors.yml` it will produce an error. If the author that the error pertains to is:
-        - **a new contributor**: the snippet suggested by rever should be added to the `.authors.yml` file.
-        - **an existing contributor**, a result of using a new name/email combo: find the existing author in `.authors.yml` and add the new name/email combo to that author's `aliases` and `alterative_emails`.
-
-    - Once you have successfully run `rever --activities authors` with no errors, review the commit made by rever. This commit will contain updates to one or more of the author files (`.authors.yml`, `.mailmap`, and `AUTHORS.md`). Due to the race condition between `.authors.yml` and `.mailmap`, we want to extract changes made to any of the following keys in `.authors.yml` and commit them separately from the other changes in the rever commit:
-        -  `name`
-        -  `email`
-        -  `github`
-        -  `aliases`
-        -  `alternate_emails`
-
-      Other keys (e.g., `num_commits` and `first_commit`) do not need to be included in this separate commit as they will be overwritten by rever.
-
-    - Here's a sample run where we undo the commit made by rever in order to commit the changes to `.authors.yml` separately:
-
-        ```bash
-        $ rever --activities authors --force YY.MM.MICRO
-
-        # changes were made to .authors.yml as per the prior bullet
-        $ git diff --name-only HEAD HEAD~1
-        .authors.yml
-        .mailmap
-        AUTHORS.md
-
-        # undo commit
-        $ git reset --soft HEAD~1
-
-        # undo changes made to everything except .authors.yml
-        $ git restore --staged --worktree .mailmap AUTHORS.md
-        ```
-
-    - Commit these changes to `.authors.yml`:
-
-        ```bash
-        $ git add .
-        $ git commit -m "Update .authors.yml"
-        ```
-
-    - Rerun `rever --activities authors --force <VERSION>` and finally check that your `.mailmap` is correct by running:
-
-        ```bash
-        git shortlog -se
-        ```
-
-      Compare this list with `AUTHORS.md`. If they have any discrepancies, additional modifications to `.authors.yml` is needed, so repeat the above steps as needed.
-
-    - Once you are pleased with how the author's file looks, we want to undo the rever commit and commit the `.mailmap` changes separately:
-
-        ```bash
-        # undo commit (but preserve changes)
-        $ git reset --soft HEAD~1
-
-        # undo changes made to everything except .mailmap
-        $ git restore --staged --worktree .authors.yml AUTHORS.md
-        ```
-
-    - Commit these changes to `.mailmap`:
-
-        ```bash
-        $ git add .
-        $ git commit -m "Update .mailmap"
-        ```
-
-    - Continue repeating the above processes until the `.authors.yml` and `.mailmap` are corrected to your liking. After completing this, you will have at most two commits on your release branch:
-
-        ```bash
-        $ git cherry -v <release branch>
-        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
-        ```
-
-
-4. Review news snippets (ensure they are all using the correct Markdown format, **not** reStructuredText) and add additional snippets for undocumented PRs/changes as necessary.
-
-    > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
-    > We've found it useful to name news snippets with the following format: `<PR #>-<DESCRIPTIVE SLUG>`.
-    >
-    > We've also found that we like to include the PR #s inline with the text itself, e.g.:
-    >
-    > ```markdown
-    > ## Enhancements
-    >
-    > * Add `win-arm64` as a known platform (subdir). (#11778)
-    > ```
-
-    - You can utilize [GitHub's compare view][compare] to review what changes are to be included in this release. Make sure you compare the current release branch against the previous one
-
-    - Add a new news snippet for any PRs of importance that are missing.
-
-    - Commit these changes to news snippets:
-
-        ```bash
-        $ git add .
-        $ git commit -m "Update news"
-        ```
-
-    - After completing this, you will have at most three commits on your release branch:
-
-        ```bash
-        $ git cherry -v <release branch>
-        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
-        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
-        ```
-
-5. Run `rever --activities changelog`:
-
-    > **Note:** <!-- GH doesn't support nested admonitions, see https://github.com/orgs/community/discussions/16925 -->
-    > This has previously been a notoriously fickle step (likely due to incorrect regex patterns in the `rever.xsh` config file and missing `github` keys in `.authors.yml`) so beware of potential hiccups. If this fails, it's highly likely to be an innocent issue.
-
-    ```bash
-    $ rever --activities changelog --force <VERSION>
-    ```
-
-    - Any necessary modifications to `.authors.yml`, `.mailmap`, or the news snippets themselves should be amended to the previous commits.
-
-    - Once you have successfully run `rever --activities changelog` with no errors simply revert the last commit (see the next step for why):
-
-        ```bash
-        # undo commit (and discard changes)
-        $ git reset --hard HEAD~1
-        ```
-
-    - After completing this, you will have at most three commits on your release branch:
-
-        ```bash
-        $ git cherry -v <release branch>
-        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
-        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
-        ```
-
-6. Now that we have successfully run the activities separately, we wish to run both together. This will ensure that the contributor list, a side-effect of the authors activity, is included in the changelog activity.
-
-    ```bash
-    $ rever --force <VERSION>
-    ```
-
-    - After completing this, you will have at most five commits on your release branch:
-
-        ```bash
-        $ git cherry -v <release branch>
-        + 86957814cf235879498ed7806029b8ff5f400034 Update .authors.yml
-        + 3ec7491f2f58494a62f1491987d66f499f8113ad Update .mailmap
-        + 432a9e1b41a3dec8f95a7556632f9a93fdf029fd Update news
-        + a5c0db938893d2c12cab12a1f7eb3e646ed80373 Update authorship for YY.MM.MICRO
-        + 5e95169d0df4bcdc2da9a6ba4a2561d90e49f75d Update CHANGELOG for YY.MM.MICRO
-        ```
+2. Run `rever <VERSION>`
+    - All activities configured by default or in `rever.xsh` should succeed.
+    - The most common failures are missing `.authors.yaml` or `.mailmap` entries. If rever fails, reset the branch; use [prepare_release.py](https://github.com/conda/actions/blob/main/prepare-release/prepare_release.py) or [rever-fix-authors](https://github.com/dholth/rever/blob/c335d95ccde16163807a9ae8a71f90240d73e839/scripts/rever-fix-authors) to update. Then run `rever --force <VERSION>` to re-run all actions.
 
 7. Since rever does not include stats on first-time contributors, we will need to add this manually.
 
@@ -400,28 +239,17 @@ To publish the release, go to the project's release page (e.g., https://github.c
 > [!NOTE]
 > Release notes can be drafted and saved ahead of time.
 
-## 8. Merge/cherry pick the release branch over to the `main` branch.
+## 8. Merge the release branch back into `main`.
 
-<details>
-<summary>Internal process</summary>
+After the release is published, the [`merge-back.yml`][infrastructure] workflow automatically pushes a `connector-YY.MM.x` branch (a copy of `YY.MM.x`) and opens a pull request merging it into `main`.
 
-1. From the main "< > Code" page of the repository, select the drop down menu next to the `main` branch button and then select "View all branches" at the very bottom.
+> [!IMPORTANT]
+> If the pull request has [merge conflicts][merge conflicts], resolve them by merging `main` into `connector-YY.MM.x` and pushing the resulting merge commit there. Do **not** push `main` onto `YY.MM.x` itself; `connector-YY.MM.x` exists specifically so conflict resolution never touches the release branch.
 
-2. Find the applicable `YY.MM.x` branch and click the "New pull request" button.
-
-3. "Base" should point to `main` while "Compare" should point to `YY.MM.x`.
-
-4. Ensure that all of the commits being pulled in look accurate, then select "Create pull request".
-
-> [!NOTE]
-> Make sure NOT to push the "Update Branch" button. If there are [merge conflicts][merge conflicts], resolve them by merging `main` into the `YY.MM.x` branch, then push the resulting merge commit. This is now a "bridging branch" to resolve the merge conflict without placing changes from `main` on to the `YY.MM.x` branch.
-
-5. Review and merge the pull request the same as any code change pull request.
+Review and merge the pull request the same as any code change pull request.
 
 > [!NOTE]
 > The commits from the release branch need to be retained in order to be able to compare individual commits; in other words, a "merge commit" is required when merging the resulting pull request vs. a "squash merge". Protected branches will require permissions to be temporarily relaxed in order to enable this action.
-
-</details>
 
 ## 9. Open PRs to bump [Anaconda Recipes][Anaconda Recipes] and [conda-forge][conda-forge] feedstocks to use `YY.MM.MICRO`.
 

@@ -489,21 +489,20 @@ class InfoRenderer:
         from ..core.prefix_data import PrefixData
 
         result = {}
-        if active_prefix := self._context.active_prefix:
-            active_prefix_data = PrefixData(active_prefix)
-        else:
-            active_prefix_data = None
         for prefix in self._info_dict_envs:
             prefix_data = PrefixData(prefix)
             if created := prefix_data.created:
                 created = created.isoformat()
             if last_modified := prefix_data.last_modified:
                 last_modified = last_modified.isoformat()
+            if last_activated := prefix_data.last_activated:
+                last_activated = last_activated.isoformat()
             result[prefix] = {
                 "name": prefix_data.name,
                 "created": created,
                 "last_modified": last_modified,
-                "active": prefix_data == active_prefix_data,
+                "last_activated": last_activated,
+                "active": prefix_data.is_active,
                 "base": prefix_data.is_base(),
                 "frozen": prefix_data.is_frozen(),
                 "writable": prefix_data.is_writable,

@@ -52,6 +52,22 @@ def test_prefix_record_no_channel():
     )
 
 
+def test_package_record_extra_depends():
+    record = PackageRecord(name="pkg", version="1", build="0", build_number=0)
+    assert not record.extra_depends
+    assert "extra_depends" not in record.dump()
+
+    record = PackageRecord(
+        name="pkg",
+        version="1",
+        build="0",
+        build_number=0,
+        extra_depends={"cli": ["dep>=1"]},
+    )
+    assert dict(record.extra_depends) == {"cli": ("dep>=1",)}
+    assert record.json()
+
+
 def test_package_record_timestamp():
     # regression test for #6096
     ts_secs = 1507565728

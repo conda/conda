@@ -490,12 +490,12 @@ class RepodataState(UserDict):
             )
             self.pop(key)
 
-        return False, datetime.datetime.now(tz=datetime.timezone.utc)
+        return False, datetime.datetime.now(tz=datetime.UTC)
 
     def set_has_format(self, format: str, value: bool):
         key = f"has_{format}"
         self[key] = {
-            "last_checked": datetime.datetime.now(tz=datetime.timezone.utc).isoformat()[
+            "last_checked": datetime.datetime.now(tz=datetime.UTC).isoformat()[
                 : -len("+00:00")
             ]
             + "Z",
@@ -513,7 +513,7 @@ class RepodataState(UserDict):
         should_check = (
             has is True
             or isinstance(when, datetime.datetime)
-            and datetime.datetime.now(tz=datetime.timezone.utc) - when
+            and datetime.datetime.now(tz=datetime.UTC) - when
             > CHECK_ALTERNATE_FORMAT_INTERVAL
         )
         # Always check for shards if json has not been cached:

@@ -5,5 +5,5 @@ It covers the full end-to-end process: opening a release issue, running rever, p
 the release, and bumping feedstocks.
 
 :::{seealso}
-[Release process (RELEASE.md)](https://github.com/conda/conda/blob/main/RELEASE.md)
+[Release process (RELEASE.md)](https://github.com/conda/conda/blob/main/releases/RELEASE.md)
 :::

@@ -1,0 +1,27 @@
+### Title
+Run commands in the requested environment with conda-build installed.
+
+### Why
+Importing conda-build could discard the requested environment and make `conda run` use the active environment instead.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+A disposable conda installation containing the candidate conda package and conda-build 26.9.1. Do not use an existing installation.
+
+### Steps
+1. Activate the disposable installation's base environment.
+2. Create a target environment with `conda create -y -n run-target python pytest`.
+3. Run `conda run -n run-target python -c "import os, shutil; print(os.environ['CONDA_PREFIX']); print(shutil.which('pytest'))"`.
+4. Run `conda run -n run-target pytest --help`.
+5. Repeat with `--prefix` and the target's absolute path, then repeat with `--live-stream`.
+6. Run `conda run -n run-target python -c "raise SystemExit(42)"` and inspect the exit code.
+
+### Pass criteria
+The child reports the exact target prefix and resolves pytest inside that target. Pytest help succeeds, and the final command returns 42. The invoking shell remains in base.
+
+### Out of scope / notes
+The pytest regression simulates the import-time context reset. This checks the installed conda-build entry point in a fresh process. No development-mode variables or Cloudflare plugin are required.

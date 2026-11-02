@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from collections.abc import Iterable
+from datetime import datetime
 from os.path import isdir
 from pathlib import Path
 from types import SimpleNamespace
@@ -13,7 +15,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.constants import PREFIX_FROZEN_FILE
+from conda.base.constants import PREFIX_FROZEN_FILE, PREFIX_LAST_ACTIVATED_FILE
 from conda.base.context import context
 from conda.cli.main_info import get_installer_info, iter_info_components
 from conda.common.path import paths_equal
@@ -110,16 +112,19 @@ def test_info_envs(conda_cli: CondaCLIFixture):
     assert not err
 
 
-def test_info_envs_frozen(conda_cli: CondaCLIFixture, tmp_env, test_recipes_channel):
-    with tmp_env() as prefix:
-        Path(prefix, PREFIX_FROZEN_FILE).touch()
-        prefixes = list_all_known_prefixes()
+def test_info_envs_frozen(conda_cli: CondaCLIFixture, tmp_env, tmp_envs_dir):
+    with tmp_env(prefix=tmp_envs_dir / "frozen-env") as prefix:
+        (prefix / PREFIX_FROZEN_FILE).touch()
 
         stdout, stderr, err = conda_cli("info", "--envs")
-        assert stdout == ConsoleReporterRenderer.envs_list(prefixes)
-        assert " + " in stdout
         assert not stderr
         assert not err
+        frozen_row = next(
+            (line for line in stdout.splitlines() if str(prefix) in line),
+            None,
+        )
+        assert frozen_row is not None, f"env: {prefix} not listed in: {stdout}"
+        assert frozen_row.split()[1] == "+"
 
 
 # conda info --system [--json]
@@ -265,6 +270,7 @@ def test_info_json(conda_cli: CondaCLIFixture):
         "name": str,
         "created": (str, type(None)),
         "last_modified": str,
+        "last_activated": (str, type(None)),
         "active": bool,
         "base": bool,
         "frozen": bool,
@@ -296,6 +302,38 @@ def test_info_envs_json(conda_cli: CondaCLIFixture):
     first_envs_details = parsed["envs_details"][first_env]
     assert isinstance(first_envs_details, dict)
     assert "size" not in first_envs_details
+
+
+def test_info_envs_json_last_activated(
+    conda_cli: CondaCLIFixture,
+    tmp_envs_dir,
+):
+    prefix = tmp_envs_dir / "myenv"
+    (prefix / "conda-meta").mkdir(parents=True)
+    (prefix / "conda-meta" / "history").touch()
+    last_file = prefix / PREFIX_LAST_ACTIVATED_FILE
+
+    def get_envs_details(prefix) -> dict:
+        stdout, stderr, err = conda_cli("info", "--envs", "--json")
+        details = next(
+            details
+            for env_prefix, details in json.loads(stdout)["envs_details"].items()
+            if paths_equal(env_prefix, str(prefix))
+        )
+        assert not stderr
+        assert not err
+        return details
+
+    details = get_envs_details(prefix)
+    assert details["last_activated"] is None
+
+    epoch = 1234567890.0
+    last_file.touch()
+    os.utime(last_file, (epoch, epoch))
+
+    details = get_envs_details(prefix)
+    parsed = datetime.fromisoformat(details["last_activated"])
+    assert parsed.timestamp() == epoch
 
 
 def test_info_envs_size(conda_cli: CondaCLIFixture):

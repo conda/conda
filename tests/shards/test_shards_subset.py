@@ -42,12 +42,13 @@ from conda.common.compat import on_win
 from conda.core.subdir_data import SubdirData
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
+from conda.models.records import PackageRecord
+from conda.testing.http_test_server import run_test_server
 
 from .conftest import (
     CONDA_FORGE_WITH_SHARDS,
     FAKE_REPODATA,
     ROOT_PACKAGES,
-    _run_test_server,
     _timer,
     ensure_hex_hash,
     expand_channels,
@@ -59,7 +60,7 @@ if TYPE_CHECKING:
 
     from pytest_benchmark.plugin import BenchmarkFixture
 
-    from conda._private.shards.typing import ShardDict
+    from conda._private.shards.typing import RepodataDict, ShardDict
     from conda.testing.fixtures import CondaCLIFixture
 
 
@@ -214,7 +215,7 @@ def test_fetch_channels_rechecks_shards_when_needed(
 
     channel_root = tmp_path / "channel"
     channel_root.mkdir()
-    httpd = _run_test_server(str(channel_root))
+    httpd = run_test_server(str(channel_root))
     try:
         host, port = httpd.socket.getsockname()[:2]
         url_host = f"[{host}]" if ":" in host else host
@@ -270,8 +271,8 @@ def test_fetch_channels_rechecks_stale_shards_in_mixed_channels(monkeypatch, tmp
     stale_channel_root.mkdir()
     other_channel_root.mkdir()
 
-    stale_httpd = _run_test_server(str(stale_channel_root))
-    other_httpd = _run_test_server(str(other_channel_root))
+    stale_httpd = run_test_server(str(stale_channel_root))
+    other_httpd = run_test_server(str(other_channel_root))
     try:
 
         def channel_url(httpd):
@@ -474,6 +475,105 @@ def test_query_all_sharded_search(
         )
 
 
+@pytest.mark.parametrize(
+    "search_spec,expected_created,expected_results",
+    [
+        ("*xyz*", [], set()),
+        ("bar*", ["bar"], {"bar"}),
+        ("*ar*", ["bar"], {"bar"}),
+        ("BAR*", ["bar"], {"bar"}),
+        ("^b.*$", ["bar"], {"bar"}),
+        ("bar* >1", ["bar"], set()),
+        ("bar* 1 other", ["bar"], set()),
+    ],
+)
+def test_sharded_search_constructs_only_matching_names(
+    http_server_shards,
+    search_spec,
+    expected_created,
+    expected_results,
+    monkeypatch,
+    mocker,
+    tmp_path,
+):
+    """Select names before loading shards and constructing records."""
+    from conda.core.subdir_data import query_all
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path))
+    reset_context()
+    channel = Channel.from_url(f"{http_server_shards}/noarch")
+    record_init = mocker.spy(PackageRecord, "__init__")
+    visit_shard = mocker.spy(Shards, "visit_shard")
+
+    results = query_all(MatchSpec(search_spec), [channel], subdirs=["noarch"])
+
+    assert {record.name for record in results} == expected_results
+    assert [
+        call.kwargs["name"] for call in record_init.call_args_list
+    ] == expected_created
+    assert {call.args[1] for call in visit_shard.call_args_list} == set(
+        expected_created
+    )
+
+
+@pytest.mark.parametrize("search_spec", ["pyfig", "*", None])
+def test_query_all_monolithic_v3_search(
+    search_spec,
+    http_test_server,
+    monkeypatch,
+    mocker,
+    tmp_path,
+):
+    """Search v3 records when no channel provides sharded repodata."""
+    from conda.core import subdir_data
+
+    noarch = http_test_server.directory / "noarch"
+    noarch.mkdir(parents=True)
+    (noarch / "repodata.json").write_text(
+        json.dumps(
+            {
+                "info": {"subdir": "noarch"},
+                "packages": {},
+                "packages.conda": {},
+                "v3": {
+                    "whl": {
+                        "pyfig-1.0.2-py3_none_any_0": {
+                            "name": "pyfig",
+                            "version": "1.0.2",
+                            "build": "py3_none_any_0",
+                            "build_number": 0,
+                            "fn": "pyfig-1.0.2-py3-none-any.whl",
+                            "depends": [],
+                        }
+                    }
+                },
+                "repodata_version": 3,
+            }
+        )
+    )
+    channel = Channel.from_url(http_test_server.get_url("noarch"))
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    monkeypatch.setenv("CONDA_PKGS_DIRS", str(tmp_path / "pkgs"))
+    reset_context()
+    classic_search = mocker.spy(subdir_data, "_search_package")
+
+    results = subdir_data.query_all(
+        MatchSpec(search_spec), [channel], subdirs=["noarch"]
+    )
+
+    classic_search.assert_not_called()
+    assert len(results) == 1
+    assert results[0].name == "pyfig"
+    assert results[0].version == "1.0.2"
+    assert results[0].build == "py3_none_any_0"
+    assert results[0].fn == "pyfig-1.0.2-py3-none-any.whl"
+    assert results[0].subdir == "noarch"
+    assert results[0].url == http_test_server.get_url(
+        "noarch/pyfig-1.0.2-py3-none-any.whl"
+    )
+
+
 class TestAddPipAsPythonDependency:
     """Tests for add_pip_as_python_dependency context setting"""
 
@@ -543,6 +643,462 @@ class TestAddPipAsPythonDependency:
         assert "python-3.10-0.tar.bz2" not in filtered["packages"]
         # .conda versions should remain
         assert "python-3.10-0.conda" in filtered["packages.conda"]
+
+
+def _root_extras_repodata() -> RepodataDict:
+    """
+    Small hand-built repodata: "httpx" depends on "core-dep" and offers two
+    CEP 44 extras groups ("cli" -> "cli-dep", "http2" -> "http2-dep"), each
+    with no further dependencies of their own.
+
+    "core-dep" has its own `extras_depends` that we use to make sure we
+    don't recursively fetch all extras.
+    """
+    return {
+        "info": {"base_url": ""},
+        "packages": {},
+        "packages.conda": {
+            "httpx-0.28.0-0.conda": {
+                "name": "httpx",
+                "version": "0.28.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": ["core-dep"],
+                "extra_depends": {
+                    "cli": ["cli-dep"],
+                    "http2": ["http2-dep"],
+                },
+            },
+            "core-dep-1.0-0.conda": {
+                "name": "core-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+                "extra_depends": {
+                    "core-extra": ["core-extra-dep"],
+                },
+            },
+            "cli-dep-1.0-0.conda": {
+                "name": "cli-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+            },
+            "http2-dep-1.0-0.conda": {
+                "name": "http2-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+            },
+            "core-extra-dep-1.0-0.conda": {
+                "name": "core-extra-dep",
+                "version": "1.0",
+                "build": "0",
+                "build_number": 0,
+                "depends": [],
+            },
+        },
+        "repodata_version": 2,
+    }  # type: ignore[typeddict-item]
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_root_extras_fetches_only_requested_group(algorithm):
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm, root_extras={"httpx": ["cli"]})
+
+    assert "httpx" in shardlike.visited
+    assert "core-dep" in shardlike.visited
+    assert "cli-dep" in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_no_root_extras_is_backward_compatible(algorithm):
+    """Omitting root_extras behaves exactly as before this feature."""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm)
+
+    assert "httpx" in shardlike.visited
+    assert "core-dep" in shardlike.visited
+    assert "cli-dep" not in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_root_extras_unknown_root_package_ignored(algorithm):
+    """root_extras for a package name absent from root_packages is a no-op."""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm, root_extras={"unrelated": ["cli"]})
+
+    assert "cli-dep" not in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_root_extras_does_not_recurse(algorithm):
+    """Extras of dependencies that no spec explicitly requested are not fetched"""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike])
+    subset.reachable(["httpx"], strategy=algorithm, root_extras={"httpx": ["http2"]})
+
+    assert "httpx" in shardlike.visited
+    assert "core-dep" in shardlike.visited
+    assert "http2-dep" in shardlike.visited
+    assert "core-extra-dep" not in shardlike.visited
+
+
+def _extras_repodata(packages: dict[str, dict]) -> RepodataDict:
+    """
+    Build repodata from ``{name: {"depends": [...], "extra_depends": {...}}}``.
+    """
+    records = {}
+    for name, fields in packages.items():
+        records[f"{name}-1.0-0.conda"] = {
+            "name": name,
+            "version": "1.0",
+            "build": "0",
+            "build_number": 0,
+            "depends": fields.get("depends", []),
+            **(
+                {"extra_depends": fields["extra_depends"]}
+                if "extra_depends" in fields
+                else {}
+            ),
+        }
+    return {
+        "info": {"base_url": ""},
+        "packages": {},
+        "packages.conda": records,
+        "repodata_version": 2,
+    }  # type: ignore[typeddict-item]
+
+
+def _visited_after(packages, roots, algorithm, root_extras=None, **kwargs):
+    """
+    Run ``algorithm`` over ``packages`` and return the set of visited names.
+    """
+    shardlike = ShardLike(_extras_repodata(packages), "https://example.com/noarch/")
+    subset = RepodataSubset([shardlike], **kwargs)
+    subset.reachable(roots, strategy=algorithm, root_extras=root_extras)
+    return set(shardlike.visited)
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_follow_dependency_spec(algorithm, solver_rattler):
+    """Issue #16891: pkg-t[extras=cli] -> pkg-u[extras=more] -> pkg-v."""
+    visited = _visited_after(
+        {
+            "pkg-t": {"extra_depends": {"cli": ["pkg-u[extras=more]"]}},
+            "pkg-u": {"extra_depends": {"more": ["pkg-v"]}},
+            "pkg-v": {},
+        },
+        ["pkg-t"],
+        algorithm,
+        root_extras={"pkg-t": ["cli"]},
+    )
+    assert visited == {"pkg-t", "pkg-u", "pkg-v"}
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_from_plain_depends(algorithm, solver_rattler):
+    """Extras on a regular dependency are followed without any root extras."""
+    visited = _visited_after(
+        {
+            "root": {"depends": ["dep[extras=x]"]},
+            "dep": {"extra_depends": {"x": ["x-dep"], "y": ["y-dep"]}},
+            "x-dep": {},
+            "y-dep": {},
+        },
+        ["root"],
+        algorithm,
+    )
+    assert visited == {"root", "dep", "x-dep"}
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_unrequested_group_stays_inactive(algorithm, solver_rattler):
+    """Only the group named in the dependency spec is followed, not its siblings."""
+    visited = _visited_after(
+        {
+            "pkg-t": {"extra_depends": {"cli": ["pkg-u[extras=more]"]}},
+            "pkg-u": {"extra_depends": {"more": ["pkg-v"], "other": ["pkg-w"]}},
+            "pkg-v": {},
+            "pkg-w": {},
+        },
+        ["pkg-t"],
+        algorithm,
+        root_extras={"pkg-t": ["cli"]},
+    )
+    assert "pkg-v" in visited
+    assert "pkg-w" not in visited
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_revisit_with_additional_group(algorithm, solver_rattler):
+    """
+    "shared" is first reached with group "a"; a deeper dependent later activates
+    group "b" on the already expanded node. Both groups must be fetched.
+    """
+    visited = _visited_after(
+        {
+            "root": {"depends": ["shared[extras=a]", "mid"]},
+            "mid": {"depends": ["deep"]},
+            "deep": {"depends": ["shared[extras=b]"]},
+            "shared": {
+                "extra_depends": {"a": ["a-dep"], "b": ["b-dep"], "c": ["c-dep"]}
+            },
+            "a-dep": {},
+            "b-dep": {},
+            "c-dep": {},
+        },
+        ["root"],
+        algorithm,
+    )
+    assert visited == {"root", "mid", "deep", "shared", "a-dep", "b-dep"}
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_cycle_terminates(algorithm, solver_rattler):
+    """Packages that request each other's extras in a cycle do not loop forever."""
+    visited = _visited_after(
+        {
+            "a": {"extra_depends": {"x": ["b[extras=y]"]}},
+            "b": {"extra_depends": {"y": ["a[extras=x]", "b-dep"]}},
+            "b-dep": {},
+        },
+        ["a"],
+        algorithm,
+        root_extras={"a": ["x"]},
+    )
+    assert visited == {"a", "b", "b-dep"}
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_combine_with_root_extras(algorithm, solver_rattler):
+    """Root extras and extras from a dependency spec are both followed."""
+    visited = _visited_after(
+        {
+            "root": {"depends": ["pkg-u[extras=b]"]},
+            "pkg-u": {"extra_depends": {"a": ["a-dep"], "b": ["b-dep"]}},
+            "a-dep": {},
+            "b-dep": {},
+        },
+        ["root", "pkg-u"],
+        algorithm,
+        root_extras={"pkg-u": ["a"]},
+    )
+    assert visited == {"root", "pkg-u", "a-dep", "b-dep"}
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_respect_depth(algorithm, solver_rattler):
+    """Extras traversal stops at the configured depth limit."""
+    packages = {
+        "pkg-t": {"extra_depends": {"cli": ["pkg-u[extras=more]"]}},
+        "pkg-u": {"extra_depends": {"more": ["pkg-v"]}},
+        "pkg-v": {},
+    }
+    visited = _visited_after(
+        packages,
+        ["pkg-t"],
+        algorithm,
+        root_extras={"pkg-t": ["cli"]},
+        depth=1,
+    )
+    assert "pkg-u" in visited
+    assert "pkg-v" not in visited
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_shorter_path_reexpands_node(algorithm, solver_rattler):
+    """
+    "c" is first found at distance 3 via r -> a -> b -> c. When "b" activates
+    "s[extras=x]", the shorter path r -> s -> c puts "c" at distance 2, so its
+    dependency "d" fits within depth=3 and must be reached.
+    """
+    visited = _visited_after(
+        {
+            "r": {"depends": ["a", "s"]},
+            "a": {"depends": ["b"]},
+            "b": {"depends": ["c", "s[extras=x]"]},
+            "s": {"extra_depends": {"x": ["c"]}},
+            "c": {"depends": ["d"]},
+            "d": {},
+        },
+        ["r"],
+        algorithm,
+        depth=3,
+    )
+    assert visited == {"r", "a", "b", "s", "c", "d"}
+
+
+@pytest.mark.parametrize("algorithm", ("bfs", "pipelined"))
+def test_transitive_extras_unrequested_extras_do_not_recurse(algorithm):
+    """Without explicit extras on the spec, a dependency's groups stay inactive."""
+    visited = _visited_after(
+        {
+            "root": {"depends": ["dep"]},
+            "dep": {"extra_depends": {"x": ["x-dep"]}},
+            "x-dep": {},
+        },
+        ["root"],
+        algorithm,
+    )
+    assert visited == {"root", "dep"}
+
+
+class _LazyShardLike(ShardLike):
+    """
+    In-memory shards that count as "not loaded" until the traversal visits
+    them, like a network ``Shards``, so the pipelined workers are exercised.
+    """
+
+    def shard_loaded(self, package: str) -> bool:
+        return package in self.visited
+
+
+@pytest.mark.parametrize("revisit_after_arrival", (True, False))
+def test_pipelined_extras_revisit_does_not_refetch_shard(
+    revisit_after_arrival, solver_rattler
+):
+    """
+    A second group activated on "shared" is picked up without requesting its
+    shard again, whether the shard already arrived or is still in flight.
+    """
+    depends_mid = ["deep"] if revisit_after_arrival else ["shared[extras=b]"]
+    packages = {
+        "root": {"depends": ["shared[extras=a]", "mid"]},
+        "mid": {"depends": depends_mid},
+        "shared": {"extra_depends": {"a": ["a-dep"], "b": ["b-dep"]}},
+        "a-dep": {},
+        "b-dep": {},
+        "deep": {"depends": ["shared[extras=b]"]},
+    }
+    shardlike = _LazyShardLike(
+        _extras_repodata(packages), "https://example.com/noarch/"
+    )
+    requested: list[NodeId] = []
+
+    def fake_worker(in_queue, out_queue, cache, shardlikes):
+        # stands in for both the cache and network threads
+        by_url = {s.url: s for s in shardlikes}
+        for batch in combine_batches_until_none(in_queue):
+            requested.extend(batch)
+            out_queue.put(
+                [
+                    (node_id, by_url[node_id.channel].shards[node_id.package])
+                    for node_id in batch
+                ]
+            )
+
+    subset = RepodataSubset([shardlike])
+    in_queue: SimpleQueue = SimpleQueue()
+    out_queue: SimpleQueue = SimpleQueue()
+    worker = threading.Thread(
+        target=fake_worker,
+        args=(in_queue, out_queue, None, subset.shardlikes),
+        daemon=True,
+    )
+    worker.start()
+    try:
+        subset._pipelined_traversal(["root"], in_queue, out_queue, worker, worker)
+    finally:
+        in_queue.put(None)
+        worker.join(5)
+
+    assert {"a-dep", "b-dep"} <= set(shardlike.visited)
+    assert [node_id.package for node_id in requested].count("shared") == 1
+
+
+def test_pipelined_extras_revisit_while_previous_revisit_in_flight(solver_rattler):
+    """
+    Two dependents activate different groups on an already expanded node
+    before the first revisit is processed. The node must be queued only once
+    (in_flight is a set), and both groups must still be followed.
+    """
+    packages = {
+        "root": {"depends": ["shared[extras=a]", "p0"]},
+        "p0": {"depends": ["p1", "p2"]},
+        "p1": {"depends": ["shared[extras=b]"]},
+        "p2": {"depends": ["shared[extras=c]"]},
+        "shared": {"extra_depends": {"a": ["a-dep"], "b": ["b-dep"], "c": ["c-dep"]}},
+        "a-dep": {},
+        "b-dep": {},
+        "c-dep": {},
+    }
+    shardlike = _LazyShardLike(
+        _extras_repodata(packages), "https://example.com/noarch/"
+    )
+
+    def slow_worker(in_queue, out_queue, cache, shardlikes):
+        # deliver results one at a time, slowly, so that several dependents are
+        # processed before an earlier revisit of "shared" is consumed
+        for batch in combine_batches_until_none(in_queue):
+            time.sleep(0.05)
+            for node_id in batch:
+                out_queue.put([(node_id, shardlike.shards[node_id.package])])
+
+    subset = RepodataSubset([shardlike])
+    in_queue: SimpleQueue = SimpleQueue()
+    out_queue: SimpleQueue = SimpleQueue()
+    worker = threading.Thread(
+        target=slow_worker, args=(in_queue, out_queue, None, [shardlike]), daemon=True
+    )
+    worker.start()
+    try:
+        subset._pipelined_traversal(["root"], in_queue, out_queue, worker, worker)
+    finally:
+        in_queue.put(None)
+        worker.join(5)
+
+    assert {"a-dep", "b-dep", "c-dep"} <= set(shardlike.visited)
+
+
+def test_build_repodata_subset_transitive_extras(monkeypatch, solver_rattler):
+    """Cover the public build_repodata_subset() API with the issue scenario."""
+    shardlike = ShardLike(
+        _extras_repodata(
+            {
+                "pkg-t": {"extra_depends": {"cli": ["pkg-u[extras=more]"]}},
+                "pkg-u": {"extra_depends": {"more": ["pkg-v"]}},
+                "pkg-v": {},
+            }
+        ),
+        "https://example.com/noarch/",
+    )
+    monkeypatch.setattr(
+        shards_subset,
+        "fetch_channels",
+        lambda channels: {shardlike.url: shardlike},
+    )
+
+    channel_data = build_repodata_subset(["pkg-t"], {}, root_extras={"pkg-t": ["cli"]})
+
+    assert channel_data is not None
+    assert set(shardlike.visited) == {"pkg-t", "pkg-u", "pkg-v"}
+
+
+def test_build_repodata_subset_root_extras(monkeypatch):
+    """Cover the public build_repodata_subset() API, not just RepodataSubset."""
+    shardlike = ShardLike(_root_extras_repodata(), "https://example.com/noarch/")
+    monkeypatch.setattr(
+        shards_subset,
+        "fetch_channels",
+        lambda channels: {shardlike.url: shardlike},
+    )
+
+    channel_data = build_repodata_subset(["httpx"], {}, root_extras={"httpx": ["cli"]})
+
+    assert channel_data is not None
+    assert "cli-dep" in shardlike.visited
+    assert "http2-dep" not in shardlike.visited
 
 
 def clean_cache(conda_cli: CondaCLIFixture):
@@ -801,6 +1357,7 @@ def test_shards_network_thread(http_server_shards, shard_cache_with_data, monkey
     assert isinstance(shard_out_queue.get(timeout=1), TypeError)
 
     # Thread exits after exception.
+    network_thread.join(timeout=5)
     assert not network_thread.is_alive()
 
     # The network_in_queue() has an unnecessary None from its exception handler,
@@ -1109,7 +1666,9 @@ def test_pipelined_uses_offline_worker(monkeypatch):
     actual_network_worker = None
 
     class RepodataSubsetRememberWorker(RepodataSubset):
-        def _reachable_pipelined(self, root_packages, network_worker, cache):
+        def _reachable_pipelined(
+            self, root_packages, network_worker, cache, root_extras=None
+        ):
             nonlocal actual_network_worker
 
             actual_network_worker = network_worker

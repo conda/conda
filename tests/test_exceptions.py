@@ -5,7 +5,6 @@ import json
 import sys
 from contextlib import nullcontext
 from datetime import timedelta
-from unittest.mock import patch
 
 import pytest
 import requests
@@ -28,6 +27,9 @@ from conda.exceptions import (
     ExceptionHandler,
     InvalidInstaller,
     KnownPackageClobberError,
+    LinkError,
+    LinkScriptError,
+    LinkSourceNotFoundError,
     PackagesNotFoundError,
     PackagesNotFoundInChannelsError,
     PathNotFoundError,
@@ -841,8 +843,6 @@ def test_print_unexpected_error_message_upload_3(
     assert "conda version" in stderr
 
 
-@patch("requests.post", return_value=None)
-@patch("builtins.input", return_value="n")
 def test_print_unexpected_error_message_opt_out_1(
     mocker: MockerFixture,
     monkeypatch: MonkeyPatch,
@@ -867,15 +867,14 @@ def test_print_unexpected_error_message_opt_out_1(
     assert "conda version" in stderr
 
 
-@patch("requests.post", return_value=None)
-@patch("builtins.input", return_value="n")
-@patch("os.isatty", return_value=True)
 def test_print_unexpected_error_message_opt_out_2(
-    isatty_mock,
-    input_mock,
-    post_mock,
+    mocker: MockerFixture,
     capsys: CaptureFixture,
-):
+) -> None:
+    mocker.patch("os.isatty", return_value=True)
+    input_mock = mocker.patch("builtins.input", return_value="n")
+    post_mock = mocker.patch("requests.post", return_value=None)
+
     ExceptionHandler()(_raise_helper, AssertionError())
     stdout, stderr = capsys.readouterr()
 
@@ -1754,3 +1753,54 @@ def test_CondaError_caused_by_positional_and_keyword_rejected() -> None:
 def test_CondaError_too_many_positionals_rejected() -> None:
     with pytest.raises(TypeError, match="positional arguments"):
         CondaError("boom", ValueError("a"), ValueError("b"))
+
+
+def test_link_source_not_found_error():
+    src = "/prefix/pkgs/cache/python-3.11.0-h1234_0"
+    exc = LinkSourceNotFoundError(src)
+
+    # message must stay byte-identical to the historical CondaError text;
+    # third-party tools (e.g. conda-build) may match on it
+    assert str(exc) == (
+        f"Cannot link a source that does not exist. {src}\n"
+        "Running `conda clean --packages` may resolve your problem."
+    )
+    assert exc.src == src
+    assert isinstance(exc, CondaError)
+
+
+def test_link_script_error():
+    prec = AttrDict(dist_str="openssl-3.0.0-h7f8727e_0")
+    message = "post-link failed for: openssl-3.0.0-h7f8727e_0"
+    exc = LinkScriptError(
+        message,
+        action="post-link",
+        prec=prec,
+        path="/prefix/pkgs/cache/openssl/bin/.post-link.sh",
+    )
+
+    # LinkScriptError must remain catchable as LinkError / CondaError
+    assert isinstance(exc, LinkError)
+    assert isinstance(exc, CondaError)
+    assert str(exc) == message
+    assert exc.action == "post-link"
+    assert exc.prec is prec
+    assert exc.path == "/prefix/pkgs/cache/openssl/bin/.post-link.sh"
+
+
+def test_link_errors_forward_conda_error_kwargs():
+    # guidance/caused_by must reach CondaError like for every other error type
+    guidance = {"hints": [{"text": "try again", "hint_code": "retry"}]}
+
+    for exc in (
+        LinkError("boom", guidance=guidance),
+        LinkScriptError(
+            "boom",
+            action="post-link",
+            prec=AttrDict(),
+            path="/tmp/.post-link.sh",
+            guidance=guidance,
+        ),
+    ):
+        assert exc.guidance is not None
+        assert exc.guidance.hints[0].hint_code == "retry"

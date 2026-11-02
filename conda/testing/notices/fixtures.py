@@ -4,9 +4,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
-from unittest import mock
 
 import pytest
 
@@ -15,23 +13,24 @@ from ...base.context import reset_context
 from ...cli.conda_argparse import generate_parser
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from pathlib import Path
     from unittest.mock import MagicMock
 
     from pytest_mock import MockerFixture
 
 
 @pytest.fixture(scope="function")
-def notices_cache_dir(tmpdir):
+def notices_cache_dir(mocker: MockerFixture, tmp_path: Path) -> Iterator[Path]:
     """
     Fixture that creates the notices cache dir while also mocking
     out a call to user_cache_dir.
     """
-    with mock.patch("conda.notices.cache.user_cache_dir") as user_cache_dir:
-        user_cache_dir.return_value = tmpdir
-        cache_dir = Path(tmpdir).joinpath(NOTICES_CACHE_SUBDIR)
-        cache_dir.mkdir(parents=True, exist_ok=True)
+    mocker.patch("conda.notices.cache.user_cache_dir", return_value=tmp_path)
+    cache_dir = tmp_path / NOTICES_CACHE_SUBDIR
+    cache_dir.mkdir(parents=True, exist_ok=True)
 
-        yield cache_dir
+    yield cache_dir
 
 
 @pytest.fixture(scope="function")

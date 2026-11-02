@@ -1,0 +1,29 @@
+### Title
+Create an environment from the conda-pypi channel (MatchSpec extras)
+
+### Why
+Solving from channels whose repodata uses CEP 44 extras (e.g. conda-pypi) crashed with `AttributeError: 'PackageRecord' object has no attribute 'extras'` (#16822).
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+Network access to the `conda-pypi` channel on anaconda.org.
+
+### Steps
+1. Run `conda create -n langfuse -c conda-pypi langfuse --yes`.
+2. Activate the new environment and run `python -c "import langfuse"`.
+3. Run `conda list -n langfuse langfuse`.
+4. Remove the environment with `conda remove -n langfuse --all --yes`.
+
+### Pass criteria
+- The solve completes without an `AttributeError` and the transaction finishes.
+- `import langfuse` succeeds in the new environment.
+- `conda list` shows langfuse from the conda-pypi channel.
+
+### Out of scope / notes
+- Do not validate that optional extras pull in their additional dependencies since this is still being worked on.
+- Solver-side unioning of `extra_depends` is covered by rattler.
+- Record matching semantics are covered by `tests/models/test_match_spec.py::test_extras_specs_match_records`.

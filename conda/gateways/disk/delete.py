@@ -135,7 +135,10 @@ def rmtree(path):
                     )
 
             shutil.rmtree(".empty")
-    shutil.rmtree(path)
+    # On Windows, RD /S /Q (or the bat fallback) already removes the directory.
+    # Calling shutil.rmtree unconditionally then raises FileNotFoundError (#16539).
+    if isdir(path):
+        shutil.rmtree(path)
 
 
 def unlink_or_rename_to_trash(path):

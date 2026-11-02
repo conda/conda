@@ -71,6 +71,7 @@ from .decompression import decompress_shard
 from .misc import (
     _shards_connections,
     combine_batches_until_none,
+    ensure_hex_hashes,
     exception_to_queue,
     filter_redundant_packages,
     spec_to_package_name,
@@ -80,13 +81,13 @@ from .shards import (
     batch_retrieve_from_cache,
     batch_retrieve_from_network,
     fetch_channels,
-    shard_mentioned_packages,
+    shard_mentioned_package_extras,
 )
 
 log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator, Sequence
+    from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
     from queue import SimpleQueue as Queue
     from typing import Literal, TypeVar
 
@@ -111,6 +112,16 @@ class Node:
     channel: str = ""
     visited: bool = False
     shard_url: str = ""
+    # Extras requested for this package, either via a root level MatchSpec
+    # (e.g. package[extras=extras_group]) or by a dependency spec of another
+    # fetched package. Grows as more dependents activate additional groups.
+    requested_extras: frozenset[str] = frozenset()
+    # Groups in requested_extras whose extra_depends have already been
+    # traversed. Pending groups are requested_extras - expanded_extras.
+    expanded_extras: frozenset[str] = frozenset()
+    # True once depends (and the requested groups) have been traversed, so a
+    # later revisit only has to traverse newly activated groups.
+    expanded: bool = False
 
     def to_id(self) -> NodeId:
         return NodeId(self.package, self.channel, self.shard_url)
@@ -127,16 +138,23 @@ class NodeId:
 
 
 def _nodes_from_packages(
-    root_packages: list[str], shardlikes: Iterable[ShardBase]
+    root_packages: list[str],
+    shardlikes: Iterable[ShardBase],
+    root_extras: Mapping[str, Iterable[str]] | None = None,
 ) -> Iterator[tuple[NodeId, Node]]:
     """
     Yield (NodeId, Node) for all root packages found in shardlikes.
     """
     for package in root_packages:
+        requested_extras = frozenset((root_extras or {}).get(package, ()))
         for shardlike in shardlikes:
             if package in shardlike:
                 node = Node(
-                    0, package, shardlike.url, shard_url=shardlike.shard_url(package)
+                    0,
+                    package,
+                    shardlike.url,
+                    shard_url=shardlike.shard_url(package),
+                    requested_extras=requested_extras,
                 )
                 node_id = node.to_id()
                 yield node_id, node
@@ -183,9 +201,43 @@ class RepodataSubset:
         """
         return hasattr(cls, f"reachable_{strategy}")
 
+    def _expansion_specs(
+        self, node: Node, shard: ShardDict
+    ) -> Iterator[tuple[str, frozenset[str]]]:
+        """
+        Yield ``(package name, extras requested by the spec)`` for everything
+        reachable from ``shard`` that has not been traversed for ``node`` yet.
+
+        On the first expansion that is the shard's ``depends`` plus every
+        group in ``node.requested_extras``. When the node is revisited because
+        another dependency activated additional groups, only those new groups
+        are traversed. Records the groups as expanded on the node.
+        """
+        first_expansion = not node.expanded
+        pending_extras = node.requested_extras - node.expanded_extras
+        node.expanded = True
+        node.expanded_extras = node.requested_extras
+
+        if first_expansion:
+            # ensure solver has "pip" record if add_pip_as_python_dependency:
+            if self._add_pip_as_python_dependency and node.package == "python":
+                yield "pip", frozenset()
+        elif not pending_extras:
+            return
+
+        yield from shard_mentioned_package_extras(
+            shard,
+            extras=pending_extras,
+            include_depends=first_expansion,
+            spec_to_package_name=self._spec_to_package_name,
+            repodata_version=self._repodata_version,
+        )
+
     def _neighbors(self, node: Node) -> Iterator[Node]:
         """
-        Retrieve all unvisited neighbors of a node.
+        Retrieve all unvisited neighbors of a node, plus already visited
+        neighbors that need to be revisited because this node's dependency
+        specs activate additional extras groups on them.
 
         Neighbors in the context are dependencies of a package.
 
@@ -193,45 +245,53 @@ class RepodataSubset:
         retrieved from the network via batch_retrieve_from_network() before
         neighbors() is called. It uses visit_package() to access already-loaded shards.
         """
-        discovered = set()
+        shardlike = next((s for s in self.shardlikes if s.url == node.channel), None)
+        if shardlike is None or node.package not in shardlike:
+            return
 
-        for shardlike in self.shardlikes:
-            if node.package not in shardlike:
-                continue
+        # Get the shard that should already be loaded in memory.
+        # For Shards, this assumes fetch_shards() was called before neighbors()
+        # is called. For ShardLike, visit_package() returns the shard immediately.
+        shard = shardlike.visit_package(node.package)
 
-            # Get the shard that should already be loaded in memory.
-            # For Shards, this assumes fetch_shards() was called before neighbors()
-            # is called. For ShardLike, visit_package() returns the shard immediately.
-            shard = shardlike.visit_package(node.package)
+        shard = filter_redundant_packages(shard, self._use_only_tar_bz2)
+        # Store the filtered shard so we'll see it when we call
+        # build_repodata()
+        shardlike.visit_shard(node.package, shard)
 
-            shard = filter_redundant_packages(shard, self._use_only_tar_bz2)
-            # Store the filtered shard so we'll see it when we call
-            # build_repodata()
-            shardlike.visit_shard(node.package, shard)
+        for package, extras in self._expansion_specs(node, shard):
+            # A mentioned package is broadcast to every channel that has it.
+            for target in self.shardlikes:
+                if package not in target:
+                    continue
+                shard_url = target.shard_url(package)
+                node_id = NodeId(package, target.url, shard_url)
+                existing = self._nodes.get(node_id)
 
-            # ensure solver has "pip" record if add_pip_as_python_dependency:
-            extra = (
-                ("pip",)
-                if self._add_pip_as_python_dependency and node.package == "python"
-                else ()
-            )
-            for package in shard_mentioned_packages(
-                shard,
-                extra=extra,
-                spec_to_package_name=self._spec_to_package_name,
-                repodata_version=self._repodata_version,
-            ):
-                node_id = NodeId(package, shardlike.url)
-
-                if node_id not in self._nodes:
+                if existing is None:
                     self._nodes[node_id] = Node(
-                        node.distance + 1, package, shardlike.url
+                        node.distance + 1,
+                        package,
+                        target.url,
+                        shard_url=shard_url,
+                        requested_extras=extras,
                     )
                     yield self._nodes[node_id]
-
-                    if package not in discovered:
-                        # now this is per package name, not per (name, channel) tuple
-                        discovered.add(package)
+                else:
+                    new_extras = extras - existing.requested_extras
+                    existing.requested_extras |= new_extras
+                    revisit = bool(new_extras) and existing.visited
+                    if node.distance + 1 < existing.distance:
+                        # A shorter path was found (e.g. via late-activated
+                        # extras); re-expand so dependencies use the new distance.
+                        existing.distance = node.distance + 1
+                        existing.expanded = False
+                        existing.expanded_extras = frozenset()
+                        revisit = True
+                    if revisit:
+                        # Shard is already in memory; revisit it.
+                        existing.visited = False
+                        yield existing
 
     def _outgoing(self, node: Node):
         """
@@ -245,17 +305,36 @@ class RepodataSubset:
         for n in self._neighbors(node):
             yield n, 1
 
-    def reachable(self, root_packages, *, strategy=DEFAULT_STRATEGY) -> None:
+    def reachable(
+        self,
+        root_packages,
+        *,
+        strategy=DEFAULT_STRATEGY,
+        root_extras: Mapping[str, Iterable[str]] | None = None,
+    ) -> None:
         """
         Run named reachability strategy or the default.
 
         Update `self.shardlikes` with reachable package records. Later,
         [shardlike.build_repodata() for shardlike in shardlikes] can be used to
         generate repodata.json-format subsets of each channel.
-        """
-        return getattr(self, f"reachable_{strategy}")(root_packages)
 
-    def reachable_bfs(self, root_packages):
+        Args:
+            root_packages: installed and requested package names.
+            strategy: traversal algorithm, "bfs" or "pipelined".
+            root_extras: optional mapping of root package name to an iterable
+                of CEP 44 extras requested for it (e.g. `{"package": ["extras_group"]}`).
+                Extras explicitly set on dependency specs of fetched packages
+                (e.g. `pkg-u[extras=more]`) are followed transitively;
+                groups that nobody requested stay inactive.
+        """
+        return getattr(self, f"reachable_{strategy}")(
+            root_packages, root_extras=root_extras
+        )
+
+    def reachable_bfs(
+        self, root_packages, root_extras: Mapping[str, Iterable[str]] | None = None
+    ):
         """
         Fetch all packages reachable from `root_packages`' by following
         dependencies using the "breadth-first search" algorithm.
@@ -266,20 +345,29 @@ class RepodataSubset:
         with cache.ShardCache(
             Path(conda.gateways.repodata.create_cache_dir())
         ) as shard_cache:
-            return self._reachable_bfs(root_packages, shard_cache)
+            return self._reachable_bfs(root_packages, shard_cache, root_extras)
 
-    def _reachable_bfs(self, root_packages, shard_cache: cache.ShardCache):
+    def _reachable_bfs(
+        self,
+        root_packages,
+        shard_cache: cache.ShardCache,
+        root_extras: Mapping[str, Iterable[str]] | None = None,
+    ):
         """
         Inner reachable_bfs() implementation.
         """
-        self._nodes = dict(_nodes_from_packages(root_packages, self.shardlikes))
+        self._nodes = dict(
+            _nodes_from_packages(root_packages, self.shardlikes, root_extras)
+        )
 
         node_queue = deque(self._nodes.values())
 
         while node_queue:
             # Batch fetch all nodes at current level
-            to_retrieve = {node.package for node in node_queue if not node.visited}
-            if to_retrieve:  # pragma: no branch
+            # Revisited nodes (new extras groups) already have their shard in
+            # memory; only fetch nodes that have never been expanded.
+            to_retrieve = {node.package for node in node_queue if not node.expanded}
+            if to_retrieve:
                 # Fetch from cache and network, getting ShardFetch objects for network fetches
                 needs_network = batch_retrieve_from_cache(
                     self.shardlikes, sorted(to_retrieve), shard_cache
@@ -291,8 +379,11 @@ class RepodataSubset:
             level_size = len(node_queue)
             for _ in range(level_size):
                 node = node_queue.popleft()
-                if node.visited:  # pragma: no cover
-                    continue  # we should never add visited nodes to node_queue
+                if node.visited:
+                    # Queued twice in one level; extras merged into the node
+                    # before its first expansion have already been handled.
+                    # Later merges reset visited and queue it again.
+                    continue
                 node.visited = True
 
                 for next_node, _ in self._outgoing(node):
@@ -301,7 +392,9 @@ class RepodataSubset:
                     ):  # pragma: no branch
                         node_queue.append(next_node)
 
-    def reachable_pipelined(self, root_packages):
+    def reachable_pipelined(
+        self, root_packages, root_extras: Mapping[str, Iterable[str]] | None = None
+    ):
         """
         Fetch all packages reachable from `root_packages`' by following
         dependencies.
@@ -324,7 +417,10 @@ class RepodataSubset:
             Path(conda.gateways.repodata.create_cache_dir())
         ) as cache_instance:
             return self._reachable_pipelined(
-                root_packages, network_worker=network_worker, cache=cache_instance
+                root_packages,
+                network_worker=network_worker,
+                cache=cache_instance,
+                root_extras=root_extras,
             )
 
     def _reachable_pipelined(
@@ -340,6 +436,7 @@ class RepodataSubset:
             None,
         ],
         cache: cache.ShardCache,
+        root_extras: Mapping[str, Iterable[str]] | None = None,
     ):
         """
         Set up queues and threads for shard traversal with a configurable
@@ -378,6 +475,7 @@ class RepodataSubset:
                 shard_out_queue,
                 cache_thread,
                 network_thread,
+                root_extras=root_extras,
             )
         finally:
             cache_in_queue.put(None)
@@ -392,6 +490,7 @@ class RepodataSubset:
         shard_out_queue: Queue[list[tuple[NodeId, ShardDict]] | Exception],
         cache_thread: threading.Thread,
         network_thread: threading.Thread,
+        root_extras: Mapping[str, Iterable[str]] | None = None,
     ):
         """
         Run reachability algorithm given queues to submit and receive shards.
@@ -405,13 +504,24 @@ class RepodataSubset:
 
         # create start condition
         parent_node = Node(0)
-        pending.update(self._visit_node(parent_node, root_packages))
+        # root_extras only seeds the initial root packages; extras on
+        # dependencies come from their own specs (see _expansion_specs).
+        pending.update(
+            self._visit_node(
+                parent_node,
+                ((package, frozenset()) for package in root_packages),
+                extras_by_package=root_extras,
+            )
+        )
 
         def pump():
             """
             Find shards we already have and those we need. Submit those need to
             cache_in_queue, those we have to shard_out_queue.
             """
+            # A node that is already in flight will pick up any extras merged
+            # into it when its queued shard is processed; don't queue it twice.
+            pending.difference_update(in_flight)
             have, need = self._drain_pending(pending, shardlikes_by_url)
             if need:
                 in_flight.update(need)
@@ -485,49 +595,70 @@ class RepodataSubset:
                 shardlike = shardlikes_by_url[node_id.channel]
                 shardlike.visit_shard(node_id.package, shard)
 
-                # ensure solver has "pip" record if add_pip_as_python_dependency:
-                extra = (
-                    ("pip",)
-                    if self._add_pip_as_python_dependency
-                    and parent_node.package == "python"
-                    else ()
-                )
+                # parent_node here is actually the node whose shard just
+                # arrived (not its parent). Follow its dependencies and any
+                # requested extras groups that were not traversed yet.
                 pending.update(
                     self._visit_node(
                         parent_node,
-                        shard_mentioned_packages(
-                            shard,
-                            extra=extra,
-                            spec_to_package_name=self._spec_to_package_name,
-                            repodata_version=self._repodata_version,
-                        ),
+                        self._expansion_specs(parent_node, shard),
                     )
                 )
 
     def _visit_node(
-        self, parent_node: Node, mentioned_packages: Iterable[str]
+        self,
+        parent_node: Node,
+        mentioned_packages: Iterable[tuple[str, frozenset[str]]],
+        extras_by_package: Mapping[str, Iterable[str]] | None = None,
     ) -> Iterable[NodeId]:
-        """Broadcast mentioned packages across channels. yield pending NodeId's."""
+        """
+        Broadcast mentioned packages across channels. yield pending NodeId's.
+
+        ``mentioned_packages`` are ``(name, extras)`` pairs; extras are the
+        CEP 44 groups requested for that package by the spec that mentions it.
+        A package that already has a node only yields again if the extras add
+        groups to a node whose shard was already processed.
+        """
         # NOTE we have visit for Nodes which is used in the graph traversal
         # algorithm, and a separate visit for ShardBase which means "include
         # this package in the output repodata".
-        for package in mentioned_packages:
+        for package, spec_extras in mentioned_packages:
             if parent_node.distance > self.depth:
                 continue
+            requested_extras = spec_extras | frozenset(
+                (extras_by_package or {}).get(package, ())
+            )
             for shardlike in self.shardlikes:
                 if package in shardlike:
                     new_node_id = NodeId(
                         package, shardlike.url, shardlike.shard_url(package)
                     )
-                    if new_node_id not in self._nodes:
+                    existing = self._nodes.get(new_node_id)
+                    if existing is None:
                         new_node = Node(
                             distance=parent_node.distance + 1,
                             package=new_node_id.package,
                             channel=new_node_id.channel,
                             shard_url=new_node_id.shard_url,
+                            requested_extras=requested_extras,
                         )
                         self._nodes[new_node_id] = new_node
                         yield new_node_id
+                    else:
+                        new_extras = requested_extras - existing.requested_extras
+                        existing.requested_extras |= new_extras
+                        revisit = bool(new_extras) and existing.expanded
+                        if parent_node.distance + 1 < existing.distance:
+                            # A shorter path was found; re-expand so
+                            # dependencies and extras use the new distance.
+                            existing.distance = parent_node.distance + 1
+                            existing.expanded = False
+                            existing.expanded_extras = frozenset()
+                            revisit = True
+                        if revisit:
+                            # Shard already received; re-process it without
+                            # fetching it again.
+                            yield new_node_id
 
         parent_node.visited = True
 
@@ -545,7 +676,8 @@ class RepodataSubset:
         for node_id in pending:
             # we should already have these nodes.
             shardlike = shardlikes_by_url[node_id.channel]
-            if shardlike.shard_loaded(node_id.package):  # for monolithic repodata
+            if shardlike.shard_loaded(node_id.package):
+                # monolithic repodata, or a revisit of a shard already received
                 shards_have.append((node_id, shardlike.visit_package(node_id.package)))
             else:
                 if self._nodes[node_id].visited:  # pragma: no cover
@@ -563,6 +695,7 @@ def build_repodata_subset(
     spec_to_package_name_func: Callable[[str], str] = spec_to_package_name,
     repodata_version: int = 1,
     depth: int = sys.maxsize,
+    root_extras: Mapping[str, Iterable[str]] | None = None,
 ) -> dict[str, ShardBase] | None:
     """
     Retrieve all necessary information to build a repodata subset.
@@ -579,6 +712,10 @@ def build_repodata_subset(
         repodata_version: repodata format version (1 = classic, 3 = v3).
         depth: the maximum depth of dependant packages to include in the repodata
                subset.
+        root_extras: optional mapping of root package name to an iterable of
+                     CEP 44 extras requested for it (e.g. `{"package": ["extras_group"]}`).
+                     Extras on dependency specs are followed transitively; see
+                     `RepodataSubset.reachable`.
     Return:
         None if there are no shards available, or a mapping of channel URL's to
         ShardBase objects where build_repodata() returns the computed subset.
@@ -591,7 +728,7 @@ def build_repodata_subset(
             repodata_version=repodata_version,
             depth=depth,
         )
-        subset.reachable(root_packages, strategy=algorithm)
+        subset.reachable(root_packages, strategy=algorithm, root_extras=root_extras)
         log.debug("%d (channel, package) nodes discovered", subset.node_count)
 
     return channel_data
@@ -723,11 +860,13 @@ def network_fetch_thread(
         # Decompress and parse. If it decodes as
         # msgpack.zst, insert into cache. Then put "known
         # good" shard into out queue.
-        shard: ShardDict = msgpack.loads(
-            decompress_shard(
-                data,
-                url=node_id.channel,
-                package=node_id.package,
+        shard: ShardDict = ensure_hex_hashes(
+            msgpack.loads(
+                decompress_shard(
+                    data,
+                    url=node_id.channel,
+                    package=node_id.package,
+                )
             )
         )  # type: ignore[assign]
         # This may be a QueueCache which lets the cache thread serialize access

@@ -8,7 +8,6 @@ from logging import getLogger
 from os.path import isdir, join
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
-from unittest.mock import patch
 
 import pytest
 
@@ -31,7 +30,8 @@ from conda.gateways.disk.update import touch
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from pytest import MockerFixture, MonkeyPatch
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
 
 log = getLogger(__name__)
 
@@ -120,13 +120,16 @@ def test_rewrite_environments_txt_file(
     assert spy.call_count == 1  # count does not increment
 
 
-@patch("conda.core.envs_manager.context")
-@patch("conda.core.envs_manager.get_user_environments_txt_file")
-@patch("conda.core.envs_manager._clean_environments_txt")
 def test_list_all_known_prefixes_with_permission_error(
-    mock_clean_env, mock_get_user_env, mock_context, tmp_path
+    mocker: MockerFixture, tmp_path: Path
 ):
     # Mock context
+    mock_context = mocker.patch("conda.core.envs_manager.context")
+    mock_get_user_env = mocker.patch(
+        "conda.core.envs_manager.get_user_environments_txt_file"
+    )
+    mock_clean_env = mocker.patch("conda.core.envs_manager._clean_environments_txt")
+
     myenv_dir = tmp_path / "envs"
     myenv_dir.mkdir()
     mock_context.envs_dirs = str(myenv_dir)
@@ -143,12 +146,8 @@ def test_list_all_known_prefixes_with_permission_error(
 
 
 @pytest.mark.skipif(on_win, reason="test is invalid on windows")
-@patch("conda.core.envs_manager.context")
-@patch("conda.core.envs_manager._clean_environments_txt")
-@patch("pwd.getpwall")
-@patch("conda.core.envs_manager.is_admin")
 def test_list_all_known_prefixes_with_none_values_error(
-    mock_is_admin, mock_getpwall, mock_clean_env, mock_context, tmp_path
+    mocker: MockerFixture, tmp_path: Path
 ):
     """
     Regression test for a bug first indentified in this issue: https://github.com/conda/conda/issues/12063
@@ -156,12 +155,18 @@ def test_list_all_known_prefixes_with_none_values_error(
     Tests to make sure that `None` values are filtered out of the `search_dirs` variable in the
     `list_all_known_prefixes` function.
     """
-    mock_is_admin.return_value = True
-    mock_getpwall.return_value = [
-        SimpleNamespace(pw_dir=expand("~")),
-        SimpleNamespace(pw_dir=None),
-    ]
-    mock_clean_env.return_value = []
+    # Mock context
+    mock_context = mocker.patch("conda.core.envs_manager.context")
+    mocker.patch("conda.core.envs_manager._clean_environments_txt", return_value=[])
+    mocker.patch(
+        "pwd.getpwall",
+        return_value=[
+            SimpleNamespace(pw_dir=expand("~")),
+            SimpleNamespace(pw_dir=None),
+        ],
+    )
+    mocker.patch("conda.core.envs_manager.is_admin", return_value=True)
+
     mock_env_dir = tmp_path / "envs"
     mock_env_dir.mkdir()
     mock_context.envs_dirs = str(mock_env_dir)
@@ -172,7 +177,7 @@ def test_list_all_known_prefixes_with_none_values_error(
     assert results == [mock_context.root_prefix]
 
 
-def test_register_env_directory_creation_error(mocker):
+def test_register_env_directory_creation_error(mocker: MockerFixture):
     """
     Test for the error case when we are unable to create
     """

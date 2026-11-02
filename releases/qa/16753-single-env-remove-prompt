@@ -1,0 +1,31 @@
+### Title
+Single confirmation when removing an environment
+
+### Why
+`conda env remove` and `conda remove --all` used to ask twice. The second question ran only after packages were already uninstalled, so declining it left a half-deleted environment. Removal should now ask once, before anything is deleted. (#16753 via #16852)
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+A conda build that includes this change. Network access to install one small package.
+
+### Steps
+1. `conda create -n qa-env-remove xz --yes`, then deactivate it.
+2. `conda env remove -n qa-env-remove`.
+   The package list is printed and there is only one prompt to confirm deletion. It defaults to `n`.
+   Press Enter. The environment is still there.
+3. Run that command again and answer `y`.
+   The same single prompt shows, on answering `y` the environment is gone.
+4. Recreate the environment and then run `conda remove -n qa-env-remove --all --keep-env`.
+   Only the "Proceed?" warning to delete conda packages shows. Answer the prompt with `y`. Conda packages are deleted and the empty environment remains.
+5. Now run `conda install -n qa-env-remove xz --yes`, then `conda remove -n qa-env-remove --all`.
+   The package list is printed and only one deletion prompt shows. Answer with `y` and The environment is deleted.
+
+
+### Pass criteria
+Each step matches the result written under it.
+
+### Out of scope / notes

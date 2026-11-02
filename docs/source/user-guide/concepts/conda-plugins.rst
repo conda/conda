@@ -50,7 +50,7 @@ Below is an example that configures ``setuptools`` using a ``pyproject.toml`` fi
    name = "my-conda-plugin"
    version = "1.0.0"
    description = "My conda plugin"
-   requires-python = ">=3.7"
+   requires-python = ">=3.11"
    dependencies = ["conda"]
 
    [project.entry-points."conda"]

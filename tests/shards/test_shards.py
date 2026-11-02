@@ -11,12 +11,11 @@ import json
 import logging
 import os
 import sqlite3
-import tempfile
 import threading
 import time
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING
 
 import msgpack
 import pytest
@@ -26,6 +25,7 @@ import conda.gateways.repodata
 from conda._private import zstd
 from conda._private.shards import cache as shards_cache
 from conda._private.shards import decompression as shard_decompression
+from conda._private.shards import misc as shards_misc
 from conda._private.shards import shards
 from conda._private.shards import subset as shards_subset
 from conda._private.shards.shards import (
@@ -37,6 +37,7 @@ from conda._private.shards.shards import (
     batch_retrieve_from_cache,
     fetch_channels,
     fetch_shards_index,
+    shard_mentioned_package_extras,
     shard_mentioned_packages,
 )
 from conda.base.context import context, reset_context
@@ -48,16 +49,16 @@ from conda.models.channel import Channel
 
 from .conftest import (
     CONDA_FORGE_WITH_SHARDS,
+    FAKE_SHARD,
     ROOT_PACKAGES,
-    _run_test_server,
     _timer,
     expand_channels,
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator
-
     from conda._private.shards.typing import ShardsIndexDict
+
+    from .conftest import MockCache, ShardFactory
 
 HERE = Path(__file__).parent
 
@@ -93,229 +94,6 @@ def empty_shards_cache(tmp_path):
     with shards_cache.ShardCache(tmp_path) as cache:
         yield cache
         cache.remove_cache()
-
-
-# 'foo' and 'bar' have circular dependencies on each other; dependencies on
-# missing shards (which are not an error during traversal; the solver may or may
-# not complain if ran); and 'constrains' to exercise other parts of the code.
-
-# TODO may need to give these unique prefixes, version numbers ending in
-# '.tar.bz2', '.conda' to avoid confusing tar-vs-conda code. May need to create
-# a few more packages giving a richer dependency graph.
-
-FAKE_REPODATA = {
-    "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
-    "packages": {
-        "foo.tar.bz2": {
-            "name": "foo",
-            "version": "1",
-            "build": "0_a",
-            "build_number": 0,
-            "depends": ["bar", "baz"],
-        },
-        "bar.tar.bz2": {
-            "name": "bar",
-            "version": "1",
-            "build": "0_a",
-            "build_number": 0,
-            "depends": ["foo"],
-        },
-        "no-matching-conda.tar.bz2": {
-            "name": "foo",
-            "version": "0.1",
-            "build": "0_a",
-            "build_number": 0,
-        },
-    },
-    "packages.conda": {
-        "foo.conda": {
-            "name": "foo",
-            "version": "1",
-            "build": "0_a",
-            "build_number": 0,
-            "depends": ["bar", "baz"],
-            "constrains": ["splat<3"],
-            "sha256": hashlib.sha256().digest(),
-        },
-        "bar.conda": {
-            "name": "bar",
-            "version": "1",
-            "build": "0_a",
-            "build_number": 0,
-            "depends": ["foo"],
-            "constrains": ["splat<3"],
-            "sha256": hashlib.sha256().digest(),
-        },
-        "no-matching-tar-bz2.conda": {
-            "name": "foo",
-            "version": "2",
-            "build": "0_a",
-            "build_number": 0,
-            "depends": ["quux", "warble"],
-            "constrains": ["splat<3"],
-            "sha256": hashlib.sha256().digest(),
-        },
-    },
-    "repodata_version": 2,
-}
-
-
-def ensure_hex_hash(repodata: dict):
-    """
-    Convert every hash in a repodata to hex. Copy repodata.
-    """
-    new_repodata = {**repodata}
-    for group in ("packages", "packages.conda"):
-        for name, record in repodata[group].items():
-            record = {**record}
-            new_repodata[group][name] = record
-            for hash_type in "sha256", "md5":
-                if hash_value := record.get(hash_type):
-                    if not isinstance(hash_value, str):
-                        record[hash_type] = bytes(hash_value).hex()
-    return new_repodata
-
-
-def shard_for_name(repodata, name):
-    return {
-        group: {k: v for (k, v) in repodata[group].items() if v["name"] == name}
-        for group in ("packages", "packages.conda")
-    }
-
-
-FAKE_SHARD = shard_for_name(FAKE_REPODATA, "foo")
-FAKE_SHARD_2 = shard_for_name(FAKE_REPODATA, "bar")
-
-
-class ShardFactory:
-    """
-    Create http server shards in a temporary directory. Use this
-    class in the context of tests to generate multiple shard servers
-    that can be cleaned up after use.
-
-    Example:
-
-    ```
-    # create shard factory with its root in a temporary directory
-    shard_factory = ShardFactory(tmp_path_factory.mktemp("sharded_repo"))
-
-    # create an http server serving the testing data
-    url = shard_factory.http_server_shards("http_server_shards")
-
-    # make a request to the server
-    subdir_data = SubdirData(Channel.from_url(f"{url}/noarch"))
-    found = fetch_shards_index(subdir_data)
-
-    # shutdown up all servers created by this factory
-    shard_factory.clean_up_http_servers()
-    ```
-    """
-
-    def __init__(self, root: Path = tempfile.gettempdir()):
-        self.root = root
-        self._http_servers = []
-
-    def clean_up_http_servers(self):
-        """Shutdown all the servers created by this factory."""
-        for http in self._http_servers:
-            http.shutdown()
-        self._http_servers = []
-
-    def http_server_shards(
-        self, dir_name: str, finish_request_action: Callable | None = None
-    ) -> str:
-        """Create a new http server serving shards from a temporary directory.
-
-        :param dir_name: The name of the directory to create the shards in.
-        :param finish_request_action: An optional callable to be called after each request is finished.
-        :return: The URL of the http server serving the shards.
-        """
-        shards_repository = self.root / dir_name / "sharded_repo"
-        shards_repository.mkdir(parents=True)
-        noarch = shards_repository / "noarch"
-        noarch.mkdir()
-
-        foo_shard = zstd.compress(msgpack.dumps(FAKE_SHARD))  # type: ignore
-        foo_shard_digest = hashlib.sha256(foo_shard).digest()
-        (noarch / f"{foo_shard_digest.hex()}.msgpack.zst").write_bytes(foo_shard)
-
-        bar_shard = zstd.compress(msgpack.dumps(FAKE_SHARD_2))  # type: ignore
-        bar_shard_digest = hashlib.sha256(bar_shard).digest()
-        (noarch / f"{bar_shard_digest.hex()}.msgpack.zst").write_bytes(bar_shard)
-
-        malformed = {"follows_schema": False}
-        bad_schema = zstd.compress(msgpack.dumps(malformed))  # type: ignore
-        malformed_digest = hashlib.sha256(bad_schema).digest()
-
-        (noarch / f"{malformed_digest.hex()}.msgpack.zst").write_bytes(bad_schema)
-        not_zstd = b"not zstd"
-        (noarch / f"{hashlib.sha256(not_zstd).digest().hex()}.msgpack.zst").write_bytes(
-            not_zstd
-        )
-        not_msgpack = zstd.compress(b"not msgpack")
-        (
-            noarch / f"{hashlib.sha256(not_msgpack).digest().hex()}.msgpack.zst"
-        ).write_bytes(not_msgpack)
-        fake_shards: ShardsIndexDict = {
-            "info": {"subdir": "noarch", "base_url": "", "shards_base_url": ""},
-            "version": 1,
-            "shards": {
-                "foo": foo_shard_digest,
-                "bar": bar_shard_digest,
-                "wrong_package_name": foo_shard_digest,
-                "fake_package": b"",
-                "malformed": hashlib.sha256(bad_schema).digest(),
-                "not_zstd": hashlib.sha256(not_zstd).digest(),
-                "not_msgpack": hashlib.sha256(not_msgpack).digest(),
-            },
-        }
-        (shards_repository / "noarch" / "repodata_shards.msgpack.zst").write_bytes(
-            zstd.compress(msgpack.dumps(fake_shards))  # type: ignore
-        )
-
-        http = _run_test_server(
-            str(shards_repository), finish_request_action=finish_request_action
-        )
-        self._http_servers.append(http)
-
-        host, port = http.socket.getsockname()[:2]
-        url_host = f"[{host}]" if ":" in host else host
-        return f"http://{url_host}:{port}/"
-
-
-@pytest.fixture(scope="session")
-def shard_factory(tmp_path_factory, request: pytest.FixtureRequest) -> ShardFactory:
-    """
-    Use ShardFactory to manage creating and cleaning up shards for testing.
-
-    Example:
-
-    ```
-    def test_something(shard_factory: ShardFactory):
-        server_one = shard_factory.http_server_shards("one")
-        server_two = shard_factory.http_server_shards("two")
-        ...
-    ```
-    """
-    shards_repository = tmp_path_factory.mktemp("sharded_repo")
-    shard_factory = ShardFactory(shards_repository)
-
-    def close_servers():
-        shard_factory.clean_up_http_servers()
-
-    request.addfinalizer(close_servers)
-    return shard_factory
-
-
-@pytest.fixture(scope="session")
-def http_server_shards(tmp_path_factory) -> Iterable[str]:
-    """
-    A shard repository with a difference.
-    """
-    shard_factory = ShardFactory(tmp_path_factory.mktemp("sharded_repo"))
-    url = shard_factory.http_server_shards("http_server_shards")
-    yield url
-    shard_factory.clean_up_http_servers()
 
 
 @pytest.mark.parametrize("error_code", [404, 405, 416, 511])
@@ -553,12 +331,6 @@ def test_shard_mentioned_packages_2():
         )
     )
 
-    # check that the bytes hash was converted to hex
-    assert (
-        FAKE_SHARD["packages.conda"]["foo.conda"]["sha256"]
-        == hashlib.sha256().hexdigest()
-    )  # type: ignore
-
 
 def test_shard_mentioned_packages_invalid_spec_skipped():
     # An unparseable spec is silently skipped; valid deps are still yielded and
@@ -633,17 +405,6 @@ def test_shard_mentioned_packages_v3_deduplication_across_classic_and_v3():
     }
     names = list(shard_mentioned_packages(shard, repodata_version=3))
     assert names.count("openssl") == 1
-
-
-def test_shard_mentioned_packages_v3_ensures_hex_hash(mocker):
-    # spy on the name as bound inside shards.py (imported by-name at module level)
-    spy = mocker.spy(shards, "ensure_hex_hash")
-    record = {"sha256": b"\xde\xad\xbe\xef" * 8, "depends": ["zlib >=1.2"]}
-    shard = _v3_shard({"whl": {"pkg-1.0-py3_none_any_0": record}})
-    list(shard_mentioned_packages(shard, repodata_version=3))
-    spy.assert_called()
-    # ensure_hex_hash mutates in-place
-    assert record["sha256"] == "deadbeef" * 8
 
 
 def test_shard_mentioned_packages_v3_empty():
@@ -721,6 +482,277 @@ def test_shard_mentioned_packages_classic_unaffected_by_v3_flag():
     assert "v3only_dep" in with_v3
 
 
+@pytest.mark.parametrize(
+    "spec, expected",
+    [
+        ("pkg", frozenset()),
+        ("pkg >=1.0", frozenset()),
+        ("pkg[extras=more]", frozenset({"more"})),
+        ("pkg[extras=[a,b]]", frozenset({"a", "b"})),
+        ("pkg[extras=a,b]", frozenset({"a", "b"})),
+        ("pkg >=1.0[extras=more]", frozenset({"more"})),
+        ("!!!extras invalid!!!", frozenset()),
+    ],
+)
+def test_spec_to_package_extras(spec, expected, solver_rattler):
+    # the rattler solver activates the MatchSpec parser that understands extras
+    assert shards_misc.spec_to_package_extras(spec) == expected
+
+
+def test_shard_mentioned_package_extras_depends_and_requested_group(solver_rattler):
+    shard = {
+        "packages": {},
+        "packages.conda": {
+            "pkg-t-1.0-0.conda": {
+                "name": "pkg-t",
+                "depends": ["plain", "with-extras[extras=more]"],
+                "extra_depends": {
+                    "cli": ["pkg-u[extras=more]", "click"],
+                    "other": ["unrequested"],
+                },
+            },
+        },
+    }
+    pairs = dict(shard_mentioned_package_extras(shard, extras=["cli"]))
+    assert pairs == {
+        "plain": frozenset(),
+        "with-extras": frozenset({"more"}),
+        "pkg-u": frozenset({"more"}),
+        "click": frozenset(),
+    }
+
+
+def test_shard_mentioned_package_extras_exclude_depends():
+    shard = {
+        "packages": {},
+        "packages.conda": {
+            "pkg-t-1.0-0.conda": {
+                "name": "pkg-t",
+                "depends": ["plain"],
+                "extra_depends": {"cli": ["click"]},
+            },
+        },
+    }
+    pairs = list(
+        shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+    )
+    assert pairs == [("click", frozenset())]
+
+
+def test_shard_mentioned_package_extras_deduplicates_and_skips_invalid():
+    shard = {
+        "packages": {
+            "a-1.0-0.tar.bz2": {"name": "a", "depends": ["dep", "!!!invalid!!!"]},
+            "a-1.0-1.tar.bz2": {"name": "a", "depends": ["dep"]},
+        },
+        "packages.conda": {},
+    }
+    assert list(shard_mentioned_package_extras(shard)) == [("dep", frozenset())]
+
+
+def test_shard_mentioned_package_extras_v3_gated_by_repodata_version(solver_rattler):
+    shard = {
+        "packages": {},
+        "packages.conda": {},
+        "v3": {
+            "conda": {
+                "foo-1.0-0": {
+                    "name": "foo",
+                    "depends": [],
+                    "extra_depends": {"cli": ["click[extras=x]"]},
+                }
+            }
+        },
+    }
+    assert list(shard_mentioned_package_extras(shard, extras=["cli"])) == []
+    assert list(
+        shard_mentioned_package_extras(shard, extras=["cli"], repodata_version=3)
+    ) == [("click", frozenset({"x"}))]
+
+
+def test_shard_mentioned_package_extras_no_extra_depends_key():
+    # Records without an "extra_depends" key yield nothing, even if requested.
+    shard = {
+        "packages": {
+            "foo-1.0-0.tar.bz2": {"name": "foo", "depends": ["bar"]},
+        },
+        "packages.conda": {},
+    }
+    assert (
+        list(
+            shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+        )
+        == []
+    )
+
+
+def test_shard_mentioned_package_extras_no_extras_requested():
+    # Nothing requested (empty extras) yields nothing, even if extra_depends present.
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click"], "http2": ["h2"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    assert (
+        list(shard_mentioned_package_extras(shard, extras=[], include_depends=False))
+        == []
+    )
+
+
+def test_shard_mentioned_package_extras_single_extra():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click", "rich"], "http2": ["h2"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    pairs = set(
+        shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+    )
+    assert pairs == {("click", frozenset()), ("rich", frozenset())}
+
+
+def test_shard_mentioned_package_extras_unrequested_extra_not_included():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click"], "http2": ["h2"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    pairs = list(
+        shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+    )
+    assert pairs == [("click", frozenset())]
+
+
+def test_shard_mentioned_package_extras_unknown_extra_name_no_error():
+    # Requesting an extra name that doesn't exist on the record is a no-op,
+    # not a KeyError.
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {"cli": ["click"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    assert (
+        list(
+            shard_mentioned_package_extras(
+                shard, extras=["does-not-exist"], include_depends=False
+            )
+        )
+        == []
+    )
+
+
+def test_shard_mentioned_package_extras_multiple_extras_union_deduplicated():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "depends": [],
+                "extra_depends": {
+                    "cli": ["click", "rich"],
+                    "http2": ["h2", "rich"],
+                    "socks": ["pysocks"],
+                },
+            },
+        },
+        "packages.conda": {},
+    }
+    pairs = list(
+        shard_mentioned_package_extras(
+            shard, extras=["cli", "http2"], include_depends=False
+        )
+    )
+    assert set(pairs) == {
+        ("click", frozenset()),
+        ("rich", frozenset()),
+        ("h2", frozenset()),
+    }
+    assert len(pairs) == len(set(pairs))
+
+
+def test_shard_mentioned_package_extras_invalid_spec_skipped():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "extra_depends": {"cli": ["click", "!!!invalid!!!"]},
+            },
+        },
+        "packages.conda": {},
+    }
+    pairs = list(
+        shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+    )
+    assert pairs == [("click", frozenset())]
+
+
+def test_shard_mentioned_package_extras_v3_extra_depends_gated_by_repodata_version():
+    shard = _v3_shard(
+        {
+            "whl": {
+                "httpx-0.28.0-py3_none_any_0": {
+                    "name": "httpx",
+                    "extra_depends": {"cli": ["click"]},
+                }
+            }
+        }
+    )
+    # default repodata_version=1: v3 section is not examined
+    assert (
+        list(
+            shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+        )
+        == []
+    )
+    # repodata_version=3: v3 section is examined
+    assert list(
+        shard_mentioned_package_extras(
+            shard, extras=["cli"], include_depends=False, repodata_version=3
+        )
+    ) == [("click", frozenset())]
+
+
+def test_shard_mentioned_package_extras_across_classic_and_conda_builds():
+    shard = {
+        "packages": {
+            "httpx-0.28.0-0.tar.bz2": {
+                "name": "httpx",
+                "extra_depends": {"cli": ["click"]},
+            },
+        },
+        "packages.conda": {
+            "httpx-0.28.0-0.conda": {
+                "name": "httpx",
+                "extra_depends": {"cli": ["click", "rich"]},
+            },
+        },
+    }
+    pairs = list(
+        shard_mentioned_package_extras(shard, extras=["cli"], include_depends=False)
+    )
+    assert set(pairs) == {("click", frozenset()), ("rich", frozenset())}
+    assert len(pairs) == len(set(pairs))
+
+
 @pytest.mark.integration
 def test_fetch_shards_channels(prepare_shards_test: None):
     """
@@ -762,6 +794,31 @@ def test_shards_cache(tmp_path: Path):
     assert (tmp_path / shards_cache.SHARD_CACHE_NAME).exists()
 
     cache.close()
+
+
+def test_shards_cache_normalizes_hashes(tmp_path: Path):
+    """Raw-bytes hashes are normalized to hex when a shard is decoded."""
+    raw = bytes.fromhex("ab" * 32)
+    fake_shard = {
+        "packages": {"mypkg-1.0-0.tar.bz2": {"name": "mypkg", "md5": list(raw)}},
+        "packages.conda": {"mypkg-1.0-0.conda": {"name": "mypkg", "sha256": raw}},
+    }
+    annotated_shard = shards_cache.AnnotatedRawShard(
+        "https://example.com/noarch/shards/abcd",
+        "mypkg",
+        zstd.compress(msgpack.dumps(fake_shard)),  # type: ignore
+    )
+    with shards_cache.ShardCache(tmp_path) as cache:
+        cache.insert(annotated_shard)
+        single = cache.retrieve(annotated_shard.url)
+        multiple = cache.retrieve_multiple([annotated_shard.url])
+
+    assert single["packages"]["mypkg-1.0-0.tar.bz2"]["md5"] == raw.hex()
+    assert single["packages.conda"]["mypkg-1.0-0.conda"]["sha256"] == raw.hex()
+    assert (
+        multiple[annotated_shard.url]["packages"]["mypkg-1.0-0.tar.bz2"]["md5"]
+        == raw.hex()
+    )
 
 
 def test_shard_size_limits():
@@ -935,48 +992,6 @@ def test_shards_cache_concurrent_read_write(tmp_path: Path):
 NUM_FAKE_SHARDS = 64
 
 
-class MockCache(NamedTuple):
-    """
-    Contain all the elements needed to be returned by the `mock_cache` fixture
-    """
-
-    num_shards: int
-    shards: list[shards_cache.AnnotatedRawShard]
-    cache: shards_cache.ShardCache
-
-
-@pytest.fixture()
-def mock_cache(tmp_path: Path) -> Iterator[MockCache]:
-    """
-    Set up a mock shard cache that will be used by multiple benchmark tests.
-    """
-    with shards_cache.ShardCache(tmp_path) as cache:
-        NUM_FAKE_SHARDS = 64
-        fake_shards = []
-
-        for i in range(NUM_FAKE_SHARDS):
-            fake_shard = {f"foo{i}": "bar"}
-            annotated_shard = shards_cache.AnnotatedRawShard(
-                f"https://foo{i}",
-                f"foo{i}",
-                zstd.compress(msgpack.dumps(fake_shard), level=1),  # type: ignore
-            )
-            cache.insert(annotated_shard)
-            fake_shards.append(annotated_shard)
-
-        yield MockCache(num_shards=NUM_FAKE_SHARDS, shards=fake_shards, cache=cache)
-
-
-@pytest.fixture
-def shard_cache_with_data(
-    mock_cache: MockCache,
-) -> tuple[shards_cache.ShardCache, list[shards_cache.AnnotatedRawShard]]:
-    """
-    ShardCache with some data already inserted.
-    """
-    return mock_cache.cache, mock_cache.shards
-
-
 def test_shard_cache_multiple(
     tmp_path: Path,
     shard_cache_with_data: tuple[
@@ -1096,6 +1111,46 @@ def test_shardlike():
     assert len(repodata["packages.conda"]) == 3
 
 
+def test_shardlike_distributes_v3_packages():
+    """
+    ShardLike must distribute repodata["v3"] records into per-package shards,
+    just like "packages" and "packages.conda", so that monolithic channels
+    with only v3 records are not invisible when mixed with sharded
+    channels.
+    """
+    repodata = {
+        "info": {"subdir": "noarch", "base_url": ""},
+        "packages": {},
+        "packages.conda": {},
+        "v3": {
+            "whl": {
+                "mypkg-whl-1.0-py312_none_any_0": {
+                    "name": "mypkg-whl",
+                    "fn": "mypkg-whl-1.0-py312-none-any.whl",
+                }
+            },
+            "conda": {"foo-1.0-0": {"name": "foo", "fn": "foo-1.0-0.conda"}},
+            "tar.bz2": {"bar-1.0-0": {"name": "bar", "fn": "bar-1.0-0.tar.bz2"}},
+        },
+        "repodata_version": 3,
+    }
+
+    as_shards = ShardLike(repodata)
+
+    shard = as_shards.visit_package("mypkg-whl")
+    as_shards.visit_package("foo")
+    as_shards.visit_package("bar")
+    assert (
+        shard["v3"]["whl"]["mypkg-whl-1.0-py312_none_any_0"]["fn"]
+        == "mypkg-whl-1.0-py312-none-any.whl"
+    )
+
+    records = dict(as_shards.iter_records())
+    assert "mypkg-whl-1.0-py312_none_any_0" in records
+    assert "foo-1.0-0" in records
+    assert "bar-1.0-0" in records
+
+
 def test_iter_records_classic():
     shardlike = ShardLike(
         {
@@ -1168,6 +1223,7 @@ def test_iter_records_includes_v3():
                         "fn": "mypkg-1.0-py312-none-any.whl",
                     }
                 },
+                "conda": {"foo-1.0-0": {"name": "foo", "fn": "foo-1.0-0.conda"}},
             },
         },
     )
@@ -1175,6 +1231,8 @@ def test_iter_records_includes_v3():
     records = dict(shardlike.iter_records())
     assert "mypkg-1.0-py312_none_any_0" in records
     assert records["mypkg-1.0-py312_none_any_0"]["fn"] == "mypkg-1.0-py312-none-any.whl"
+    assert "foo-1.0-0" in records
+    assert records["foo-1.0-0"]["fn"] == "foo-1.0-0.conda"
 
 
 def test_shardlike_repr():
@@ -1265,11 +1323,40 @@ def test_ensure_hex_hash_in_record():
             "md5": md5,
         }
 
-        updated = shards.ensure_hex_hash(record)  # type: ignore
+        updated = shards_misc._ensure_hex_hash(record)  # type: ignore
         assert isinstance(updated["sha256"], str)  # type: ignore
         assert updated["sha256"] == sha256_hash.hexdigest()  # type: ignore
         assert isinstance(updated["md5"], str)  # type: ignore
         assert updated["md5"] == md5_hash.hexdigest()  # type: ignore
+
+
+@pytest.mark.parametrize("convert", (bytes, list, bytes.hex))
+@pytest.mark.parametrize(
+    "field", ("sha256", "md5", "legacy_bz2_md5", "attestations_sha256")
+)
+def test_ensure_hex_hash_all_hash_fields(field, convert):
+    digest = bytes.fromhex("ab" * 16)
+    record = {"name": "package", field: convert(digest)}
+    assert shards_misc._ensure_hex_hash(record)[field] == digest.hex()
+    assert json.loads(json.dumps(record)) == {"name": "package", field: digest.hex()}
+
+
+def test_ensure_hex_hashes_normalizes_shard():
+    """Raw-bytes hashes in a decoded shard must come out JSON-serializable."""
+    raw = bytes.fromhex("ab" * 32)
+    shard = {
+        "packages": {"mypkg-1.0-0.tar.bz2": {"name": "mypkg", "md5": raw}},
+        "packages.conda": {"mypkg-1.0-0.conda": {"name": "mypkg", "sha256": raw}},
+        "v3": {"whl": {"mypkg-1.0-py3_none_any_0": {"attestations_sha256": raw}}},
+    }
+    shards_misc.ensure_hex_hashes(shard)
+    assert shard["packages"]["mypkg-1.0-0.tar.bz2"]["md5"] == raw.hex()
+    assert shard["packages.conda"]["mypkg-1.0-0.conda"]["sha256"] == raw.hex()
+    assert (
+        shard["v3"]["whl"]["mypkg-1.0-py3_none_any_0"]["attestations_sha256"]
+        == raw.hex()
+    )
+    json.dumps(shard)
 
 
 @pytest.mark.integration
@@ -1307,7 +1394,7 @@ def test_shard_cache_multiple_profile(retrieval_type, mock_cache: MockCache):
     `shards_cache.retrieve_multiple should be faster than `shards_cache.retrieve`.
     """
     if retrieval_type == "retrieve_multiple":
-        retrieved = mock_cache.cache.retrieve_multiple(
+        retrieved = mock_cache.cache_obj.retrieve_multiple(
             [shard.url for shard in mock_cache.shards]
         )
         assert len(retrieved) == mock_cache.num_shards
@@ -1315,7 +1402,7 @@ def test_shard_cache_multiple_profile(retrieval_type, mock_cache: MockCache):
     elif retrieval_type == "retrieve_single":
         retrieved = {}
         for i, url in enumerate([shard.url for shard in mock_cache.shards]):
-            single = mock_cache.cache.retrieve(url)
+            single = mock_cache.cache_obj.retrieve(url)
             retrieved[url] = single
 
         assert len(retrieved) == mock_cache.num_shards
@@ -1332,7 +1419,8 @@ def test_shards_connections(monkeypatch):
     monkeypatch.setattr("conda._private.shards.misc.SHARDS_CONNECTIONS_DEFAULT", 7)
     assert _shards_connections() == 7
 
-    monkeypatch.setattr(context, "_repodata_threads", 4)
+    monkeypatch.setenv("CONDA_REPODATA_THREADS", "4")
+    reset_context()
     assert _shards_connections() == 4
 
 

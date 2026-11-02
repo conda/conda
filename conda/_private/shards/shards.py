@@ -34,9 +34,11 @@ from ..zstd import capped_decompress
 from . import cache, decompression
 from .misc import (
     _is_http_error_most_400_codes,
+    _iter_shard_records,
     _safe_urljoin_with_slash,
     _shards_connections,
-    ensure_hex_hash,
+    ensure_hex_hashes,
+    spec_to_package_extras,
     spec_to_package_name,
 )
 
@@ -164,11 +166,13 @@ class ShardFetch:
             fetch_result = future.result()
 
         # Decompress and save record
-        results[fetch_result.package] = msgpack.loads(
-            decompression.decompress_shard(
-                fetch_result.compressed_shard,
-                url=shards.url,
-                package=fetch_result.package,
+        results[fetch_result.package] = ensure_hex_hashes(
+            msgpack.loads(
+                decompression.decompress_shard(
+                    fetch_result.compressed_shard,
+                    url=shards.url,
+                    package=fetch_result.package,
+                )
             )
         )
         self.shard_cache.insert(fetch_result)
@@ -214,27 +218,61 @@ def shard_mentioned_packages(
     """
     Return all dependency names mentioned in a shard, not including the shard's
     own package name.
+
+    Callers are responsible for calling
+    ``conda._private.shards.misc.filter_redundant_packages`` on ``shard`` first if
+    "prefer .conda over .tar.bz2" semantics are required; `conda._private.shards.subset`
+    already does this for every shard before invoking this function.
     """
     unique_specs: set[str] = set()
-
-    def _yield_record(record):
-        ensure_hex_hash(record)  # otherwise we could do this at serialization
+    for record in _iter_shard_records(shard, repodata_version):
         for spec in record.get("depends", ()):
             if spec not in unique_specs:
                 unique_specs.add(spec)
                 name = spec_to_package_name(spec)
                 if name is not None:
                     yield name  # not much improvement from only yielding unique names
-
-    for record in shard["packages"].values():
-        yield from _yield_record(record)
-    for record in shard["packages.conda"].values():
-        yield from _yield_record(record)
-    if repodata_version >= 3 and (v3_data := shard.get("v3")):
-        for group in v3_data.values():
-            for record in group.values():
-                yield from _yield_record(record)
     yield from extra
+
+
+def shard_mentioned_package_extras(
+    shard: ShardDict,
+    extras: Iterable[str] = (),
+    include_depends: bool = True,
+    spec_to_package_name=spec_to_package_name,
+    repodata_version: int = 1,
+) -> Iterable[tuple[str, frozenset[str]]]:
+    """
+    Return ``(name, extras)`` for each dependency spec in a shard, where
+    ``extras`` are the CEP 44 extras explicitly requested by that spec (e.g.
+    ``pkg[extras=more]`` -> ``("pkg", frozenset({"more"}))``).
+
+    Specs come from every record's ``depends`` (when ``include_depends`` is
+    true) and from the ``extra_depends`` groups named by ``extras``. Groups
+    are unioned across all builds/versions in the shard. Only groups named
+    in ``extras`` are followed. Other groups stay inactive.
+
+    Callers are responsible for calling
+    ``conda._private.shards.misc.filter_redundant_packages`` on ``shard`` first.
+    """
+    unique_specs: set[str] = set()
+    wanted = set(extras)
+
+    def emit(spec: str):
+        if spec not in unique_specs:
+            unique_specs.add(spec)
+            name = spec_to_package_name(spec)
+            if name is not None:
+                yield name, spec_to_package_extras(spec)
+
+    for record in _iter_shard_records(shard, repodata_version):
+        if include_depends:
+            for spec in record.get("depends", ()):
+                yield from emit(spec)
+        if wanted and (extra_depends := record.get("extra_depends")):
+            for extra_name in wanted:
+                for spec in extra_depends.get(extra_name, ()):
+                    yield from emit(spec)
 
 
 class ShardBase(abc.ABC):
@@ -385,6 +423,13 @@ class ShardLike(ShardBase):
             for package, record in group.items():
                 name = record["name"]
                 shards[name][group_name][package] = record
+
+        for section_name, group in repodata.get("v3", {}).items():
+            for key, record in group.items():
+                name = record["name"]
+                shards[name].setdefault("v3", {}).setdefault(section_name, {})[key] = (
+                    record
+                )
 
         # defaultdict behavior no longer wanted
         self.shards: dict[str, ShardDict] = dict(shards)  # type: ignore
@@ -792,18 +837,21 @@ def batch_retrieve_from_network(wanted: list[ShardFetch]):
     ShardFetch.fetch_batch(wanted)
 
 
-def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] | None:
+def fetch_channels(
+    url_to_channel: dict[str, Channel], *, require_shards: bool = True
+) -> dict[str, ShardBase] | None:
     """
     Args:
         url_to_channel: not modified, must already be expanded to subdirs.
+        require_shards: Return None unless at least one channel provides shards.
 
     Attempt to fetch the sharded index first and then fall back to retrieving a
     monolithic `repodata.json` file.
 
     Returns:
-        A dict mapping channel URLs to `Shard` or `ShardLike` objects. None if
-        no channels have shards. This dict preserves the key order of the input
-        `url_to_channel`.
+        A dict mapping channel URLs to `Shard` or `ShardLike` objects. If
+        `require_shards` is true, return None when no channels have shards.
+        This dict preserves the key order of the input `url_to_channel`.
     """
     # copy incoming dict to retain order:
     channel_data: dict[str, ShardBase | None] = {url: None for url in url_to_channel}
@@ -831,7 +879,7 @@ def fetch_channels(url_to_channel: dict[str, Channel]) -> dict[str, ShardBase] |
             else:
                 non_sharded_channels.append((channel_url, Channel(channel_url)))
 
-        if all(value is None for value in channel_data.values()):
+        if require_shards and all(value is None for value in channel_data.values()):
             return None  # caller should interpret this as falling back to the older code path
 
         # Latency penalty launching these requests here instead of when we

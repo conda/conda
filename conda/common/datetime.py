@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from frozendict import frozendict
 
@@ -98,7 +98,7 @@ def parse_datetime_to_timestamp(value: str) -> float | None:
         return datetime.combine(
             day,
             datetime.min.time(),
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         ).timestamp()
 
     if _COMPACT_DATE_ONLY_RE.match(value):
@@ -111,7 +111,7 @@ def parse_datetime_to_timestamp(value: str) -> float | None:
         return None
 
     if timestamp.tzinfo is None:
-        timestamp = timestamp.replace(tzinfo=timezone.utc)
+        timestamp = timestamp.replace(tzinfo=UTC)
     return timestamp.timestamp()
 
 

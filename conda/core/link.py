@@ -43,7 +43,7 @@ from ..exceptions import (
     DisallowedPackageError,
     EnvironmentNotWritableError,
     KnownPackageClobberError,
-    LinkError,
+    LinkScriptError,
     RemoveError,
     SharedLinkPathClobberError,
     SpecNotFoundInPackageCache,
@@ -995,7 +995,9 @@ class UnlinkLinkTransaction:
                     # post link scripts may employ entry points.  Do them before post-link.
                     if install_side:
                         for axngroup in entry_point_actions:
-                            UnlinkLinkTransaction._execute_actions(axngroup)
+                            exc = UnlinkLinkTransaction._execute_actions(axngroup)
+                            if exc:
+                                exceptions.append(exc)
 
                     # Run post-link or post-unlink scripts and registering AFTER link/unlink,
                     #    because they may depend on files in the prefix.  Additionally, run
@@ -1692,7 +1694,10 @@ def run_script(
             if action in ("pre-link", "post-link"):
                 if "openssl" in prec.dist_str():
                     # this is a hack for conda-build string parsing in the conda_build/build.py
-                    #   create_env function
+                    #   create_env function. LinkScriptError now carries the same
+                    #   information in structured form (action, prec, path); this
+                    #   message format can be dropped once conda-build dispatches
+                    #   on the exception type instead.
                     message = f"{action} failed for: {prec}"
                 else:
                     message = dals(
@@ -1715,7 +1720,7 @@ def run_script(
                         response.stderr,
                         response.rc,
                     )
-                raise LinkError(message)
+                raise LinkScriptError(message, action=action, prec=prec, path=path)
             else:
                 log.warning(
                     "%s script failed for package %s\n"

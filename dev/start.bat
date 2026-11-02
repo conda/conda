@@ -47,7 +47,7 @@
     @ECHO Usage: %_SCRIPT% [options]
     @ECHO.
     @ECHO Options:
-    @ECHO   /P  VERSION    Python version for the env to activate. ^(default: 3.10^)
+    @ECHO   /P  VERSION    Python version for the env to activate. ^(default: 3.11^)
     @ECHO   /I  INSTALLER  Installer to use: miniconda or miniforge, can also be defined in ~\.condarc. ^(default: miniconda^)
     @ECHO   /U             Force update packages. ^(default: update every 24 hours^)
     @ECHO   /D  PATH       Path to base env install, can also be defined in ~\.condarc.
@@ -88,7 +88,7 @@
 :SKIP_PROMPT
 
 :: fallback to default values if not set
-@IF "%_PYTHON%"=="" @SET "_PYTHON=3.10"
+@IF "%_PYTHON%"=="" @SET "_PYTHON=3.11"
 @IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_DEVENV%"=="" @SET "_DEVENV=%_SRC%\devenv"
 @IF "%_UPDATE%"=="" @SET "_UPDATE=1"

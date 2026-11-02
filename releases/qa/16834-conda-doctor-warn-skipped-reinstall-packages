@@ -1,0 +1,75 @@
+### Title
+Warn when conda doctor reinstall attempt fails due to malformed `conda-meta` data
+
+### Why
+When a package's conda-meta record is missing `name`, `version` or `build`, `conda doctor --fix` can't reinstall it and informs the user that the reinstall was skipped due to broken conda-meta record.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+- A conda build that includes this fix
+- Network access to install `openssl` from your usual channels
+
+### Steps
+1. Setup an environment
+```
+$ conda create -y -n repro openssl
+```
+
+2. Setup the malformed environmen by deleting any file tracked by the `openssl` package, e.g.:
+   `rm ~/miniforge3/envs/repro/lib/pkgconfig/libcrypto.pc`
+   (Adjust the env root and path for your install layout / OS; any tracked file works.)
+
+3. Munge the conda-metadata for the file to force malformed metadata. Remove the `build` field from the `openssl` conda-meta record, e.g.:
+
+```
+$ python -c "import glob, json, os; p = glob.glob(os.path.expanduser('~/miniforge3/envs/repro/conda-meta/openssl-*.json'))[0]; d = json.load(open(p)); del d['build']; json.dump(d, open(p, 'w'))"
+```
+   (Adjust the env root for your install layout / OS.)
+
+
+4. Verify that the conda-doctor reports the file from step 2 is missing:
+```
+$ conda doctor missing-files -n repro -v
+
+❌ Missing Files:
+
+openssl-3.5.9-h1b28b03_0:
+  lib/pkgconfig/libcrypto.pc
+```
+
+5. Run the fix for the environment. Verify that a conda prints a message that warns about `openssl` not being able to be reinstalled.
+```
+$ conda doctor missing-files -n repro --fix --yes
+. . .
+❌ Missing Files:
+
+openssl-3.5.9-h1b28b03_0: 1
+
+
+============================================================
+Running fixes...
+============================================================
+
+Found 1 package(s) with missing files:
+  openssl-3.5.9-h1b28b03_0: 1 missing file(s)
+
+Reinstalling openssl was skipped due to malformed conda-meta data.
+```
+
+6. (Optional) Clean up the environment `conda remove -n repro --all -y`
+
+### Pass criteria
+- All the steps complete as described above. Quick recap:
+   - Step 4 reports the deleted file as missing.
+   - Step 5 prints `Reinstalling openssl was skipped due to malformed conda-meta data.`.
+   - Step 5 does **not** show a traceback (e.g. `KeyError: 'build'`) and exits with a nonzero code.
+   - Step 5 does not attempt a reinstall, so the deleted file is still missing afterwards.
+
+### Out of scope / notes
+- Altered-files is the same fixer path; optional: modify a tracked file instead of deleting it and run `conda doctor altered-files -n repro --fix --yes`.
+- Since the conda-meta information for the test environment has been corrupted. It is expected that conda can not run normal operations against that environment. Including `install`/`update`/`remove`/`list`.
+- Reinstalling packages with intact records is covered by `16591-doctor-fix-reinstall`.

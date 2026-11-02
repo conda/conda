@@ -1,0 +1,61 @@
+### Title
+Sharded repodata follows extras requested by dependencies (fastapi[standard])
+
+### Why
+Fetching sharded repodata used to follow CEP 44 extras only for the packages named in the request. Extras that a dependency asks for on another package (e.g. `fastapi[standard]` -> `fastapi-cli[extras=standard]` -> `fastapi-cloud-cli`) were skipped, so those packages were missing from the repodata subset handed to the solver (#16891).
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+- Network access to the `conda-pypi` and `conda-forge` channels on anaconda.org (both serve sharded repodata).
+- A conda build that includes this change, and a Python able to import `conda` from it (e.g. `conda run -n base python`, or the dev environment).
+- Use a clean `CONDA_PKGS_DIRS` (or `conda clean --index-cache --yes`) so repodata and shards are not served from a stale cache.
+- No `.condarc` that changes `repodata_use_shards` to `false`.
+
+### Steps
+1. Save the following as `repro.py`:
+
+   ```python
+   from conda.base.context import context
+   from conda.models.channel import Channel
+   from conda._private.shards.subset import build_repodata_subset
+
+   context.solver = "rattler"  # activates the MatchSpec parser that understands extras
+   urls = [
+       f"https://conda.anaconda.org/{channel}/{subdir}"
+       for channel, subdir in (
+           ("conda-pypi", "noarch"),
+           ("conda-forge", "noarch"),
+           ("conda-forge", context.subdir),
+       )
+   ]
+   data = build_repodata_subset(
+       ["fastapi"],
+       {url: Channel.from_url(url) for url in urls},
+       repodata_version=3,
+       root_extras={"fastapi": ["standard"]},
+   )
+   fetched = {name for shardlike in data.values() for name in shardlike.visited}
+   for name in ("fastapi-cli", "uvicorn", "fastapi-cloud-cli", "sentry-sdk", "agent-detector", "detect-installer"):
+       print(f"{name}: {'fetched' if name in fetched else 'MISSING'}")
+   ```
+
+2. Run `CONDA_PLUGINS_USE_SHARDED_REPODATA=1 python repro.py` (on Windows PowerShell: `$env:CONDA_PLUGINS_USE_SHARDED_REPODATA=1; python repro.py`).
+3. Repeat with `algorithm="bfs"` passed to `build_repodata_subset(...)` in addition to the default (`pipelined`).
+4. For comparison, run the same script against a conda build without this change, if one is at hand.
+
+### Pass criteria
+- Every line printed in step 2 and step 3 reports `fetched`.
+- `fastapi-cloud-cli`, `agent-detector` and `detect-installer` exist only on `conda-pypi/noarch` (not on conda-forge), so `fetched` for them can only come from following `fastapi-cli[extras=standard]`. `sentry-sdk` is also a dependency of `fastapi-cloud-cli` but is published on conda-forge/noarch as well.
+- On a build without this change, `fastapi-cloud-cli`, `sentry-sdk`, `agent-detector` and `detect-installer` report `MISSING` while `fastapi-cli` and `uvicorn` are `fetched`.
+- The script finishes without a traceback and without a `Timeout while fetching repodata shards` error.
+
+### Out of scope / notes
+- This checks which packages are fetched, not the solution. A plain `conda create -c conda-pypi -c conda-forge "fastapi[extras=standard]"` does not show the difference reliably: with flexible channel priority the solver can satisfy `fastapi-cli` and `uvicorn` from conda-forge's same-named packages that have no `standard` group, and with strict priority it backtracks to old `fastapi` versions. Do not use the solve result as a pass/fail signal for this change.
+- Passing `root_extras` from `conda create` needs a solver that forwards it (conda-rattler-solver#183 or later) and is covered by that project, not here.
+- `rignore` (compiled dependency of `fastapi-cloud-cli`) is also fetched on platforms where conda-forge publishes it (linux-64, osx-64, osx-arm64, win-64) but not on linux-aarch64, so it is deliberately not part of the pass criteria.
+- The `conda-pypi` metadata changes over time as new releases are converted. If a package above disappears or its `standard` group changes, pick another dependency that chains extras (`conda-pypi` records whose `extra_depends` contain `[extras=[...]]`).
+- Group handling (unrequested groups staying inactive, revisiting a package for an additional group, cycles) is covered by `tests/shards/test_shards_subset.py`.

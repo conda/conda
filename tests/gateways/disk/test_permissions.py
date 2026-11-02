@@ -1,5 +1,7 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import errno
 import os
 import uuid
@@ -16,12 +18,15 @@ from stat import (
     S_IXUSR,
 )
 from tempfile import gettempdir
-from unittest.mock import patch
+from typing import TYPE_CHECKING
 
 import pytest
 
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.update import touch
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 def create_temp_location():
@@ -103,34 +108,37 @@ def test_make_writable_doesnt_exist():
     assert exc.value.errno == ENOENT
 
 
-def test_make_writable_dir_EPERM():
-    import conda.gateways.disk.permissions
+def test_make_writable_dir_EPERM(mocker: MockerFixture):
     from conda.gateways.disk.permissions import make_writable
 
-    with patch.object(conda.gateways.disk.permissions, "chmod") as chmod_mock:
-        chmod_mock.side_effect = OSError(EPERM, "some message", "foo")
-        with tempdir() as td:
-            assert not make_writable(td)
+    mocker.patch(
+        "conda.gateways.disk.permissions.chmod",
+        side_effect=OSError(EPERM, "some message", "foo"),
+    )
+    with tempdir() as td:
+        assert not make_writable(td)
 
 
-def test_make_writable_dir_EACCES():
-    import conda.gateways.disk.permissions
+def test_make_writable_dir_EACCES(mocker: MockerFixture):
     from conda.gateways.disk.permissions import make_writable
 
-    with patch.object(conda.gateways.disk.permissions, "chmod") as chmod_mock:
-        chmod_mock.side_effect = OSError(EACCES, "some message", "foo")
-        with tempdir() as td:
-            assert not make_writable(td)
+    mocker.patch(
+        "conda.gateways.disk.permissions.chmod",
+        side_effect=OSError(EACCES, "some message", "foo"),
+    )
+    with tempdir() as td:
+        assert not make_writable(td)
 
 
-def test_make_writable_dir_EROFS():
-    import conda.gateways.disk.permissions
+def test_make_writable_dir_EROFS(mocker: MockerFixture):
     from conda.gateways.disk.permissions import make_writable
 
-    with patch.object(conda.gateways.disk.permissions, "chmod") as chmod_mock:
-        chmod_mock.side_effect = OSError(EROFS, "some message", "foo")
-        with tempdir() as td:
-            assert not make_writable(td)
+    mocker.patch(
+        "conda.gateways.disk.permissions.chmod",
+        side_effect=OSError(EROFS, "some message", "foo"),
+    )
+    with tempdir() as td:
+        assert not make_writable(td)
 
 
 def test_recursive_make_writable():

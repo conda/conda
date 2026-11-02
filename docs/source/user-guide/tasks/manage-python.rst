@@ -5,7 +5,10 @@ Managing Python
 Conda treats Python the same as any other package, so it is easy
 to manage and update multiple installations.
 
-Conda supports Python 3.10, 3.11, 3.12, 3.13, and 3.14.
+Conda itself requires Python 3.11+ to run. This is the version of Python
+conda is installed with, not a limit on the environments conda can create
+and manage — those can use any available Python version, including versions
+older than conda's own minimum, as shown below.
 
 Viewing a list of available Python versions
 ===========================================

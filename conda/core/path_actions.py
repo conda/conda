@@ -436,31 +436,10 @@ class LinkPathAction(CreateInPrefixPathAction):
             )
 
         source_path_data = self.source_path_data
-        try:
-            source_path_type = source_path_data.path_type
-        except AttributeError:
-            source_path_type = None
-        if source_path_type in PathEnum.basic_types:
-            # this let's us keep the non-generic path types like windows_python_entry_point_exe
-            source_path_type = None
-
-        if self.link_type == LinkType.directory:
-            self.prefix_path_data = None
-        elif self.link_type == LinkType.softlink:
-            self.prefix_path_data = PathDataV1.from_objects(
-                self.source_path_data,
-                path_type=source_path_type or PathEnum.softlink,
-            )
-        elif (
-            self.link_type == LinkType.copy
-            and source_path_data.path_type == PathEnum.softlink
+        if (
+            self.link_type not in (LinkType.directory, LinkType.softlink)
+            and source_path_data.path_type == PathEnum.hardlink
         ):
-            self.prefix_path_data = PathDataV1.from_objects(
-                self.source_path_data,
-                path_type=source_path_type or PathEnum.softlink,
-            )
-
-        elif source_path_data.path_type == PathEnum.hardlink:
             try:
                 reported_size_in_bytes = source_path_data.size_in_bytes
             except AttributeError:
@@ -505,6 +484,39 @@ class LinkPathAction(CreateInPrefixPathAction):
                     """
                         )
                     )
+
+        self._verified = True
+
+    def execute(self):
+        source_path_data = self.source_path_data
+        try:
+            source_path_type = source_path_data.path_type
+        except AttributeError:
+            source_path_type = None
+        if source_path_type in PathEnum.basic_types:
+            # Keep non-generic path types like windows_python_entry_point_exe.
+            source_path_type = None
+
+        if self.link_type == LinkType.directory:
+            self.prefix_path_data = None
+        elif self.link_type == LinkType.softlink:
+            self.prefix_path_data = PathDataV1.from_objects(
+                source_path_data,
+                path_type=source_path_type or PathEnum.softlink,
+            )
+        elif (
+            self.link_type == LinkType.copy
+            and source_path_data.path_type == PathEnum.softlink
+        ):
+            self.prefix_path_data = PathDataV1.from_objects(
+                source_path_data,
+                path_type=source_path_type or PathEnum.softlink,
+            )
+        elif source_path_data.path_type == PathEnum.hardlink:
+            try:
+                reported_sha256 = source_path_data.sha256
+            except AttributeError:
+                reported_sha256 = None
             self.prefix_path_data = PathDataV1.from_objects(
                 source_path_data,
                 sha256=reported_sha256,
@@ -516,9 +528,6 @@ class LinkPathAction(CreateInPrefixPathAction):
         else:
             raise NotImplementedError()
 
-        self._verified = True
-
-    def execute(self):
         if (
             self.source_path_data
             and self.source_path_data.path_type
@@ -539,7 +548,9 @@ class LinkPathAction(CreateInPrefixPathAction):
     def reverse(self):
         if self._execute_successful:
             log.log(TRACE, "reversing link creation %s", self.target_prefix)
-            if not isdir(self.target_full_path):
+            if not isdir(self.target_full_path) or (
+                self.link_type != LinkType.directory and islink(self.target_full_path)
+            ):
                 rm_rf(self.target_full_path, clean_empty_parents=True)
 
 
@@ -617,7 +628,7 @@ class PrefixReplaceLinkAction(LinkPathAction):
             )
 
         self.prefix_path_data = PathDataV1.from_objects(
-            self.prefix_path_data,
+            self.source_path_data,
             file_mode=self.file_mode,
             path_type=PathEnum.hardlink,
             prefix_placeholder=self.prefix_placeholder,
@@ -1242,7 +1253,9 @@ class UnlinkPathAction(RemoveFromPrefixPathAction):
             backoff_rename(self.holding_full_path, self.target_full_path, force=True)
 
     def cleanup(self):
-        if not isdir(self.holding_full_path):
+        if not isdir(self.holding_full_path) or (
+            self.link_type != LinkType.directory and islink(self.holding_full_path)
+        ):
             rm_rf(self.holding_full_path, clean_empty_parents=True)
 
 
