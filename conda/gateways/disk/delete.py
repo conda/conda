@@ -128,7 +128,7 @@ def rmtree(path):
                 e.output,
             )
         except OSError as e:
-            log.debug("removing dir contents the fast way failed: %s", e)
+            log.debug("removing dir contents using rsync failed: %s", e)
     # On Windows, RD /S /Q (or the bat fallback) already removes the directory.
     # Calling shutil.rmtree unconditionally then raises FileNotFoundError (#16539).
     if isdir(path):
