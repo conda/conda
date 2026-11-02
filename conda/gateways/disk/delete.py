@@ -22,6 +22,7 @@ from os.path import (
     splitext,
 )
 from subprocess import STDOUT, CalledProcessError, check_output
+from tempfile import TemporaryDirectory
 
 from ...base.constants import CONDA_TEMP_EXTENSION
 from ...base.context import context
@@ -103,38 +104,31 @@ def rmtree(path):
                         "removing dir contents the fast way failed.  Output was: %s",
                         out,
                     )
-    else:
-        try:
-            os.makedirs(".empty")
-        except:
-            pass
+    elif rsync := which("rsync"):
         # yes, this looks strange.  See
         #    https://unix.stackexchange.com/a/79656/34459
         #    https://web.archive.org/web/20130929001850/http://linuxnote.net/jianingy/en/linux/a-fast-way-to-remove-huge-number-of-files.html
 
-        if isdir(".empty"):
-            rsync = which("rsync")
-
-            if rsync:
-                try:
-                    out = check_output(
-                        [
-                            rsync,
-                            "-a",
-                            "--force",
-                            "--delete",
-                            join(os.getcwd(), ".empty") + "/",
-                            path + "/",
-                        ],
-                        stderr=STDOUT,
-                    )
-                except CalledProcessError:
-                    log.debug(
-                        "removing dir contents the fast way failed.  Output was: %s",
-                        out,
-                    )
-
-            shutil.rmtree(".empty")
+        try:
+            with TemporaryDirectory() as empty_dir:
+                check_output(
+                    [
+                        rsync,
+                        "-a",
+                        "--force",
+                        "--delete",
+                        empty_dir + "/",
+                        path + "/",
+                    ],
+                    stderr=STDOUT,
+                )
+        except CalledProcessError as e:
+            log.debug(
+                "removing dir contents the fast way failed.  Output was: %s",
+                e.output,
+            )
+        except OSError as e:
+            log.debug("removing dir contents the fast way failed: %s", e)
     # On Windows, RD /S /Q (or the bat fallback) already removes the directory.
     # Calling shutil.rmtree unconditionally then raises FileNotFoundError (#16539).
     if isdir(path):
