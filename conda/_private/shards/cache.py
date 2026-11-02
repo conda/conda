@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 import msgpack
 
 from .decompression import decompress_shard
+from .misc import ensure_hex_hashes
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -152,11 +153,13 @@ class ShardCache:
                 "SELECT package, shard FROM shards WHERE url = ?", (url,)
             ).fetchone()
             return (
-                msgpack.loads(
-                    decompress_shard(
-                        row["shard"],
-                        url=url,
-                        package=row["package"],
+                ensure_hex_hashes(
+                    msgpack.loads(
+                        decompress_shard(
+                            row["shard"],
+                            url=url,
+                            package=row["package"],
+                        )
                     )
                 )
                 if row
@@ -175,11 +178,13 @@ class ShardCache:
         query = f"SELECT url, package, shard FROM shards WHERE url IN ({','.join(('?',) * len(urls))}) ORDER BY url"
         with self.conn as c:
             result: dict[str, ShardDict | None] = {
-                row["url"]: msgpack.loads(
-                    decompress_shard(
-                        row["shard"],
-                        url=row["url"],
-                        package=row["package"],
+                row["url"]: ensure_hex_hashes(
+                    msgpack.loads(
+                        decompress_shard(
+                            row["shard"],
+                            url=row["url"],
+                            package=row["package"],
+                        )
                     )
                 )
                 if row

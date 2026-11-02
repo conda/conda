@@ -9,7 +9,10 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.common.compat import on_win
+from conda.exceptions import LinkSourceNotFoundError
 from conda.gateways.disk import create
+from conda.gateways.disk.create import create_link
+from conda.models.enums import LinkType
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -25,6 +28,16 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(create, function)()
+
+
+def test_create_link_missing_source_raises_link_source_not_found(tmp_path):
+    src = str(tmp_path / "missing-source")
+    dst = str(tmp_path / "destination")
+
+    with pytest.raises(LinkSourceNotFoundError) as exc:
+        create_link(src, dst, LinkType.softlink)
+
+    assert exc.value.src == src
 
 
 @pytest.mark.skipif(on_win, reason="symlinks are copied as files on Windows")

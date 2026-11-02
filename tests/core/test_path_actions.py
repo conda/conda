@@ -673,8 +673,9 @@ def test_simple_LinkPathAction_copy(prefix: Path, pkgs_dir: Path):
 
 
 @pytest.mark.parametrize("tampered", [False, True])
+@pytest.mark.parametrize("verify", [False, True])
 def test_create_python_entry_point_windows_exe_action_uses_conda_launchers(
-    tmp_path: Path, mocker: MockerFixture, tampered: bool
+    tmp_path: Path, mocker: MockerFixture, tampered: bool, verify: bool
 ):
     source_path = tmp_path / "source" / "cli-arm64.exe"
     source_path.parent.mkdir()
@@ -699,16 +700,17 @@ def test_create_python_entry_point_windows_exe_action_uses_conda_launchers(
         source_prefixes=(context.conda_prefix,),
         source_package_infos=("conda-launchers-package-info",),
     )
-    assert axn.verify() is None
-    assert axn.prefix_path_data.sha256 == digest
+    if verify:
+        assert axn.verify() is None
     if tampered:
-        # Corruption after preparation and verification must still prevent copying.
+        # Corruption after preparation must prevent copying even without verification.
         source_path.write_bytes(b"modified")
         with pytest.raises(SafetyError, match="SHA-256 mismatch"):
             axn.execute()
         assert not (target_prefix / "Scripts/command.exe").exists()
     else:
         axn.execute()
+        assert axn.prefix_path_data.sha256 == digest
         assert (target_prefix / "Scripts/command.exe").read_bytes() == b"launcher"
 
 

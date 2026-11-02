@@ -432,7 +432,7 @@ def test_state_is_not_json(tmp_path, platform=OVERRIDE_PLATFORM):
     SubdirData.clear_cached_local_channel_data(exclude_file=False)
     sd: SubdirData = BadCacheSubdirData(channel=local_channel)
 
-    with pytest.raises(CondaError):
+    with pytest.deprecated_call(), pytest.raises(CondaError):
         state = sd.repo_cache.load_state()
         # tortured way to get to old ValueError handler
         bad_cache.write_text("NOT JSON")
@@ -443,4 +443,5 @@ def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
     """SubdirData can accept a dict instead of a RepodataState, for compatibility."""
     local_channel = Channel(join(CHANNEL_DIR_V1, platform))
     sd = SubdirData(channel=local_channel)
-    sd._read_pickled({})  # type: ignore
+    with pytest.deprecated_call():
+        sd._read_pickled({})  # type: ignore

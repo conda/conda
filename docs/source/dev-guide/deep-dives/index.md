@@ -15,6 +15,7 @@ condarc
 solvers
 solver-state
 logging
+rendering-output
 sharded
 ```
 
@@ -46,8 +47,13 @@ sharded
     SAT solver is constructed from prefix state, history, pins, and other inputs.
 
 :doc:`Logging <logging>`
-    The loggers and handlers used throughout conda, how they are configured,
-    and how to work with them during development and debugging.
+    How library code emits diagnostics with ``getLogger(__name__)``, which
+    level to use, and that the CLI configures handlers.
+
+:doc:`Rendering output <rendering-output>`
+    How conda displays output: the reporter backend for command results,
+    spinners, progress bars and prompts; loggers for diagnostics and warnings;
+    and exceptions for errors.
 
 :doc:`Sharded repodata <sharded>`
     How conda implements CEP-16 sharded repodata: the fetch loop, threading

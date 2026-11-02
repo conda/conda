@@ -8,7 +8,10 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.base.context import context
-from conda.exceptions import EnvironmentLocationNotFound
+from conda.exceptions import (
+    EnvironmentLocationNotFound,
+    PackagesNotFoundInPrefixError,
+)
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -276,6 +279,39 @@ def test_conda_doctor_fix_missing_files_mixed_meta(
     mock_reinstall.assert_called_once_with(
         mocker.ANY, ["goodpkg=2.0=1"], force_reinstall=True
     )
+
+
+def test_conda_doctor_fix_missing_files_reinstall_error(
+    conda_cli: CondaCLIFixture,
+    env_missing_files: EnvFixture,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+):
+    """Test that a failed reinstall is reported and exits nonzero."""
+    (env_missing_files.prefix / "conda-meta" / "history").touch()
+    spec = f"{env_missing_files.package}=1.0=0"
+    mock_reinstall = mocker.patch(
+        "conda.plugins.subcommands.doctor.health_checks.missing_files.reinstall_packages",
+        side_effect=PackagesNotFoundInPrefixError(
+            [spec], prefix=env_missing_files.prefix
+        ),
+    )
+
+    out, err, code = conda_cli(
+        "doctor",
+        "missing-files",
+        "--fix",
+        "--yes",
+        f"--prefix={env_missing_files.prefix}",
+    )
+
+    assert code == 1
+    mock_reinstall.assert_called_once_with(mocker.ANY, [spec], force_reinstall=True)
+    assert "Found 1 package(s) with missing files:" in out
+    assert f"  {env_missing_files.package}: 1 missing file(s)" in out
+    assert "was skipped" not in out
+    assert "Error running fix: missing-files" in caplog.text
+    assert spec in caplog.text
 
 
 def test_conda_doctor_fix_altered_files_malformed_meta(

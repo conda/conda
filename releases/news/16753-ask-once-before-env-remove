@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Ask once before `conda env remove` and `conda remove --all` delete an environment. Those commands previously confirmed the package unlink and then, after the packages were already uninstalled, asked again before deleting the rest of the prefix, including non-conda files. Declining that second prompt left a half-deleted environment. The package plan and the prefix-deletion warning are now shown together before anything is removed, and declining leaves the environment unchanged. (#16753 via #16852)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

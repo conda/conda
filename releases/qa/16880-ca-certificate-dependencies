@@ -1,0 +1,94 @@
+### Title
+Upgrade CA packages with conda 26.9.4.
+
+### Why
+Installing conda must upgrade CA packages that trust the compromised eMudhra
+intermediates, even when aggressive package updates are disabled.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+Use a disposable environment for each channel and solver combination. Test both
+defaults and conda-forge with each supported solver. Replace `<channel>`,
+`<release-channel>`, and `<solver>` below with the distribution channel, channel
+containing the 26.9.4 candidate, and solver name.
+
+Start with `ssl_verify: true` and no `REQUESTS_CA_BUNDLE`, `CURL_CA_BUNDLE`, or
+`SSL_CERT_FILE` overrides. Download the certificate chains and verification
+instructions from https://emudhra.we-have-a-problem.com/chains.zip.
+
+The test hosts do not serve conda repodata. On an unpatched installation, a
+request may return HTTP 200 and then raise `ZstdError` while parsing the response
+as shard metadata. This means the HTTPS request succeeded. It does not count as
+rejection of the compromised certificate, even though the command exits with an
+error.
+
+### Steps
+1. Create and activate an environment with conda 26.9.3 and older CA packages:
+   ```console
+   conda create --name ca-release-qa --override-channels --channel <channel> conda=26.9.3 "certifi<2026.10.18" "ca-certificates<2026.10.19"
+   conda activate ca-release-qa
+   ```
+2. Disable aggressive package updates:
+   ```console
+   python -m conda config --env --clear aggressive_update_packages
+   ```
+3. Install the candidate with the selected solver:
+   ```console
+   python -m conda install --override-channels --channel <release-channel> --channel <channel> --solver <solver> conda=26.9.4
+   ```
+   Confirm `conda list` reports `certifi >=2026.10.19` and
+   `ca-certificates >=2026.10.19` for conda-forge or `>=2026.10.20` for defaults.
+4. Follow the downloaded instructions to verify all 12 disclosed certificate
+   chains against the installed certifi and ca-certificates bundles. Each chain
+   must fail certificate verification because its issuer is untrusted.
+5. Confirm normal HTTPS operations still work. Before each command, set
+   `CONDA_PKGS_DIRS` to a new empty directory so package, repodata, and shard
+   caches cannot satisfy the request. Use verbose logs to confirm actual HTTPS
+   requests for repodata and a package archive:
+   ```console
+   python -m conda search -vvv --override-channels --channel <channel> zlib
+   python -m conda install -vvv --force-reinstall --override-channels --channel <channel> --solver <solver> zlib
+   ```
+   Run with `repodata_use_shards: false` for both channels and confirm a flat
+   repodata download. Repeat with `repodata_use_shards: true` on conda-forge,
+   using a solver that supports shards. Confirm requests for the shard index
+   and individual shards. Enable the solver plugin's sharded-repodata option
+   where required. Falling back to flat repodata does not verify shard fetching.
+
+   Query both disclosed test hosts:
+   ```console
+   python -m conda search -vvv --override-channels --channel https://dv-g3b-emudhra.we-have-a-problem.com/ zlib
+   python -m conda search -vvv --override-channels --channel https://dv-g3b-aaa-emudhra.we-have-a-problem.com/ zlib
+   ```
+   Both commands must fail certificate verification before receiving an HTTP
+   response. HTTP 200 followed by `ZstdError` is a failure of this security check.
+   A timeout, HTTP error, other parsing error, or missing package is not a pass.
+6. Repeat steps 1 and 2 with a fresh 26.9.3 environment, then add an environment
+   pin:
+   ```console
+   python -m conda config --env --add pinned_packages "certifi<2026.10.19"
+   ```
+   Repeat step 3. The upgrade must fail to solve without changing installed
+   packages. Start again with a fresh environment, repeating steps 1 and 2, and
+   add this pin instead:
+   ```console
+   python -m conda config --env --add pinned_packages "ca-certificates<2026.10.19"
+   ```
+   Repeat step 3 and confirm the same failure without changing installed
+   packages.
+7. Repeat the HTTPS checks through the supported proxy configuration. Check
+   `ssl_verify: truststore` separately with an updated OS trust store.
+
+### Pass criteria
+The upgrade installs the required CA packages, incompatible pins prevent the
+upgrade, compromised chains are rejected, and normal channel downloads work.
+
+### Out of scope / notes
+Custom CA files and OS trust stores need separate updates when selected by
+`ssl_verify` or environment overrides. Updating base does not update every
+existing environment. Pip's vendored CA bundle needs its own update. Track
+feedstock, standalone, installer, and container updates in #16880.

@@ -9,12 +9,13 @@ import warnings
 from argparse import SUPPRESS, Action
 from dataclasses import dataclass, field
 from functools import wraps
+from inspect import isgeneratorfunction
 from types import ModuleType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-    from collections.abc import Callable
+    from collections.abc import Callable, Generator, Iterator
     from typing import Any, ParamSpec, Self, TypeVar
 
     from packaging.version import Version
@@ -135,17 +136,29 @@ class DeprecationHandler:
                 func = obj
 
             # alert user that it's time to remove something
-            @wraps(func)  # type: ignore[reportArgumentType]
-            def inner(*args: P.args, **kwargs: P.kwargs) -> T:
-                warnings.warn(message, category, stacklevel=2 + stack)
+            # a generator function must remain a generator (e.g. pytest inspects
+            # yield-fixtures for generator functions instead of their return value)
+            if isgeneratorfunction(func):
 
-                return func(*args, **kwargs)
+                @wraps(func)  # type: ignore[reportArgumentType]
+                def inner(*args: P.args, **kwargs: P.kwargs) -> Iterator[Any]:
+                    warnings.warn(message, category, stacklevel=2 + stack)
+
+                    yield from cast("Generator[Any, None, None]", func(*args, **kwargs))
+
+            else:
+
+                @wraps(func)  # type: ignore[reportArgumentType]
+                def inner(*args: P.args, **kwargs: P.kwargs) -> T:
+                    warnings.warn(message, category, stacklevel=2 + stack)
+
+                    return func(*args, **kwargs)
 
             if isclass:
                 obj.__init__ = inner  # type: ignore[misc]
                 return obj
             else:
-                return inner
+                return cast("Callable[P, T]", inner)
 
         return deprecated_decorator
 
@@ -189,20 +202,39 @@ class DeprecationHandler:
                 raise DeprecatedError(message)
 
             # alert user that it's time to remove something
-            @wraps(func)
-            def inner(*args: P.args, **kwargs: P.kwargs) -> T:
-                # only warn about argument deprecations if the argument is used
-                if argument in kwargs:
-                    warnings.warn(message, category, stacklevel=2 + stack)
+            # a generator function must remain a generator (e.g. pytest inspects
+            # yield-fixtures for generator functions instead of their return value)
+            if isgeneratorfunction(func):
 
-                    # rename argument deprecations as needed
-                    value = kwargs.pop(argument, None)
-                    if rename:
-                        kwargs.setdefault(rename, value)
+                @wraps(func)
+                def inner(*args: P.args, **kwargs: P.kwargs) -> Iterator[Any]:
+                    # only warn about argument deprecations if the argument is used
+                    if argument in kwargs:
+                        warnings.warn(message, category, stacklevel=2 + stack)
 
-                return func(*args, **kwargs)
+                        # rename argument deprecations as needed
+                        value = kwargs.pop(argument, None)
+                        if rename:
+                            kwargs.setdefault(rename, value)
 
-            return inner
+                    yield from cast("Generator[Any, None, None]", func(*args, **kwargs))
+
+            else:
+
+                @wraps(func)
+                def inner(*args: P.args, **kwargs: P.kwargs) -> T:
+                    # only warn about argument deprecations if the argument is used
+                    if argument in kwargs:
+                        warnings.warn(message, category, stacklevel=2 + stack)
+
+                        # rename argument deprecations as needed
+                        value = kwargs.pop(argument, None)
+                        if rename:
+                            kwargs.setdefault(rename, value)
+
+                    return func(*args, **kwargs)
+
+            return cast("Callable[P, T]", inner)
 
         return deprecated_decorator
 

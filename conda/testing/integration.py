@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 from ..common.compat import on_win
 from ..common.io import dashlist
 from ..core.prefix_data import PrefixData
+from ..deprecations import deprecated
 from ..gateways.logging import DEBUG
 from ..models.match_spec import MatchSpec
 
@@ -26,27 +27,43 @@ if TYPE_CHECKING:
 
 TEST_LOG_LEVEL = DEBUG
 PYTHON_BINARY = "python.exe" if on_win else "bin/python"
-UNICODE_CHARACTERS = "ōγђ家固한áêñßôç"
-# UNICODE_CHARACTERS_RESTRICTED = u"áêñßôç"
-UNICODE_CHARACTERS_RESTRICTED = "abcdef"
 which_or_where = "which" if not on_win else "where"
-cp_or_copy = "cp" if not on_win else "copy"
 env_or_set = "env" if not on_win else "set"
 
-# UNICODE_CHARACTERS = u"12345678abcdef"
-# UNICODE_CHARACTERS_RESTRICTED = UNICODE_CHARACTERS
-
-# When testing for bugs, you may want to change this to a _,
-# for example to see if a bug is related to spaces in prefixes.
-SPACER_CHARACTER = " "
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "UNICODE_CHARACTERS",
+    "ōγђ家固한áêñßôç",
+)
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "UNICODE_CHARACTERS_RESTRICTED",
+    "abcdef",
+)
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "SPACER_CHARACTER",
+    " ",
+)
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "cp_or_copy",
+    "cp" if not on_win else "copy",
+)
 
 log = getLogger(__name__)
 
 
+@deprecated("27.3", "27.9", addendum="Use `re.escape` instead.")
 def escape_for_winpath(p):
     return p.replace("\\", "\\\\")
 
 
+@deprecated("27.3", "27.9", addendum="Use the `conda_cli` fixture instead.")
 class Commands:
     COMPARE = "compare"
     CONFIG = "config"

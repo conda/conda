@@ -1,6 +1,5 @@
 <!-- edit this in https://github.com/conda/infrastructure -->
 
-[epic template]: https://github.com/conda/conda/issues/new?assignees=&labels=epic&template=epic.yml
 [compare]: https://github.com/conda/conda/compare
 [new release]: https://github.com/conda/conda/releases/new
 [infrastructure]: https://github.com/conda/infrastructure
@@ -44,14 +43,14 @@ Placeholder for `conda YY.MM.x` release.
 
 [milestone]: https://github.com/conda/conda/milestone/<milestone>
 [process]: https://github.com/conda/conda/blob/main/RELEASE.md
+[merge-back]: https://github.com/conda/conda/blob/main/RELEASE.md#8-merge-the-release-branch-back-into-main
 [releases]: https://github.com/conda/conda/releases
 [main]: https://github.com/AnacondaRecipes/conda-feedstock
 [conda-forge]: https://github.com/conda-forge/conda-feedstock
 [ReadTheDocs]: https://readthedocs.com/projects/continuumio-conda/
 [zulip]: https://conda.zulipchat.com/#narrow/channel/480811-releases
 
-<details open>  <!-- feel free to remove the open attribute once this section is completed -->
-<summary><h4>The week before release week</h4></summary>
+#### The week before release week
 
 - [ ] Create release branch (named `YY.MM.x`)
 - [ ] Ensure release candidates are being successfully built (see `conda-canary/label/conda-conda-rc-YY.MM.x`)
@@ -60,16 +59,13 @@ Placeholder for `conda YY.MM.x` release.
 - [ ] Test release candidates
     <!-- indicate here who has signed off on testing -->
 
-</details>
-
-<details open>  <!-- feel free to remove the open attribute once this section is completed -->
-<summary><h4>Release week</h4></summary>
+#### Release week
 
 - [ ] Create release PR (see [release process][process])
 - [ ] Create Zulip thread on [#releases][zulip]
     - [ ] Announce `YY.MM.MICRO` in-progress
 - [ ] [Publish release][releases]
-- [ ] Merge `YY.MM.x` back into `main`
+- [ ] Review and merge the automated merge-back pull request (see [step 8][merge-back])
 - [ ] Activate the `YY.MM.x` branch on [ReadTheDocs][ReadTheDocs]
 - [ ] Bump/update feedstocks
     - [ ] [Anaconda, Inc.'s feedstock][main]
@@ -78,8 +74,6 @@ Placeholder for `conda YY.MM.x` release.
 - [ ] Announce release
     - [ ] Create & publish conda.org blog post
     - [ ] Post on Zulip thread
-
-</details>
 ```
 </details>
 
@@ -95,29 +89,28 @@ Release `YY.MM.MICRO`
 
 #### Body:
 ```markdown
-<details open>  <!-- feel free to remove the open attribute once this section is completed -->
-<summary><h4>Patch YY.MM.MICRO</h4></summary>
+[process]: https://github.com/conda/conda/blob/main/RELEASE.md
+[merge-back]: https://github.com/conda/conda/blob/main/RELEASE.md#8-merge-the-release-branch-back-into-main
+[releases]: https://github.com/conda/conda/releases
+[main]: https://github.com/AnacondaRecipes/conda-feedstock
+[conda-forge]: https://github.com/conda-forge/conda-feedstock
+[zulip]: https://conda.zulipchat.com/#narrow/channel/480811-releases
 
 - [ ] <!-- list issues & PRs that need to be resolved here -->
 - [ ] Create release PR (see [release process][process])
 - [ ] Update Zulip thread on [#releases][zulip]
     - [ ] Announce `YY.MM.MICRO` in-progress
 - [ ] [Publish release][releases]
-- [ ] Merge `YY.MM.x` back into `main`
+- [ ] Review and merge the automated merge-back pull request (see [step 8][merge-back])
 - [ ] Bump/update feedstocks
     - [ ] [Anaconda, Inc.'s feedstock][main]
     - [ ] [conda-forge feedstock][conda-forge]
 - [ ] Hand off to packaging team(s)
 - [ ] Announce release
     - [ ] Post on Zulip thread
-
-</details>
 ```
 
 </details>
-
-> [!NOTE]
-> The [epic template][epic template] is perfect for this; remember to remove the **`epic`** label.
 
 > [!NOTE]
 > A patch release is like a regular, i.e., follow the same steps in the process as you would for a regular release. Most patches are authored by existing contributors (most likely maintainers themselves) so running `rever <VERSION>` may succeed on the first pass.
@@ -246,28 +239,17 @@ To publish the release, go to the project's release page (e.g., https://github.c
 > [!NOTE]
 > Release notes can be drafted and saved ahead of time.
 
-## 8. Merge/cherry pick the release branch over to the `main` branch.
+## 8. Merge the release branch back into `main`.
 
-<details>
-<summary>Internal process</summary>
+After the release is published, the [`merge-back.yml`][infrastructure] workflow automatically pushes a `connector-YY.MM.x` branch (a copy of `YY.MM.x`) and opens a pull request merging it into `main`.
 
-1. From the main "< > Code" page of the repository, select the drop down menu next to the `main` branch button and then select "View all branches" at the very bottom.
+> [!IMPORTANT]
+> If the pull request has [merge conflicts][merge conflicts], resolve them by merging `main` into `connector-YY.MM.x` and pushing the resulting merge commit there. Do **not** push `main` onto `YY.MM.x` itself; `connector-YY.MM.x` exists specifically so conflict resolution never touches the release branch.
 
-2. Find the applicable `YY.MM.x` branch and click the "New pull request" button.
-
-3. "Base" should point to `main` while "Compare" should point to `YY.MM.x`.
-
-4. Ensure that all of the commits being pulled in look accurate, then select "Create pull request".
-
-> [!NOTE]
-> Make sure NOT to push the "Update Branch" button. If there are [merge conflicts][merge conflicts], resolve them by merging `main` into the `YY.MM.x` branch, then push the resulting merge commit. This is now a "bridging branch" to resolve the merge conflict without placing changes from `main` on to the `YY.MM.x` branch.
-
-5. Review and merge the pull request the same as any code change pull request.
+Review and merge the pull request the same as any code change pull request.
 
 > [!NOTE]
 > The commits from the release branch need to be retained in order to be able to compare individual commits; in other words, a "merge commit" is required when merging the resulting pull request vs. a "squash merge". Protected branches will require permissions to be temporarily relaxed in order to enable this action.
-
-</details>
 
 ## 9. Open PRs to bump [Anaconda Recipes][Anaconda Recipes] and [conda-forge][conda-forge] feedstocks to use `YY.MM.MICRO`.
 

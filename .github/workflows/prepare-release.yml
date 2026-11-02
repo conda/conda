@@ -1,8 +1,10 @@
 # edit this in https://github.com/conda/infrastructure
+# template-files-set
 
 name: Prepare release notes
 
 on:
+  # template-files-if
   workflow_run:
     workflows:
       - 'Tests'
@@ -11,10 +13,10 @@ on:
     branches:
       - '[0-9].*.x'
       - '[0-9][0-9].*.x'
+  # template-files-else
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
-  queue: max
   cancel-in-progress: false
 
 permissions:
@@ -22,18 +24,21 @@ permissions:
 
 jobs:
   prepare:
+    # template-files-if
     if: >-
       github.event.workflow_run.conclusion == 'success'
       && github.event.workflow_run.event == 'push'
       && github.event.workflow_run.head_repository.full_name == github.repository
+    # template-files-endif
     runs-on: ubuntu-slim
     steps:
       - name: Prepare Release Notes
-        uses: conda/actions/prepare-release@c8ad4261cc1d49709cb774289c68e63663bdc9d5 #v26.9.5
+        uses: conda/actions/prepare-release@8153f7f73472ac36d654d5111be19abaecc48cc6 #v26.10.0
         with:
           token: ${{ secrets.SYNC_TOKEN }}
           news-directory: 'releases/news'
           changelog-path: CHANGELOG.md
+          # template-files-if
           release-branch-pattern: |
             [0-9].*.x
             [0-9][0-9].*.x

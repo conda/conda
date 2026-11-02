@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sys
 from contextlib import nullcontext
@@ -14,7 +15,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.base.constants import PREFIX_PINNED_FILE, PREFIX_STATE_FILE
+from conda.base.constants import (
+    PREFIX_LAST_ACTIVATED_FILE,
+    PREFIX_PINNED_FILE,
+    PREFIX_STATE_FILE,
+)
 from conda.common.compat import on_win
 from conda.common.path.python import get_python_site_packages_short_path
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
@@ -1075,6 +1080,20 @@ def test_timestamps(
         assert created == pd.created
         assert first_modification < second_modification
         assert start < pd.created < second_modification < datetime.now(tz=UTC)
+
+
+def test_last_activated(tmp_env: TmpEnvFixture):
+    with tmp_env() as prefix:
+        pd = PrefixData(prefix)
+        assert pd.last_activated is None
+
+        file = prefix / PREFIX_LAST_ACTIVATED_FILE
+        file.touch()
+        assert pd.last_activated == datetime.fromtimestamp(file.stat().st_mtime, tz=UTC)
+
+        epoch = 1234567890.0
+        os.utime(file, (epoch, epoch))
+        assert pd.last_activated == datetime.fromtimestamp(epoch, tz=UTC)
 
 
 @pytest.mark.skipif(not on_win, reason="Windows only")

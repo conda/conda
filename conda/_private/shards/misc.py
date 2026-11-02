@@ -24,7 +24,7 @@ from conda.exceptions import InvalidMatchSpec
 from conda.models.match_spec import MatchSpec
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Sequence
+    from collections.abc import Iterable, Iterator, Sequence
     from queue import SimpleQueue as Queue
     from typing import TypeVar
 
@@ -118,15 +118,57 @@ def _is_http_error_most_400_codes(status_code: str | int) -> bool:
     )
 
 
-def ensure_hex_hash(record: PackageRecordDict):
+# Record fields holding a hash digest. Shards written by rattler (e.g. by
+# ``rattler-index``) can encode these as raw bytes or arrays of ints instead of
+# the hex strings used by repodata.json.
+HASH_FIELDS = ("sha256", "md5", "legacy_bz2_md5", "attestations_sha256")
+
+
+def _ensure_hex_hash(record: PackageRecordDict):
     """
     Convert bytes checksums to hex; leave unchanged if already str.
     """
-    for hash_type in "sha256", "md5":
+    for hash_type in HASH_FIELDS:
         if hash_value := record.get(hash_type):
             if not isinstance(hash_value, str):
                 record[hash_type] = bytes(hash_value).hex()
     return record
+
+
+def _iter_shard_records(
+    shard: ShardDict, repodata_version: int = 1
+) -> Iterable[PackageRecordDict]:
+    """
+    Yield every package record in a shard: classic ``packages``,
+    ``packages.conda``, and (when ``repodata_version >= 3``) all ``v3`` groups.
+    """
+    for record in shard.get("packages", {}).values():
+        yield record
+    for record in shard.get("packages.conda", {}).values():
+        yield record
+    if repodata_version >= 3 and (v3_data := shard.get("v3")):
+        for group in v3_data.values():
+            for record in group.values():
+                yield record
+
+
+def ensure_hex_hashes(shard: ShardDict) -> ShardDict:
+    """
+    Convert the raw-bytes hash digests of every record in ``shard`` to hex, in
+    place, when the shard is decoded for use.
+
+    Shards are msgpack, where rattler (e.g. ``rattler-index``) encodes hash
+    digests as bytes or arrays of ints; ``repodata.json`` and downstream
+    consumers expect hex strings. Calling this once as a shard is decoded keeps
+    every reader (``iter_records_v3``, ``build_repodata``, ...) free of raw
+    bytes, and avoids re-normalizing the same records on each read. The shard
+    cache stores the original compressed bytes unchanged; only the decoded
+    in-memory dict is modified.
+    """
+    # repodata_version=3 so v3 records, when present, are always included.
+    for record in _iter_shard_records(shard, repodata_version=3):
+        _ensure_hex_hash(record)
+    return shard
 
 
 @functools.cache
@@ -144,6 +186,24 @@ def spec_to_package_name(spec: str) -> str | None:
     except InvalidMatchSpec:
         log.warning("Could not parse dependency spec %r; skipping", spec)
         return None
+
+
+def spec_to_package_extras(spec: str) -> frozenset[str]:
+    """
+    Given a dependency spec, return the CEP 44 extras it explicitly requests
+    (e.g. ``pkg[extras=more]`` -> ``frozenset({"more"})``), or an empty set if
+    there are none or the spec is not parseable.
+
+    Not cached with ``functools.cache``: which extras syntaxes parse depends on
+    the active MatchSpec parser (see ``context.solver``), and MatchSpec already
+    caches parse results per parser. Specs without ``extras`` skip parsing.
+    """
+    if "extras" not in spec:
+        return frozenset()
+    try:
+        return frozenset(MatchSpec(spec).get("extras", ()))
+    except InvalidMatchSpec:
+        return frozenset()
 
 
 def filter_redundant_packages(repodata: ShardDict, use_only_tar_bz2=False) -> ShardDict:

@@ -163,6 +163,7 @@ def test_powershell_activate_help(shell: Shell) -> None:
         sh.assert_env_var("CONDA_SHLVL", "0")
 
 
+@pytest.mark.flaky(reruns=2, condition=on_win)
 @PARAMETRIZE_POWERSHELL
 def test_powershell_deactivate_help(
     shell_wrapper_integration: tuple[str, str, str], shell: Shell

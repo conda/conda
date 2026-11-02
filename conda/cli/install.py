@@ -569,6 +569,7 @@ def handle_txn(
     newenv,
     remove_op=False,
     defer_json_success=False,
+    confirm=True,
 ) -> dict | None:
     """
     Handles executing an unlink_link_transaction, and reporting changes. If `defer_json_success`
@@ -582,6 +583,8 @@ def handle_txn(
     :param remove_op: defaults to false, boolean noting that the user is requesting to remove
                       a package from the environment
     :param defer_json_success: when true, will return the set of actions executed in dict form
+    :param confirm: defaults to true; when false, skip the transaction summary and the
+                    confirmation prompt
     """
     if unlink_link_transaction.nothing_to_do:
         if remove_op:
@@ -598,7 +601,7 @@ def handle_txn(
                 print("\n# All requested packages already installed.\n")
             return None
 
-    if not context.json:
+    if not context.json and confirm:
         unlink_link_transaction.print_transaction_summary()
         confirm_yn()
 
