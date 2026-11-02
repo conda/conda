@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from argparse import Namespace
 from contextlib import nullcontext
-from importlib import import_module
 
 import pytest
 

@@ -122,6 +122,18 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+_DEPRECATED_COMMAND_HOOK_TARGETS = frozenset(
+    {
+        "run",
+        "activate",
+        "deactivate",
+        "reactivate",
+        "hook",
+        "mock_activate",
+        "mock_deactivate",
+    }
+)
+
 
 @dataclass
 class _HookImplWrapper:
@@ -558,20 +570,7 @@ class CondaPluginManager(pluggy.PluginManager):
 
         if name in {"pre_commands", "post_commands"}:
             for plugin in plugins:
-                commands = [
-                    command
-                    for command in (
-                        "run",
-                        "activate",
-                        "deactivate",
-                        "reactivate",
-                        "hook",
-                        "mock_activate",
-                        "mock_deactivate",
-                    )
-                    if command in plugin.run_for
-                ]
-                if commands:
+                if commands := _DEPRECATED_COMMAND_HOOK_TARGETS & plugin.run_for:
                     deprecated.topic(
                         "27.3",
                         "27.9",
