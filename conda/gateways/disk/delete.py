@@ -124,7 +124,7 @@ def rmtree(path):
                 )
         except CalledProcessError as e:
             log.debug(
-                "removing dir contents the fast way failed.  Output was: %s",
+                "removing dir contents using rsync failed.  Output was: %s",
                 e.output,
             )
         except OSError as e:
