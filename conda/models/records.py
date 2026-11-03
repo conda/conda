@@ -38,12 +38,16 @@ from ..common.compat import isiterable
 from ..exceptions import PathNotFoundError
 from .build_string import BuildString
 from .channel import Channel
+from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
+from .match_spec import MatchSpec
 from .version import VersionOrder
 
 if TYPE_CHECKING:
     from typing import Any
-from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
-from .match_spec import MatchSpec
+
+
+def _safe_opt_str(val: Any) -> tuple[int, str]:
+    return (0, "") if val is None else (1, str(val))
 
 
 class LinkTypeField(EnumField):
@@ -404,11 +408,11 @@ class PackageRecord(DictSafeMixin, Entity):
         Includes (in precedence order):
         - package name
         - VersionOrder(version)
-        - raw version string (deterministic tie-breaker)
         - build_number (authoritative integer)
         - BuildString(build) (variant suffix and numeric tokens)
-        - channel canonical_name
-        - subdir
+        - raw version string (deterministic tie-breaker for equivalent VersionOrder)
+        - channel canonical_name (preserving None vs empty string distinction)
+        - subdir (preserving None vs empty string distinction)
         - fn (if separate_format_cache is enabled)
         """
         try:
@@ -417,16 +421,16 @@ class PackageRecord(DictSafeMixin, Entity):
             key = [
                 self.name,
                 VersionOrder(self.version),
-                self.version,
                 self.build_number,
                 self.build
                 if isinstance(self.build, BuildString)
                 else BuildString(self.build),
-                str(self.channel_name or ""),
-                str(self.subdir or ""),
+                self.version,
+                _safe_opt_str(self.channel_name),
+                _safe_opt_str(self.subdir),
             ]
             if context.separate_format_cache:
-                key.append(str(self.fn or ""))
+                key.append(_safe_opt_str(self.fn))
             self.__sort_key = tuple(key)
             return self.__sort_key
 
