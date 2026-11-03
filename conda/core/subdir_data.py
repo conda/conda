@@ -21,6 +21,7 @@ from ..common.io import DummyExecutor, ThreadLimitedThreadPoolExecutor
 from ..common.path import url_to_path
 from ..common.serialize import json
 from ..common.url import join_url
+from ..deprecations import deprecated
 from ..exceptions import ChannelError, CondaUpgradeError, UnavailableInvalidChannel
 from ..gateways.disk.delete import rm_rf
 from ..gateways.repodata import (
@@ -363,6 +364,7 @@ class SubdirData(metaclass=SubdirDataType):
         )
 
     @property
+    @deprecated("27.3", "27.9")
     def cache_path_pickle(self) -> str:
         """
         Get the path to the cache pickle file.
@@ -446,6 +448,7 @@ class SubdirData(metaclass=SubdirDataType):
             else:
                 raise
 
+    @deprecated("27.3", "27.9")
     def _pickle_me(self) -> None:
         """
         Pickle the object to the specified file.
@@ -461,6 +464,7 @@ class SubdirData(metaclass=SubdirDataType):
         except Exception:
             log.debug("Failed to dump pickled repodata.", exc_info=True)
 
+    @deprecated("27.3", "27.9")
     def _read_local_repodata(self, state: RepodataState) -> dict[str, Any]:
         """
         Read local repodata from the cache and process it.
@@ -478,6 +482,7 @@ class SubdirData(metaclass=SubdirDataType):
         self._pickle_me()
         return _internal_state
 
+    @deprecated("27.3", "27.9")
     def _pickle_valid_checks(
         self, pickled_state: dict[str, Any], mod: str, etag: str
     ) -> Iterator[tuple[str, Any, Any]]:
@@ -508,6 +513,7 @@ class SubdirData(metaclass=SubdirDataType):
         )
         yield "fn", pickled_state.get("fn"), self.repodata_fn
 
+    @deprecated("27.3", "27.9")
     def _read_pickled(self, state: RepodataState) -> dict[str, Any] | None:
         """
         Read pickled repodata from the cache and process it.
