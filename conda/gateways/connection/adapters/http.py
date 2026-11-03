@@ -50,11 +50,19 @@ if TYPE_CHECKING:
 
 
 class _SSLContextAdapterMixin:
-    """Mixin for verified HTTPS requests using the supplied certificate store."""
+    """Mixin to add the ``ssl_context`` constructor argument to HTTP adapters.
 
-    def __init__(self, ssl_context: SSLContext, **kwargs: Any) -> None:
+    The additional argument is forwarded directly to the pool manager. This allows us
+    to dynamically decide what SSL store to use at runtime, which is used to implement
+    the optional ``truststore`` backend.
+    """
+
+    def __init__(self, *, ssl_context: SSLContext | None = None, **kwargs: Any) -> None:
         self._ssl_context = ssl_context
         super().__init__(**kwargs)
+        self._ordinary_adapter = (
+            BaseHTTPAdapter(**kwargs) if ssl_context is not None else None
+        )
 
     def init_poolmanager(
         self,
@@ -63,7 +71,8 @@ class _SSLContextAdapterMixin:
         block: bool = DEFAULT_POOLBLOCK,
         **pool_kwargs: Any,
     ) -> None:
-        pool_kwargs.setdefault("ssl_context", self._ssl_context)
+        if self._ssl_context is not None:
+            pool_kwargs.setdefault("ssl_context", self._ssl_context)
         super().init_poolmanager(  # type: ignore[misc]
             connections=connections,
             maxsize=maxsize,
@@ -72,9 +81,10 @@ class _SSLContextAdapterMixin:
         )
 
     def proxy_manager_for(self, proxy: str, **proxy_kwargs: Any) -> ProxyManager:
-        proxy_kwargs.setdefault("ssl_context", self._ssl_context)
-        if proxy.lower().startswith("https://"):
-            proxy_kwargs.setdefault("proxy_ssl_context", self._ssl_context)
+        if self._ssl_context is not None:
+            proxy_kwargs.setdefault("ssl_context", self._ssl_context)
+            if proxy.lower().startswith("https://"):
+                proxy_kwargs.setdefault("proxy_ssl_context", self._ssl_context)
         return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
     def cert_verify(
@@ -86,23 +96,8 @@ class _SSLContextAdapterMixin:
     ) -> None:
         # Requests >=2.32.5 already sets CERT_REQUIRED and client certificates in
         # the pool. The supplied context provides roots without a certifi file.
-        pass
-
-
-class _SSLContextAdapter(_SSLContextAdapterMixin, BaseHTTPAdapter):
-    pass
-
-
-class HTTPAdapter(BaseHTTPAdapter):
-    """Keep native certificate trust separate from explicit Requests TLS settings."""
-
-    def __init__(self, *, ssl_context: SSLContext | None = None, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self._ssl_context_adapter = (
-            _SSLContextAdapter(ssl_context, **kwargs)
-            if ssl_context is not None
-            else None
-        )
+        if self._ssl_context is None:
+            return super().cert_verify(conn, url, verify, cert)  # type: ignore[misc]
 
     def send(
         self,
@@ -115,13 +110,9 @@ class HTTPAdapter(BaseHTTPAdapter):
     ) -> Response:
         # Requests has merged request, session, and environment settings before
         # dispatch. Custom CA paths and disabled verification use ordinary TLS.
-        send = super().send
-        if (
-            self._ssl_context_adapter is not None
-            and verify is True
-            and request.url.lower().startswith("https://")
-        ):
-            send = self._ssl_context_adapter.send
+        send = super().send  # type: ignore[misc]
+        if self._ordinary_adapter is not None and verify is not True:
+            send = self._ordinary_adapter.send
         return send(
             request,
             stream=stream,
@@ -132,6 +123,10 @@ class HTTPAdapter(BaseHTTPAdapter):
         )
 
     def close(self) -> None:
-        super().close()
-        if self._ssl_context_adapter is not None:
-            self._ssl_context_adapter.close()
+        super().close()  # type: ignore[misc]
+        if self._ordinary_adapter is not None:
+            self._ordinary_adapter.close()
+
+
+class HTTPAdapter(_SSLContextAdapterMixin, BaseHTTPAdapter):
+    pass

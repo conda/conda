@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from requests import HTTPError, Request, Session
-from requests.exceptions import SSLError
+from requests.exceptions import ProxyError, SSLError
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import PARTIAL_EXTENSION
@@ -1134,9 +1134,12 @@ def test_ssl_context_adapter_https_proxy_context(
     adapter.send(request, verify=verify, proxies={scheme: "https://proxy:8443"})
 
     connection = http_connection_pools[-1]._new_conn()
-    assert connection.proxy_config.ssl_context is (
-        ssl_context if verify is True and scheme == "https" else None
+    proxy_context = (
+        connection.ssl_context
+        if scheme == "http"
+        else connection.proxy_config.ssl_context
     )
+    assert proxy_context is (ssl_context if verify is True else None)
 
 
 def test_ssl_context_adapter_preserves_explicit_https_proxy_context(
@@ -1198,6 +1201,36 @@ def test_ssl_context_adapter_rejects_untrusted_certificate_without_certifi(
         session.mount("https://", adapter)
         with pytest.raises(SSLError, match="CERTIFICATE_VERIFY_FAILED"):
             session.get(f"https://{host}:{port}/none-accept-ranges/", timeout=10)
+
+
+@pytest.mark.filterwarnings("ignore:Unverified HTTPS request")
+def test_ssl_context_adapter_rejects_untrusted_https_proxy_for_http(package_server_ssl):
+    truststore = pytest.importorskip("truststore")
+    adapter = HTTPAdapter(ssl_context=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT))
+    host, port = package_server_ssl.getsockname()
+    with Session() as session:
+        session.trust_env = False
+        session.mount("http://", adapter)
+        with pytest.raises(ProxyError, match="(?i)certificate"):
+            session.get(
+                "http://example.test/none-accept-ranges/",
+                proxies={"http": f"https://{host}:{port}"},
+                timeout=10,
+            )
+
+
+def test_ssl_context_adapter_allows_plain_http(
+    support_file_server: http.server.ThreadingHTTPServer,
+):
+    truststore = pytest.importorskip("truststore")
+    adapter = HTTPAdapter(ssl_context=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT))
+    host, port = support_file_server.socket.getsockname()[:2]
+    url_host = f"[{host}]" if ":" in host else host
+    with Session() as session:
+        session.trust_env = False
+        session.mount("http://", adapter)
+        response = session.get(f"http://{url_host}:{port}/", timeout=10)
+        assert response.status_code == 200
 
 
 def test_ssl_context_adapter_closes_all_pools(http_connection_pools):
