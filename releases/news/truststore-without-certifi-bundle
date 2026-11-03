@@ -1,7 +1,7 @@
 ### Bug fixes
 
-* Allow `ssl_verify: truststore` to verify HTTPS without a certifi CA bundle, and preserve explicit CA overrides. (conda/conda-standalone#340)
+* Allow `ssl_verify: truststore` to verify HTTPS without a certifi CA bundle, and preserve explicit CA overrides. (conda/conda-standalone#340 via #16941)
 
 ### Other
 
-* Require Requests 2.32.5 or newer for per-request TLS configuration without eager certifi loading. (conda/conda-standalone#340)
+* Require Requests 2.32.5 or newer for per-request TLS configuration without eager certifi loading. (conda/conda-standalone#340 via #16941)
