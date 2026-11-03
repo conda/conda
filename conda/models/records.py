@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from os.path import basename, join
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from boltons.timeutils import dt_to_timestamp, isoparse
 
@@ -35,7 +36,12 @@ from ..auxlib.entity import (
 from ..base.context import context
 from ..common.compat import isiterable
 from ..exceptions import PathNotFoundError
+from .build_string import BuildString
 from .channel import Channel
+from .version import VersionOrder
+
+if TYPE_CHECKING:
+    from typing import Any
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
 from .match_spec import MatchSpec
 
@@ -390,6 +396,59 @@ class PackageRecord(DictSafeMixin, Entity):
 
     def __eq__(self, other):
         return self._pkey == other._pkey
+
+    @property
+    def _sort_key(self) -> tuple:
+        """tuple: The components used for sorting PackageRecord instances.
+
+        Includes (in precedence order):
+        - package name
+        - VersionOrder(version)
+        - raw version string (deterministic tie-breaker)
+        - build_number (authoritative integer)
+        - BuildString(build) (variant suffix and numeric tokens)
+        - channel canonical_name
+        - subdir
+        - fn (if separate_format_cache is enabled)
+        """
+        try:
+            return self.__sort_key
+        except AttributeError:
+            key = [
+                self.name,
+                VersionOrder(self.version),
+                self.version,
+                self.build_number,
+                self.build
+                if isinstance(self.build, BuildString)
+                else BuildString(self.build),
+                str(self.channel_name or ""),
+                str(self.subdir or ""),
+            ]
+            if context.separate_format_cache:
+                key.append(str(self.fn or ""))
+            self.__sort_key = tuple(key)
+            return self.__sort_key
+
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, PackageRecord):
+            return NotImplemented
+        return self._sort_key < other._sort_key
+
+    def __le__(self, other: Any) -> bool:
+        if not isinstance(other, PackageRecord):
+            return NotImplemented
+        return self._sort_key <= other._sort_key
+
+    def __gt__(self, other: Any) -> bool:
+        if not isinstance(other, PackageRecord):
+            return NotImplemented
+        return self._sort_key > other._sort_key
+
+    def __ge__(self, other: Any) -> bool:
+        if not isinstance(other, PackageRecord):
+            return NotImplemented
+        return self._sort_key >= other._sort_key
 
     def dist_str(self, canonical_name: bool = True) -> str:
         return "{}{}::{}-{}-{}".format(

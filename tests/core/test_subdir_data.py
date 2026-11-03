@@ -455,9 +455,19 @@ def test_subdir_data_dict_state(platform=OVERRIDE_PLATFORM):
 def test_query_all_version_order(
     monkeypatch: MonkeyPatch, mocker: MockerFixture, use_shards: bool
 ):
-    """Ensure query_all returns records ordered by (name, VersionOrder(version), build)."""
-    versions = ["1.11.5", "1.14.0", "1.3.0", "1.9.4"]
-    expected_versions = ["1.3.0", "1.9.4", "1.11.5", "1.14.0"]
+    """Ensure query_all returns records ordered by PackageRecord comparison (version and build)."""
+    records_meta = [
+        {"name": "testpkg", "version": "1.11.5", "build": "py312_0", "build_number": 0},
+        {"name": "testpkg", "version": "1.14.0", "build": "py312_0", "build_number": 0},
+        {
+            "name": "testpkg",
+            "version": "1.3.0",
+            "build": "py312_10",
+            "build_number": 10,
+        },
+        {"name": "testpkg", "version": "1.3.0", "build": "py312_2", "build_number": 2},
+        {"name": "testpkg", "version": "1.9.4", "build": "py312_0", "build_number": 0},
+    ]
 
     monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true" if use_shards else "false")
     reset_context()
@@ -468,10 +478,10 @@ def test_query_all_version_order(
         fake_shard.base_url = "https://example.com"
         fake_shard.iter_records_v3.return_value = [
             (
-                (f"testpkg-{v}-0.conda", "packages.conda"),
-                {"name": "testpkg", "version": v, "build": "0", "build_number": 0},
+                (f"testpkg-{m['version']}-{m['build']}.conda", "packages.conda"),
+                m,
             )
-            for v in versions
+            for m in records_meta
         ]
 
         monkeypatch.setattr(
@@ -483,10 +493,7 @@ def test_query_all_version_order(
             lambda *args, **kwargs: None,
         )
     else:
-        records_monolithic = [
-            PackageRecord(name="testpkg", version=v, build="0", build_number=0)
-            for v in versions
-        ]
+        records_monolithic = [PackageRecord(**m) for m in records_meta]
         monkeypatch.setattr(
             "conda.core.subdir_data.SubdirData.query_all",
             lambda *args, **kwargs: records_monolithic,
@@ -497,4 +504,10 @@ def test_query_all_version_order(
         ["https://example.com/noarch"],
         subdirs=["noarch"],
     )
-    assert [r.version for r in results] == expected_versions
+    assert [(r.version, r.build, r.build_number) for r in results] == [
+        ("1.3.0", "py312_2", 2),
+        ("1.3.0", "py312_10", 10),
+        ("1.9.4", "py312_0", 0),
+        ("1.11.5", "py312_0", 0),
+        ("1.14.0", "py312_0", 0),
+    ]
