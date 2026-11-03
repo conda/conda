@@ -49,8 +49,8 @@ if TYPE_CHECKING:
     from urllib3.connectionpool import HTTPConnectionPool
 
 
-class _SSLContextAdapter(BaseHTTPAdapter):
-    """Adapter for verified HTTPS requests using the supplied certificate store."""
+class _SSLContextAdapterMixin:
+    """Mixin for verified HTTPS requests using the supplied certificate store."""
 
     def __init__(self, ssl_context: SSLContext, **kwargs: Any) -> None:
         self._ssl_context = ssl_context
@@ -64,7 +64,7 @@ class _SSLContextAdapter(BaseHTTPAdapter):
         **pool_kwargs: Any,
     ) -> None:
         pool_kwargs.setdefault("ssl_context", self._ssl_context)
-        super().init_poolmanager(
+        super().init_poolmanager(  # type: ignore[misc]
             connections=connections,
             maxsize=maxsize,
             block=block,
@@ -75,7 +75,7 @@ class _SSLContextAdapter(BaseHTTPAdapter):
         proxy_kwargs.setdefault("ssl_context", self._ssl_context)
         if proxy.lower().startswith("https://"):
             proxy_kwargs.setdefault("proxy_ssl_context", self._ssl_context)
-        return super().proxy_manager_for(proxy, **proxy_kwargs)
+        return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
 
     def cert_verify(
         self,
@@ -87,6 +87,10 @@ class _SSLContextAdapter(BaseHTTPAdapter):
         # Requests >=2.32.5 already sets CERT_REQUIRED and client certificates in
         # the pool. The supplied context provides roots without a certifi file.
         pass
+
+
+class _SSLContextAdapter(_SSLContextAdapterMixin, BaseHTTPAdapter):
+    pass
 
 
 class HTTPAdapter(BaseHTTPAdapter):
