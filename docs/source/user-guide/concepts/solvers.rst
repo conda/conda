@@ -62,15 +62,14 @@ The following table summarizes the solvers that work with conda:
 rattler
 -------
 
-The rattler solver is provided by the ``conda-rattler-solver`` package and is
-built on `rattler <https://github.com/conda/rattler>`_, a set of Rust libraries
-for working with conda packages.
+The ``rattler`` solver plugin is provided by the ``conda-rattler-solver`` package.
+It uses the `Resolvo <https://github.com/prefix-dev/resolvo>`_ dependency resolution
+engine through `rattler <https://github.com/conda/rattler>`_, a collection of Rust
+libraries for working with conda packages.
 
-The rattler solver delegates to the Rust-based rattler library for dependency
-resolution, which reduces overhead when resolving complex dependency trees. It
-solves environments faster than libmamba, with the largest improvements on
+The plugin solves environments faster than libmamba, with the largest improvements on
 large or heavily constrained environments. Starting with conda 26.10.0,
-rattler is the default solver.
+``rattler`` is the default solver.
 
 `conda-rattler-solver documentation <https://conda.github.io/conda-rattler-solver/>`_
 

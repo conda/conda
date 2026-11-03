@@ -44,7 +44,7 @@ This section goes over some of the best practices we recommend for addressing pe
 
    For example, instead of ``numpy``, we recommend ``numpy=1.15`` or, even better, ``numpy=1.15.4``.
 
-2. **Use rattler as your dependency solver.** Rattler is the default solver starting with conda 26.10.0 and improves performance for large environments. If you previously selected another solver, that setting is preserved when you upgrade conda.
+2. **Use the rattler solver plugin.** The plugin is the default solver starting with conda 26.10.0 and improves performance for large environments. If you previously selected another solver, that setting is preserved when you upgrade conda.
 
    .. note::
 
