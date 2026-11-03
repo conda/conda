@@ -417,6 +417,103 @@ def test_from_cli_channel_order_base_file_cli(mocker: MockerFixture):
     assert env.config.channels == ("cli-channel", "file-channel", "base-channel")
 
 
+@pytest.mark.parametrize(
+    "context_channels,file_channels,cli_channels,override_channels,expected",
+    [
+        pytest.param(
+            ("defaults", "base-channel"),
+            ("file-channel", "nodefaults"),
+            (),
+            False,
+            ("file-channel",),
+            id="file-nodefaults-drops-configured",
+        ),
+        pytest.param(
+            ("defaults", "base-channel"),
+            ("nodefaults",),
+            (),
+            False,
+            ("defaults", "base-channel"),
+            id="file-nodefaults-alone-falls-back",
+        ),
+        pytest.param(
+            ("defaults", "base-channel"),
+            ("nodefaults",),
+            ("cli-channel",),
+            False,
+            ("cli-channel", "defaults", "base-channel"),
+            id="file-nodefaults-with-cli",
+        ),
+        pytest.param(
+            ("defaults", "base-channel"),
+            ("file-channel", "nodefaults"),
+            ("cli-channel",),
+            False,
+            ("cli-channel", "file-channel"),
+            id="file-nodefaults-with-cli-and-file",
+        ),
+        pytest.param(
+            ("defaults", "base-channel"),
+            ("file-channel", "other-file-channel"),
+            ("cli-channel",),
+            True,
+            ("cli-channel",),
+            id="override-channels-wins",
+        ),
+        pytest.param(
+            ("nodefaults", "base-channel"),
+            ("file-channel", "nodefaults"),
+            (),
+            False,
+            ("file-channel",),
+            id="file-nodefaults-wins-over-context-nodefaults",
+        ),
+    ],
+)
+def test_from_cli_nodefaults(
+    mocker: MockerFixture,
+    context_channels,
+    file_channels,
+    cli_channels,
+    override_channels,
+    expected,
+):
+    """nodefaults is never sent to the solver by environment files and suppresses configured."""
+    context_config = EnvironmentConfig(channels=context_channels)
+    mocker.patch(
+        "conda.models.environment.EnvironmentConfig.from_context",
+        return_value=context_config,
+    )
+
+    args = {
+        "name": "testenv",
+        "packages": [],
+        "file": [],
+    }
+    if file_channels is not None:
+        file_env = Environment(
+            prefix="/path",
+            platform=context.subdir,
+            requested_packages=[MatchSpec("numpy")],
+            explicit_packages=[],
+            config=EnvironmentConfig(channels=file_channels),
+        )
+        mocker.patch(
+            "conda.models.environment.context.plugin_manager.get_environment_specifier",
+            return_value=SimpleNamespace(
+                environment_spec=lambda fpath: FixedEnvSpec(file_env)
+            ),
+        )
+        args["file"] = ["/some/env.yaml"]
+    if cli_channels:
+        args["channel"] = cli_channels
+    if override_channels:
+        args["override_channels"] = True
+
+    env = Environment.from_cli(SimpleNamespace(**args))
+    assert env.config.channels == expected
+
+
 def test_merge_configs_deduplicate_values():
     config1 = EnvironmentConfig(
         channels=(
