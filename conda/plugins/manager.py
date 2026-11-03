@@ -585,7 +585,12 @@ class CondaPluginManager(pluggy.PluginManager):
 
         if name in {"pre_commands", "post_commands"}:
             for plugin in plugins:
-                if commands := _DEPRECATED_COMMAND_HOOK_TARGETS & plugin.run_for:
+                # Older anaconda-anon-usage releases only implement __contains__.
+                if commands := {
+                    command
+                    for command in _DEPRECATED_COMMAND_HOOK_TARGETS
+                    if command in plugin.run_for
+                }:
                     deprecated.topic(
                         "27.3",
                         "27.9",
