@@ -117,20 +117,12 @@ This section goes over some of the best practices we recommend for addressing pe
 
       This option is currently available for conda-forge and prefix.dev for all channels as of March 2026.
 
-   With the rattler solver, sharded repodata is enabled by default through the
-   ``repodata_use_shards`` setting. Channels that do not publish sharded repodata
-   are fetched normally.
+   With the rattler and libmamba solvers, sharded repodata is enabled by default
+   through conda's ``repodata_use_shards`` setting. Channels that do not publish
+   sharded repodata are fetched normally.
 
-   If you use the libmamba solver, follow these steps to opt in to sharded repodata:
+   To disable sharded repodata, run:
 
-   #. Update conda-libmamba-solver, if needed:
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         conda install --name base "conda-libmamba-solver>=25.11.0"
-
-   #. Set the ``plugins.use_sharded_repodata`` option to ``true``:
-
-      .. code-block:: shell
-
-         conda config --set plugins.use_sharded_repodata true
+      conda config --set repodata_use_shards false
