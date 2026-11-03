@@ -1216,7 +1216,7 @@ def apply_builder_result(monkeypatch: MonkeyPatch, result: dict) -> None:
         monkeypatch.setenv(name, str(value))
 
 
-@pytest.mark.parametrize("original_value", [None, "user_value"])
+@pytest.mark.parametrize("original_value", [None, "", "user_value"])
 def test_build_activate_replaces_previous_env_vars(
     monkeypatch: MonkeyPatch,
     tmp_env: TmpEnvFixture,

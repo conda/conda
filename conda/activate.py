@@ -481,9 +481,8 @@ class _Activator(metaclass=abc.ABCMeta):
                     env_var = env_var.upper()
                 if env_var in export_vars:
                     continue
-                if save_value := os.getenv(
-                    f"__CONDA_SHLVL_{old_conda_shlvl - 1}_{env_var}"
-                ):
+                save_value = os.getenv(f"__CONDA_SHLVL_{old_conda_shlvl - 1}_{env_var}")
+                if save_value is not None:
                     export_vars[env_var] = save_value
                 elif env_var not in unset_vars:
                     unset_vars.append(env_var)
@@ -593,7 +592,8 @@ class _Activator(metaclass=abc.ABCMeta):
 
         # Handle environment variables that need to be unset during deactivation
         for env_var in old_conda_environment_env_vars.keys():
-            if save_value := os.getenv(f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}"):
+            save_value = os.getenv(f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}")
+            if save_value is not None:
                 export_vars[env_var] = save_value
             else:
                 # Apply case conversion for environment variables that need to be unset
