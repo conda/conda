@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import os
-from errno import ENOENT
+from errno import ENOENT, ENOSPC
 from os.path import isdir, isfile, join, lexists
+from pathlib import Path
+from subprocess import CalledProcessError
 from typing import TYPE_CHECKING
 
 import pytest
@@ -248,3 +250,89 @@ def test_rmtree_falls_back_to_shutil_when_windows_path_remains(
     rmtree(r"C:\temp\still-there")
 
     mock_shutil_rmtree.assert_called_once_with(r"C:\temp\still-there")
+
+
+@pytest.mark.skipif(on_win, reason="rsync is only used on Unix")
+@pytest.mark.parametrize("rsync", ["rsync", None])
+def test_rmtree_preserves_existing_empty_directory(
+    tmp_path, monkeypatch, mocker, rsync
+):
+    monkeypatch.chdir(tmp_path)
+    existing = tmp_path / ".empty"
+    existing.mkdir()
+    keep = existing / "keep.txt"
+    keep.write_text("keep me")
+    target = tmp_path / "target"
+    target.mkdir()
+    (target / "file.txt").touch()
+    mocker.patch("conda.gateways.disk.delete.which", return_value=rsync)
+    mocker.patch("conda.gateways.disk.delete.check_output", return_value=b"")
+
+    rmtree(target)
+
+    assert not target.exists()
+    assert keep.read_text() == "keep me"
+
+
+@pytest.mark.skipif(on_win, reason="rsync is only used on Unix")
+def test_rmtree_overlapping_deletions(tmp_path, monkeypatch, mocker):
+    monkeypatch.chdir(tmp_path)
+    targets = [tmp_path / "first", tmp_path / "second"]
+    for target in targets:
+        (target / "subdir").mkdir(parents=True)
+        (target / "subdir" / "file.txt").touch()
+    sources = []
+
+    def overlap_deletions(command, **kwargs):
+        source = Path(command[-2])
+        sources.append(source)
+        if len(sources) == 1:
+            rmtree(targets[1])
+        assert source.is_dir()
+        return b""
+
+    mocker.patch("conda.gateways.disk.delete.which", return_value="rsync")
+    mocker.patch(
+        "conda.gateways.disk.delete.check_output", side_effect=overlap_deletions
+    )
+
+    rmtree(targets[0])
+
+    assert len(sources) == 2
+    assert sources[0] != sources[1]
+    assert all(not target.exists() for target in targets)
+    assert all(not source.exists() for source in sources)
+
+
+@pytest.mark.skipif(on_win, reason="rsync is only used on Unix")
+def test_rmtree_falls_back_after_rsync_failure(tmp_path, monkeypatch, mocker):
+    monkeypatch.chdir(tmp_path)
+    target = tmp_path / "target"
+    (target / "subdir").mkdir(parents=True)
+    (target / "subdir" / "file.txt").touch()
+    mocker.patch("conda.gateways.disk.delete.which", return_value="rsync")
+    rsync = mocker.patch(
+        "conda.gateways.disk.delete.check_output",
+        side_effect=CalledProcessError(23, "rsync", output=b"rsync failed"),
+    )
+
+    rmtree(target)
+
+    assert not target.exists()
+    assert not Path(rsync.call_args.args[0][-2]).exists()
+
+
+@pytest.mark.skipif(on_win, reason="rsync is only used on Unix")
+def test_rmtree_falls_back_when_temporary_directory_cannot_be_created(tmp_path, mocker):
+    target = tmp_path / "target"
+    (target / "subdir").mkdir(parents=True)
+    (target / "subdir" / "file.txt").touch()
+    mocker.patch("conda.gateways.disk.delete.which", return_value="rsync")
+    mocker.patch(
+        "conda.gateways.disk.delete.TemporaryDirectory",
+        side_effect=OSError(ENOSPC, "No space left on device"),
+    )
+
+    rmtree(target)
+
+    assert not target.exists()
