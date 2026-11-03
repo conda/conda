@@ -1271,6 +1271,12 @@ def test_build_activate_keeps_vars_unset_by_replaced_env(
         apply_builder_result(monkeypatch, activator.build_activate(str(other)))
         assert os.environ["FOO"] == "user_value"
 
+        apply_builder_result(monkeypatch, activator.build_deactivate())
+        assert os.environ["FOO"] == "user_value"
+
+        apply_builder_result(monkeypatch, activator.build_deactivate())
+        assert os.environ["FOO"] == "user_value"
+
 
 def make_dot_d_files(prefix: str | os.PathLike, extension: str) -> None:
     (activated := Path(prefix, "etc", "conda", "activate.d")).mkdir(parents=True)

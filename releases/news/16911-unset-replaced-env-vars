@@ -5,6 +5,7 @@
 ### Bug fixes
 
 * Restore or unset environment variables of the previously active environment when activating another environment without `--stack`. (#16911)
+* Ignore environment variables marked as unset (`conda env config vars unset`) when deactivating, instead of exporting the `***unset***` placeholder or unsetting the user's value. (#16911)
 
 ### Deprecations
 

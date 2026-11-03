@@ -515,9 +515,12 @@ class _Activator(metaclass=abc.ABCMeta):
                 "activate_scripts": (),
             }
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
-        old_conda_environment_env_vars = self._get_environment_env_vars(
-            old_conda_prefix
-        )
+        # vars marked as unset were never set on activation, so skip them
+        old_conda_environment_env_vars = {
+            name: value
+            for name, value in self._get_environment_env_vars(old_conda_prefix).items()
+            if value != CONDA_ENV_VARS_UNSET_VAR
+        }
 
         new_conda_shlvl = old_conda_shlvl - 1
         set_vars = {}
@@ -554,7 +557,11 @@ class _Activator(metaclass=abc.ABCMeta):
                 )
             conda_default_env = self._default_env(new_prefix)
             conda_prompt_modifier = self._prompt_modifier(new_prefix, conda_default_env)
-            new_conda_environment_env_vars = self._get_environment_env_vars(new_prefix)
+            new_conda_environment_env_vars = {
+                name: value
+                for name, value in self._get_environment_env_vars(new_prefix).items()
+                if value != CONDA_ENV_VARS_UNSET_VAR
+            }
 
             old_prefix_stacked = "CONDA_STACKED_%d" % old_conda_shlvl in os.environ
             new_path = ""
