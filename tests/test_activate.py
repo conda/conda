@@ -1253,6 +1253,25 @@ def test_build_activate_replaces_previous_env_vars(
         assert os.getenv("SHARED") is None
 
 
+def test_build_activate_keeps_vars_unset_by_replaced_env(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+):
+    """Env vars marked as unset in a replaced environment keep the user's value."""
+    monkeypatch.setenv("FOO", "user_value")
+
+    with tmp_env() as unsets_foo, tmp_env() as other:
+        write_state_file(unsets_foo, FOO=CONDA_ENV_VARS_UNSET_VAR)
+        write_state_file(other, BAR="baz")
+        activator = PosixActivator()
+
+        apply_builder_result(monkeypatch, activator.build_activate(str(unsets_foo)))
+        assert os.environ["FOO"] == "user_value"
+
+        apply_builder_result(monkeypatch, activator.build_activate(str(other)))
+        assert os.environ["FOO"] == "user_value"
+
+
 def make_dot_d_files(prefix: str | os.PathLike, extension: str) -> None:
     (activated := Path(prefix, "etc", "conda", "activate.d")).mkdir(parents=True)
     (deactivated := Path(prefix, "etc", "conda", "deactivate.d")).mkdir(parents=True)

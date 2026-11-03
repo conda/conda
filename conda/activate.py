@@ -471,7 +471,12 @@ class _Activator(metaclass=abc.ABCMeta):
 
             # Restore or unset environment variables of the replaced environment
             # that the new environment does not set itself
-            for env_var in self._get_environment_env_vars(old_conda_prefix):
+            for env_var, value in self._get_environment_env_vars(
+                old_conda_prefix
+            ).items():
+                # vars marked as unset were never set on activation
+                if value == CONDA_ENV_VARS_UNSET_VAR:
+                    continue
                 if context.envvars_force_uppercase:
                     env_var = env_var.upper()
                 if env_var in export_vars:
