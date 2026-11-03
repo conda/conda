@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import ssl
 from contextlib import nullcontext
 from importlib.util import find_spec
 from logging import getLogger
@@ -10,7 +11,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from requests import HTTPError, Request
+from requests import HTTPError, Request, Session
+from requests.exceptions import SSLError
 
 from conda.auxlib.compat import Utf8NamedTemporaryFile
 from conda.base.constants import PARTIAL_EXTENSION
@@ -950,6 +952,198 @@ def test_ssl_context_adapter_omits_proxy_ssl_context_when_unset():
 
     proxy_manager = adapter.proxy_manager_for("http://proxy:8080")
     assert "ssl_context" not in proxy_manager.connection_pool_kw
+
+
+@pytest.mark.parametrize("proxied", (False, True))
+@pytest.mark.parametrize("client_cert", (None, "combined", "separate"))
+def test_ssl_context_adapter_without_certifi_bundle(
+    proxied: bool,
+    client_cert: str | None,
+    tmp_path: Path,
+    mocker: MockerFixture,
+) -> None:
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    adapter = HTTPAdapter(ssl_context=ssl_context)
+    manager = (
+        adapter.proxy_manager_for("http://proxy:8080")
+        if proxied
+        else adapter.poolmanager
+    )
+    url = "https://example.test/"
+    connection = manager.connection_from_url(url)
+    mocker.patch(
+        "requests.adapters.DEFAULT_CA_BUNDLE_PATH", str(tmp_path / "missing.pem")
+    )
+    cert = None
+    if client_cert:
+        cert_file = tmp_path / "client.pem"
+        cert_file.touch()
+        cert = str(cert_file)
+        if client_cert == "separate":
+            key_file = tmp_path / "client.key"
+            key_file.touch()
+            cert = (cert, str(key_file))
+
+    adapter.cert_verify(connection, url, True, cert)
+
+    assert connection.cert_reqs == "CERT_REQUIRED"
+    assert connection.ca_certs is None
+    assert connection.ca_cert_dir is None
+    assert connection.conn_kw["ssl_context"] is ssl_context
+    if client_cert:
+        assert connection.cert_file == str(cert_file)
+        assert connection.key_file == (
+            str(key_file) if client_cert == "separate" else None
+        )
+
+
+def test_ssl_context_adapter_default_still_requires_certifi_bundle(
+    tmp_path: Path, mocker: MockerFixture
+) -> None:
+    adapter = HTTPAdapter()
+    url = "https://example.test/"
+    connection = adapter.poolmanager.connection_from_url(url)
+    mocker.patch(
+        "requests.adapters.DEFAULT_CA_BUNDLE_PATH", str(tmp_path / "missing.pem")
+    )
+
+    with pytest.raises(
+        OSError, match="Could not find a suitable TLS CA certificate bundle"
+    ):
+        adapter.cert_verify(connection, url, True, None)
+
+
+@pytest.mark.parametrize("proxied", (False, True))
+@pytest.mark.parametrize("ca_kind", ("file", "directory"))
+@pytest.mark.parametrize(
+    "override", ("request", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE")
+)
+def test_ssl_context_adapter_explicit_ca_override(
+    proxied: bool,
+    ca_kind: str,
+    override: str,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    ca_path = tmp_path / "custom-ca"
+    if ca_kind == "directory":
+        ca_path.mkdir()
+    else:
+        ca_path.touch()
+    monkeypatch.delenv("REQUESTS_CA_BUNDLE", raising=False)
+    monkeypatch.delenv("CURL_CA_BUNDLE", raising=False)
+    monkeypatch.setenv("CONDA_SSL_VERIFY", "truststore")
+    reset_context()
+    session = CondaSession()
+    if override != "request":
+        monkeypatch.setenv(override, str(ca_path))
+    url = "https://example.test/"
+    settings = session.merge_environment_settings(
+        url, {}, False, str(ca_path) if override == "request" else None, None
+    )
+    assert settings["verify"] == str(ca_path)
+    adapter = session.get_adapter(url)
+    request = Request("GET", url).prepare()
+    proxies = {"https": "http://proxy:8080"} if proxied else {}
+    connection = adapter.get_connection_with_tls_context(
+        request, verify=settings["verify"], proxies=proxies
+    )
+
+    adapter.cert_verify(connection, url, settings["verify"], None)
+
+    assert connection.cert_reqs == "CERT_REQUIRED"
+    assert connection.conn_kw.get("ssl_context") is None
+    assert connection.ca_certs == (str(ca_path) if ca_kind == "file" else None)
+    assert connection.ca_cert_dir == (str(ca_path) if ca_kind == "directory" else None)
+
+
+@pytest.mark.parametrize("proxied", (False, True))
+def test_ssl_context_adapter_separates_verification_pools(
+    proxied: bool, tmp_path: Path
+) -> None:
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    adapter = HTTPAdapter(ssl_context=ssl_context)
+    request = Request("GET", "https://example.test/").prepare()
+    proxies = {"https": "http://proxy:8080"} if proxied else {}
+    settings = (True, str(tmp_path / "first.pem"), str(tmp_path / "second.pem"), False)
+    pools = [
+        adapter.get_connection_with_tls_context(request, verify=verify, proxies=proxies)
+        for verify in settings
+    ]
+
+    assert len(set(pools)) == len(settings)
+    assert pools[0].conn_kw["ssl_context"] is ssl_context
+    assert all(pool.conn_kw.get("ssl_context") is None for pool in pools[1:])
+    assert pools[-1].cert_reqs == "CERT_NONE"
+    assert ssl_context.verify_mode == ssl.CERT_REQUIRED
+    assert ssl_context.check_hostname
+
+
+@pytest.mark.parametrize("verify", (True, False, "custom-ca.pem"))
+@pytest.mark.parametrize("scheme", ("http", "https"))
+def test_ssl_context_adapter_https_proxy_context(
+    verify: bool | str, scheme: str
+) -> None:
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    adapter = HTTPAdapter(ssl_context=ssl_context)
+    request = Request("GET", f"{scheme}://example.test/").prepare()
+    pool = adapter.get_connection_with_tls_context(
+        request, verify=verify, proxies={scheme: "https://proxy:8443"}
+    )
+    connection = pool._new_conn()
+
+    assert connection.proxy_config.ssl_context is (
+        ssl_context if verify is True and scheme == "https" else None
+    )
+
+
+def test_ssl_context_adapter_preserves_explicit_https_proxy_context() -> None:
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    proxy_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    adapter = HTTPAdapter(ssl_context=ssl_context)
+    proxy = "https://proxy:8443"
+    adapter.proxy_manager_for(proxy, proxy_ssl_context=proxy_context)
+    request = Request("GET", "https://example.test/").prepare()
+    pool = adapter.get_connection_with_tls_context(
+        request, verify=True, proxies={"https": proxy}
+    )
+
+    assert pool._new_conn().proxy_config.ssl_context is proxy_context
+
+
+@pytest.mark.parametrize("missing", ("ca", "client-cert", "client-key"))
+def test_ssl_context_adapter_missing_explicit_certificate(
+    missing: str, tmp_path: Path
+) -> None:
+    adapter = HTTPAdapter(ssl_context=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT))
+    url = "https://example.test/"
+    connection = adapter.poolmanager.connection_from_url(url)
+    missing_path = str(tmp_path / "missing.pem")
+    if missing == "client-key":
+        cert_file = tmp_path / "client.pem"
+        cert_file.touch()
+        cert = (str(cert_file), missing_path)
+    else:
+        cert = missing_path if missing == "client-cert" else None
+    with pytest.raises(OSError, match="invalid path"):
+        adapter.cert_verify(
+            connection, url, missing_path if missing == "ca" else True, cert
+        )
+
+
+def test_ssl_context_adapter_rejects_untrusted_certificate_without_certifi(
+    package_server_ssl, tmp_path: Path, mocker: MockerFixture
+) -> None:
+    mocker.patch(
+        "requests.adapters.DEFAULT_CA_BUNDLE_PATH", str(tmp_path / "missing.pem")
+    )
+    adapter = HTTPAdapter(ssl_context=ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT))
+    host, port = package_server_ssl.getsockname()
+    with Session() as session:
+        session.trust_env = False
+        session.mount("https://", adapter)
+        with pytest.raises(SSLError, match="CERTIFICATE_VERIFY_FAILED"):
+            session.get(f"https://{host}:{port}/none-accept-ranges/", timeout=10)
 
 
 @pytest.mark.parametrize("offline", [True, False])
