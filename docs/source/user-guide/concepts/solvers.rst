@@ -46,7 +46,7 @@ The following table summarizes the solvers that work with conda:
    * - :ref:`libmamba <solvers-libmamba>`
      - ``conda-libmamba-solver``
      - Available alternative solver
-   * - :ref:`pycosat <solvers-pycosat>`
+   * - :ref:`pycosat (classic) <solvers-pycosat>`
      - ``conda-pycosat-solver``
      - Available alternative solver
 
@@ -92,9 +92,15 @@ messages that identify conflicting constraints directly.
 pycosat
 -------
 
-The pycosat solver (historically known as the classic solver) is provided by
-the ``conda-pycosat-solver`` package. This solver has powered conda since conda's
-first release and is based on the ``pycosat`` Python bindings for the PicoSAT library.
+The pycosat solver is provided by the ``conda-pycosat-solver`` package.
+This solver has powered conda since conda's first release and is based on the
+``pycosat`` Python bindings for the PicoSAT library.
+
+.. note::
+
+   ``classic`` is a supported alias for ``pycosat``. Both names select the same
+   solver, so existing ``solver: classic`` settings and ``--solver=classic``
+   commands continue to work.
 
 Choose the pycosat solver when backwards compatibility with existing long-lived environments
 is important and you need solve results that match the original conda behavior exactly.
