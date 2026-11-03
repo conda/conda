@@ -348,25 +348,42 @@ def split_anaconda_token(url: str):
     return cleaned_url.rstrip("/"), token
 
 
-def split_platform(known_subdirs: Iterable[str], url: str) -> tuple[str, str]:
-    """
+def split_platform(
+    known_subdirs: Iterable[str],
+    url: str,
+    *,
+    package_extensions: Iterable[str] | None = None,
+) -> tuple[str, str | None]:
+    """Remove a trailing platform subdir, optionally followed by a known filename.
+
+    Args:
+        known_subdirs: Recognized platform subdirectory names.
+        url: Channel or package URL to split.
+        package_extensions: Registered lowercase package extensions to reuse
+            instead of discovering them through plugins.
 
     Examples:
         >>> from conda.base.constants import KNOWN_SUBDIRS
-        >>> split_platform(KNOWN_SUBDIRS, "https://1.2.3.4/t/tk-123/linux-ppc64le/path")
+        >>> split_platform(KNOWN_SUBDIRS, "https://1.2.3.4/t/tk-123/path/linux-ppc64le")
         (u'https://1.2.3.4/t/tk-123/path', u'linux-ppc64le')
 
     """
-    _platform_match = _split_platform_re(known_subdirs).search(url)
-    platform = _platform_match.groups()[0] if _platform_match else None
-    cleaned_url = url.replace("/" + platform, "", 1) if platform is not None else url
-    return cleaned_url.rstrip("/"), platform
+    url_parts = _urlparse(url)
+    path = url_parts.path.rstrip("/")
+    _, extension = strip_pkg_extension(path, package_extensions=package_extensions)
+    path, filename = path.rsplit("/", 1) if extension and "/" in path else (path, None)
+    if match := _split_platform_re(known_subdirs).search(path):
+        path = path[: match.start()]
+        if filename:
+            path = f"{path}/{filename}"
+        return url_parts._replace(path=path).geturl(), match.group(1)
+    return url.rstrip("/"), None
 
 
 @cache
 def _split_platform_re(known_subdirs: Iterable[str]) -> Pattern[str]:
-    _platform_match_regex = r"/({})(?:/|$)".format(
-        r"|".join(rf"{d}" for d in known_subdirs)
+    _platform_match_regex = r"/({})$".format(
+        r"|".join(re.escape(d) for d in known_subdirs)
     )
     return re.compile(_platform_match_regex, re.IGNORECASE)
 
@@ -418,10 +435,16 @@ class _SplitUrlParts(NamedTuple):
 def split_conda_url_easy_parts(
     known_subdirs: Iterable[str], url: str
 ) -> _SplitUrlParts:
+    from ..base.context import context
+
     # scheme, auth, token, platform, package_filename, host, port, path, query
     cleaned_url, token = split_anaconda_token(url)
-    cleaned_url, platform = split_platform(known_subdirs, cleaned_url)
-    _, ext = strip_pkg_extension(cleaned_url)
+    # Platform removal can expose a filename. Both checks reuse this registry.
+    package_extensions = context.plugin_manager.get_package_extractors()
+    cleaned_url, platform = split_platform(
+        known_subdirs, cleaned_url, package_extensions=package_extensions
+    )
+    _, ext = strip_pkg_extension(cleaned_url, package_extensions=package_extensions)
     cleaned_url, package_filename = (
         cleaned_url.rsplit("/", 1)
         if ext and "/" in cleaned_url

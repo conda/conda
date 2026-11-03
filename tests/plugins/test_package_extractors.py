@@ -8,7 +8,9 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda import plugins
+from conda.base.constants import KNOWN_SUBDIRS
 from conda.base.context import context
+from conda.common.url import split_conda_url_easy_parts
 from conda.exceptions import PluginError
 from conda.plugins.package_extractors.conda import extract_conda_or_tarball
 from conda.plugins.types import CondaPackageExtractor
@@ -140,3 +142,31 @@ def test_has_package_extension(
 ) -> None:
     """Test that has_package_extension returns the matched extension or None."""
     assert extractor_plugin_manager.has_package_extension(path) == expected
+
+
+@pytest.mark.parametrize("filename", ["package.random", "package.UPPER"])
+def test_split_url_with_custom_package_extension(
+    extractor_plugin_manager: CondaPluginManager, filename: str
+) -> None:
+    parts = split_conda_url_easy_parts(
+        KNOWN_SUBDIRS, f"https://example.test/linux-64/channel/noarch/{filename}"
+    )
+
+    assert parts.platform == "noarch"
+    assert parts.package_filename == filename
+    assert parts.path == "/linux-64/channel"
+
+
+def test_split_url_refreshes_package_extensions(
+    extractor_plugin_manager: CondaPluginManager,
+    extractor_plugin: CondaPackageExtractor,
+) -> None:
+    url = "https://example.test/channel/noarch/package.added"
+    assert split_conda_url_easy_parts(KNOWN_SUBDIRS, url).package_filename is None
+
+    extractor_plugin.extensions.append(".added")
+    parts = split_conda_url_easy_parts(KNOWN_SUBDIRS, url)
+
+    assert parts.platform == "noarch"
+    assert parts.package_filename == "package.added"
+    assert parts.path == "/channel"
