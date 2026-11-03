@@ -35,29 +35,26 @@ The following table summarizes the solvers that work with conda:
 
 .. list-table::
    :header-rows: 1
-   :widths: 15 25 30 30
+   :widths: 15 30 55
 
    * - Solver
      - Package
-     - Current status
-     - Planned status
+     - Status
    * - :ref:`rattler <solvers-rattler>`
      - ``conda-rattler-solver``
-     - Available as an optional plugin
-     - Planned to become the default solver in conda 26.10.0
+     - Default since conda 26.10.0
    * - :ref:`libmamba <solvers-libmamba>`
      - ``conda-libmamba-solver``
-     - Current default solver
-     - Planned to be replaced as the default by ``rattler``
+     - Available alternative solver
    * - :ref:`pycosat <solvers-pycosat>`
      - ``conda-pycosat-solver``
-     - Available as an optional plugin
-     -
+     - Available alternative solver
 
 .. note::
 
-   The default solver can change between conda releases. To see which solver
-   your installation uses, follow the steps in
+   The default solver can change between conda releases. An explicit solver
+   setting continues to take precedence when you upgrade conda. To see which
+   solver your installation uses, follow the steps in
    :ref:`Check which solver is activated <solvers-check>`.
 
 .. _solvers-rattler:
@@ -72,11 +69,10 @@ for working with conda packages.
 The rattler solver delegates to the Rust-based rattler library for dependency
 resolution, which reduces overhead when resolving complex dependency trees. It
 solves environments faster than libmamba, with the largest improvements on
-large or heavily constrained environments. The rattler solver is currently in
-beta and available as an opt-in plugin for testing.
+large or heavily constrained environments. Starting with conda 26.10.0,
+rattler is the default solver.
 
-.. TO DO: Add conda-rattler-solver GitHub documentation link
-.. (Issue: https://github.com/conda/conda-rattler-solver/issues/161)
+`conda-rattler-solver documentation <https://conda.github.io/conda-rattler-solver/>`_
 
 .. _solvers-libmamba:
 
@@ -84,7 +80,7 @@ libmamba
 --------
 
 The libmamba solver is provided by the ``conda-libmamba-solver`` package. It
-uses the solving engine from the mamba project and is the current default
+uses the solving engine from the mamba project and is available as an alternative
 solver in conda. This solver delegates to the C/C++ ``libsolv`` library,
 which gives it a low memory footprint, fast resolve times, and clear error
 messages that identify conflicting constraints directly.
@@ -116,7 +112,7 @@ To see which solver conda currently has configured, run:
 
    conda config --show solver
 
-The command prints the name of the configured solver, such as ``libmamba``. To
+The command prints the name of the configured solver, such as ``rattler``. To
 see which configuration file the setting comes from, run:
 
 .. code-block:: bash

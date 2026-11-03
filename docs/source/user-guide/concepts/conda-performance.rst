@@ -44,7 +44,7 @@ This section goes over some of the best practices we recommend for addressing pe
 
    For example, instead of ``numpy``, we recommend ``numpy=1.15`` or, even better, ``numpy=1.15.4``.
 
-2. **Make sure you have libmamba set as your dependency solver.** The conda libmamba solver was made the default solver in conda v23.9. It is a faster and more efficient solver than the classic solver, especially for large environments.
+2. **Use rattler as your dependency solver.** Rattler is the default solver starting with conda 26.10.0 and improves performance for large environments. If you previously selected another solver, that setting is preserved when you upgrade conda.
 
    .. note::
 
@@ -58,33 +58,33 @@ This section goes over some of the best practices we recommend for addressing pe
 
       conda config --show solver
 
-   If libmamba is set as your solver, you will see the following:
+   If rattler is set as your solver, you will see the following:
 
    .. code-block:: shell
 
-      solver: libmamba
+      solver: rattler
 
-   If you don't have libmamba set as your solver, follow these steps to enable it:
+   If you don't have rattler set as your solver, follow these steps to enable it:
 
-   #. Make sure ``conda-libmamba-solver`` is installed in your base environment:
-
-      .. code-block:: shell
-
-         conda install --name base conda-libmamba-solver
-
-   #. Set libmamba as your default solver:
+   #. Make sure ``conda-rattler-solver`` is installed in your base environment:
 
       .. code-block:: shell
 
-         conda config --set solver libmamba
+         conda install --name base conda-rattler-solver
+
+   #. Set rattler as your solver:
+
+      .. code-block:: shell
+
+         conda config --set solver rattler
 
    .. tip::
 
-       You can also use the libmamba solver temporarily when installing a package:
+       You can also use the rattler solver temporarily when installing a package:
 
        .. code-block:: shell
 
-          conda install --solver=libmamba package_name
+          conda install --solver=rattler package_name
 
    For more information on conda's solver options, see :doc:`Solvers <solvers>`.
 
@@ -111,13 +111,17 @@ This section goes over some of the best practices we recommend for addressing pe
    .. figure:: ../../img/strict-enabled.png
        :width: 50%
 
-4. **Enable sharded repodata.** This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
+4. **Use sharded repodata.** This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
 
    .. note::
 
       This option is currently available for conda-forge and prefix.dev for all channels as of March 2026.
 
-   Follow these steps to opt-in to sharded repodata:
+   With the rattler solver, sharded repodata is enabled by default through the
+   ``repodata_use_shards`` setting. Channels that do not publish sharded repodata
+   are fetched normally.
+
+   If you use the libmamba solver, follow these steps to opt in to sharded repodata:
 
    #. Update conda-libmamba-solver, if needed:
 
@@ -125,7 +129,7 @@ This section goes over some of the best practices we recommend for addressing pe
 
          conda install --name base "conda-libmamba-solver>=25.11.0"
 
-   #. Set the ``use_sharded_repodata`` plugin to ``true``:
+   #. Set the ``plugins.use_sharded_repodata`` option to ``true``:
 
       .. code-block:: shell
 

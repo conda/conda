@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
+from argparse import Namespace
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -15,7 +16,7 @@ from packaging.metadata import Metadata
 from packaging.version import Version
 
 from conda import CondaError, plugins
-from conda.base.context import reset_context
+from conda.base.context import context, reset_context
 from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
@@ -321,6 +322,46 @@ def test_load_entrypoints_register_valueerror(plugin_manager: CondaPluginManager
     """
     assert plugin_manager.load_entrypoints("test_plugin", "success") == 1
     assert plugin_manager.load_entrypoints("test_plugin", "success") == 0
+
+
+@pytest.mark.usefixtures("reset_conda_context")
+@pytest.mark.parametrize(
+    "configured,environment,command_line,expected",
+    [
+        (None, None, None, "rattler"),
+        ("libmamba", None, None, "libmamba"),
+        ("classic", None, None, "classic"),
+        ("pycosat", None, None, "pycosat"),
+        ("classic", "libmamba", None, "libmamba"),
+        ("libmamba", "classic", None, "classic"),
+        ("libmamba", "pycosat", None, "pycosat"),
+        ("classic", "libmamba", "rattler", "rattler"),
+        ("rattler", "classic", "libmamba", "libmamba"),
+        ("rattler", "libmamba", "classic", "classic"),
+        ("rattler", "libmamba", "pycosat", "pycosat"),
+    ],
+)
+def test_configured_solver_backend(
+    configured: str | None,
+    environment: str | None,
+    command_line: str | None,
+    expected: str,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("CONDA_SOLVER", raising=False)
+    monkeypatch.delenv("CONDA_EXPERIMENTAL_SOLVER", raising=False)
+    condarc = tmp_path / "condarc"
+    condarc.write_text(f"solver: {configured}\n" if configured else "")
+    if environment:
+        monkeypatch.setenv("CONDA_SOLVER", environment)
+    args = Namespace(solver=command_line) if command_line else Namespace()
+    reset_context([condarc], argparse_args=args)
+
+    backend = context.plugin_manager.get_solver_backend()
+    expected_backend = context.plugin_manager.get_solvers()[expected].backend
+    assert context.solver == expected
+    assert issubclass(backend, expected_backend)
 
 
 def test_unknown_solver(plugin_manager: CondaPluginManager):

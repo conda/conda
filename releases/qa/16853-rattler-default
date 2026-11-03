@@ -1,0 +1,34 @@
+### Title
+Rattler default on fresh installations and upgrades
+
+### Why
+Conda 26.10 switches the default solver to rattler. Existing solver choices must
+remain effective, and the packaged installation must include the solver plugin.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+Use disposable installations with the 26.10 release candidate packages and
+`conda-rattler-solver >=26.10.1`. Also prepare conda 26.9 installations with no
+solver setting and with explicit `libmamba`, `classic`, and `pycosat` settings.
+
+### Steps
+1. In a fresh 26.10 installation, run `conda config --show solver` and `conda info`.
+2. Create an environment with `conda create --name solver-check python`, then
+   install and remove a package in that environment without passing `--solver`.
+3. Upgrade each 26.9 installation to the 26.10 release candidate. Repeat the
+   configuration check and package operations.
+4. In the installation without a solver setting, repeat a package operation
+   with `--solver=libmamba` and `--solver=classic`.
+
+### Pass criteria
+Fresh installations and upgrades without a solver setting select rattler.
+Explicit solver settings survive the upgrade. Package operations succeed with
+the default and explicitly selected solvers.
+
+### Out of scope / notes
+Configuration precedence is covered by `test_configured_solver_backend`.
+This scenario checks packaged solver availability and upgrades on each platform.
