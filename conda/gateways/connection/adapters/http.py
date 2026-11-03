@@ -35,7 +35,6 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from __future__ import annotations
 
-from os.path import exists
 from typing import TYPE_CHECKING
 
 from .. import DEFAULT_POOLBLOCK
@@ -45,25 +44,15 @@ if TYPE_CHECKING:
     from ssl import SSLContext
     from typing import Any
 
-    from requests.models import PreparedRequest
-    from urllib3 import PoolManager, ProxyManager
+    from requests.models import PreparedRequest, Response
+    from urllib3 import ProxyManager
     from urllib3.connectionpool import HTTPConnectionPool
 
 
-class _SSLContextAdapterMixin:
-    """Mixin to add the ``ssl_context`` constructor argument to HTTP adapters.
+class _SSLContextAdapter(BaseHTTPAdapter):
+    """Adapter for verified HTTPS requests using the supplied certificate store."""
 
-    The additional argument is forwarded directly to the pool manager. This allows us
-    to dynamically decide what SSL store to use at runtime, which is used to implement
-    the optional ``truststore`` backend.
-    """
-
-    def __init__(
-        self,
-        *,
-        ssl_context: SSLContext | None = None,
-        **kwargs: Any,
-    ) -> None:
+    def __init__(self, ssl_context: SSLContext, **kwargs: Any) -> None:
         self._ssl_context = ssl_context
         super().__init__(**kwargs)
 
@@ -73,10 +62,9 @@ class _SSLContextAdapterMixin:
         maxsize: int,
         block: bool = DEFAULT_POOLBLOCK,
         **pool_kwargs: Any,
-    ) -> PoolManager:
-        if self._ssl_context is not None:
-            pool_kwargs.setdefault("ssl_context", self._ssl_context)
-        return super().init_poolmanager(  # type: ignore[misc]
+    ) -> None:
+        pool_kwargs.setdefault("ssl_context", self._ssl_context)
+        super().init_poolmanager(
             connections=connections,
             maxsize=maxsize,
             block=block,
@@ -84,51 +72,10 @@ class _SSLContextAdapterMixin:
         )
 
     def proxy_manager_for(self, proxy: str, **proxy_kwargs: Any) -> ProxyManager:
-        # requests' ProxyManager does not inherit init_poolmanager kwargs (#16252).
-        if self._ssl_context is not None:
-            proxy_kwargs.setdefault("ssl_context", self._ssl_context)
-        return super().proxy_manager_for(proxy, **proxy_kwargs)  # type: ignore[misc]
-
-    def build_connection_pool_key_attributes(
-        self,
-        request: PreparedRequest,
-        verify: bool | str,
-        cert: str | tuple[str, str] | None = None,
-    ) -> tuple[dict[str, Any], dict[str, Any]]:
-        host_params, pool_kwargs = super().build_connection_pool_key_attributes(  # type: ignore[misc]
-            request, verify, cert
-        )
-        if self._ssl_context is not None:
-            # An explicit CA override must not inherit the native trust roots.
-            # None removes the context inherited from the pool manager, including proxies.
-            pool_kwargs["ssl_context"] = self._ssl_context if verify is True else None
-        return host_params, pool_kwargs
-
-    def get_connection_with_tls_context(
-        self,
-        request: PreparedRequest,
-        verify: bool | str,
-        proxies: dict[str, str] | None = None,
-        cert: str | tuple[str, str] | None = None,
-    ) -> HTTPConnectionPool:
-        pool = super().get_connection_with_tls_context(  # type: ignore[misc]
-            request, verify, proxies=proxies, cert=cert
-        )
-        if (
-            self._ssl_context is not None
-            and verify is True
-            and request.url.lower().startswith("https")
-            and pool.proxy is not None
-            and pool.proxy.scheme == "https"
-        ):
-            proxy_config = pool.conn_kw["proxy_config"]
-            if proxy_config.ssl_context is None:
-                # Pools are already separated by the request's TLS settings.
-                # HTTPS proxies use a separate TLS context from the target server.
-                pool.conn_kw["proxy_config"] = proxy_config._replace(
-                    ssl_context=self._ssl_context
-                )
-        return pool
+        proxy_kwargs.setdefault("ssl_context", self._ssl_context)
+        if proxy.lower().startswith("https://"):
+            proxy_kwargs.setdefault("proxy_ssl_context", self._ssl_context)
+        return super().proxy_manager_for(proxy, **proxy_kwargs)
 
     def cert_verify(
         self,
@@ -137,31 +84,50 @@ class _SSLContextAdapterMixin:
         verify: bool | str,
         cert: str | tuple[str, str] | None,
     ) -> None:
+        # Requests >=2.32.5 already sets CERT_REQUIRED and client certificates in
+        # the pool. The supplied context provides roots without a certifi file.
+        pass
+
+
+class HTTPAdapter(BaseHTTPAdapter):
+    """Keep native certificate trust separate from explicit Requests TLS settings."""
+
+    def __init__(self, *, ssl_context: SSLContext | None = None, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._ssl_context_adapter = (
+            _SSLContextAdapter(ssl_context, **kwargs)
+            if ssl_context is not None
+            else None
+        )
+
+    def send(
+        self,
+        request: PreparedRequest,
+        stream: bool = False,
+        timeout: Any = None,
+        verify: bool | str = True,
+        cert: str | tuple[str, str] | None = None,
+        proxies: dict[str, str] | None = None,
+    ) -> Response:
+        # Requests has merged request, session, and environment settings before
+        # dispatch. Custom CA paths and disabled verification use ordinary TLS.
+        send = super().send
         if (
-            self._ssl_context is None
-            or verify is not True
-            or not url.lower().startswith("https")
+            self._ssl_context_adapter is not None
+            and verify is True
+            and request.url.lower().startswith("https://")
         ):
-            return super().cert_verify(conn, url, verify, cert)  # type: ignore[misc]
+            send = self._ssl_context_adapter.send
+        return send(
+            request,
+            stream=stream,
+            timeout=timeout,
+            verify=verify,
+            cert=cert,
+            proxies=proxies,
+        )
 
-        # The supplied context provides trust roots without Requests' default CA file.
-        conn.cert_reqs = "CERT_REQUIRED"
-        conn.ca_certs = None
-        conn.ca_cert_dir = None
-        if cert:
-            if isinstance(cert, (str, bytes)):
-                conn.cert_file, conn.key_file = cert, None
-            else:
-                conn.cert_file, conn.key_file = cert
-            if conn.cert_file and not exists(conn.cert_file):
-                raise OSError(
-                    f"Could not find the TLS certificate file, invalid path: {conn.cert_file}"
-                )
-            if conn.key_file and not exists(conn.key_file):
-                raise OSError(
-                    f"Could not find the TLS key file, invalid path: {conn.key_file}"
-                )
-
-
-class HTTPAdapter(_SSLContextAdapterMixin, BaseHTTPAdapter):
-    pass
+    def close(self) -> None:
+        super().close()
+        if self._ssl_context_adapter is not None:
+            self._ssl_context_adapter.close()
