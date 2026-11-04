@@ -31,6 +31,7 @@ dependencies:
   - sphinxcontrib-serializinghtml==2.0.0
   - tqdm>=4.70.1
   - conda-libmamba-solver>=26.7.0
+  - conda-rattler-solver>=26.10.2
   - pip>25
   - pip:
       - sphinxcontrib-plantuml==0.31

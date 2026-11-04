@@ -328,8 +328,8 @@ class SatSolverChoice(ValueEnum):
     PYSAT = "pysat"
 
 
-DEFAULT_SOLVER: Final = "libmamba"
-"""The name of the default solver, currently "libmamba"."""
+DEFAULT_SOLVER: Final = "rattler"
+"""The name of the default solver, currently "rattler"."""
 
 CLASSIC_SOLVER: Final = "classic"
 

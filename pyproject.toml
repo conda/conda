@@ -32,6 +32,7 @@ dependencies = [
   # Disabled due to conda-libmamba-solver not being available on PyPI
   # "conda-libmamba-solver >=26.4.1",
   "conda-package-handling >=2.2.0",
+  "conda-rattler-solver >=26.10.2",
   "distro >=1.5.0",
   "frozendict >=2.4.2",
   "menuinst >=2",
