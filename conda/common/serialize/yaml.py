@@ -48,11 +48,14 @@ def _representer() -> type[ruamel.yaml.representer.RoundTripRepresenter]:
     return CondaYAMLRepresenter
 
 
-@cache
 def _yaml() -> ruamel.yaml.YAML:
+    """Create a parser with fresh state for each load or dump."""
     import ruamel.yaml
 
     parser = ruamel.yaml.YAML(typ="rt")
+    # RoundTripEmitter assumes %TAG directives from load(); the base emitter
+    # expands custom tags to `!<...>` when the dumper has none.
+    parser.Emitter = ruamel.yaml.emitter.Emitter
     parser.Representer = _representer()
     parser.indent(mapping=2, offset=2, sequence=4)
     parser.default_flow_style = False

@@ -1,0 +1,11 @@
+### Enhancements
+
+### Bug fixes
+
+* Use a fresh YAML parser for every read and write to prevent concurrent calls and failed operations from corrupting later results. (#16943 via #16949)
+
+### Deprecations
+
+### Docs
+
+### Other
