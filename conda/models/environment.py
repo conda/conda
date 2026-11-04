@@ -632,7 +632,9 @@ class Environment:
             envs_channels = list(
                 chain.from_iterable([env.config.channels for env in envs_from_file])
             )
-            uses_nodefaults = "nodefaults" in envs_channels and len(envs_channels) > 1
+            uses_nodefaults = "nodefaults" in envs_channels and any(
+                chan != "nodefaults" for chan in envs_channels
+            )
             if uses_nodefaults:
                 base_env = replace(
                     base_env, config=replace(base_env.config, channels=())
@@ -645,7 +647,9 @@ class Environment:
                 config=replace(
                     file_env.config,
                     channels=tuple(
-                        chan for chan in envs_channels if chan != "nodefaults"
+                        chan
+                        for chan in file_env.config.channels
+                        if chan != "nodefaults"
                     ),
                 ),
             )
