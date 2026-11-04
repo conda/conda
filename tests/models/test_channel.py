@@ -1320,20 +1320,30 @@ def test_ppc64le_vs_ppc64():
     )
 
 
-def test_channel_mangles_urls():
-    """
-    CondaSession() runs urls through Channel, and cannot be used to fetch files
-    with unknown extensions (it will mangle the URL)
-    """
+@pytest.mark.parametrize("scheme", ["file:///tmp", "https://example.test"])
+@pytest.mark.parametrize("subdir", [None, "osx-arm64", "noarch"])
+def test_channel_preserves_platform_parent_directory(scheme, subdir):
+    base_url = f"{scheme}/osx-arm64/conda-bld"
+    channel = Channel(f"{base_url}/{subdir}" if subdir else base_url)
+
+    assert channel.base_url == base_url
+    assert channel.platform == subdir
+    assert channel.urls(subdirs=("osx-arm64", "noarch")) == [
+        f"{base_url}/osx-arm64",
+        f"{base_url}/noarch",
+    ]
+
+
+def test_channel_repodata_urls():
     cases = [
         (
             "https://conda.anaconda.org/conda-forge/linux-64/repodata.json",
             "https://conda.anaconda.org/conda-forge/linux-64",
         ),
-        # This strange behavior may need to change:
+        # Unknown extensions remain part of the channel path.
         (
             "https://conda.anaconda.org/conda-forge/linux-64/repodata.json.bz2",
-            "https://conda.anaconda.org/conda-forge/repodata.json.bz2/linux-64",
+            "https://conda.anaconda.org/conda-forge/linux-64/repodata.json.bz2",
         ),
     ]
 
