@@ -53,7 +53,8 @@ def _yaml() -> ruamel.yaml.YAML:
     import ruamel.yaml
 
     parser = ruamel.yaml.YAML(typ="rt")
-    # Expand tag handles whose directives are unavailable to a fresh dumper.
+    # RoundTripEmitter assumes %TAG directives from load(); the base emitter
+    # expands custom tags to `!<...>` when the dumper has none.
     parser.Emitter = ruamel.yaml.emitter.Emitter
     parser.Representer = _representer()
     parser.indent(mapping=2, offset=2, sequence=4)
