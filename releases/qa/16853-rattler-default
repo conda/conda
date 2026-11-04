@@ -12,7 +12,7 @@ remain effective, and the packaged installation must include the solver plugin.
 
 ### Prerequisites
 Use disposable installations with the 26.10 release candidate packages and
-`conda-rattler-solver >=26.10.1`. Also prepare conda 26.9 installations with no
+`conda-rattler-solver >=26.10.2`. Also prepare conda 26.9 installations with no
 solver setting and with explicit `libmamba`, `classic`, and `pycosat` settings.
 
 ### Steps

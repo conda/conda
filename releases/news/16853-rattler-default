@@ -1,3 +1,3 @@
 ### Enhancements
 
-* Use rattler as the default solver, including after upgrades when no solver is explicitly configured. Require `conda-rattler-solver >=26.10.1`. (#16853 via #16944)
+* Use rattler as the default solver, including after upgrades when no solver is explicitly configured. Require `conda-rattler-solver >=26.10.2`. (#16853 via #16944)
