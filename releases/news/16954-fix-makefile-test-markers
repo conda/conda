@@ -1,0 +1,7 @@
+### Bug fixes
+
+* Fix `make unit` and `make integration` with pytest 9.2 by removing filters for the unused `installed` marker. (#16954)
+
+### Deprecations
+
+* Remove the obsolete `make test-installed` target, which no longer matches any tests. (#16954)
