@@ -2711,6 +2711,7 @@ def test_entry_point_failure_rolls_back(
     mocker: MockerFixture,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    temp_package_cache: Path,
 ):
     with tmp_env("conda-forge::pygments[subdir=noarch]") as prefix:
         record = package_is_installed(prefix, "pygments")
