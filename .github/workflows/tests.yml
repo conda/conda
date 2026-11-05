@@ -79,29 +79,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
-        runs-on: [windows-latest, windows-11-arm]
-        python-version: ['3.11', '3.14']
-        default-channel: [defaults, conda-forge]
-        test-type: [unit, integration]
-        test-group: [1, 2, 3]
-        exclude:
-          - default-channel: conda-forge
-            python-version: '3.11'
-          - test-type: unit
-            test-group: 3
-          - runs-on: windows-11-arm
-            python-version: '3.11'
+        # reproduce the failing CI job only; keep the original split/group so the order is unchanged
+        runs-on: [windows-latest]
+        python-version: ['3.14']
+        default-channel: [defaults]
+        test-type: [integration]
+        test-group: [1]
         include:
           - subdir: win-64
-          - runs-on: windows-11-arm
-            default-channel: conda-forge
-            subdir: win-arm64
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ (matrix.subdir == 'win-arm64' || github.event_name == 'pull_request') && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
+      PYTEST_EXTRA: -x
+      # match the release-branch job, which includes classic solver variants
+      CONDA_TEST_SOLVERS: rattler,libmamba,classic
       CONDA_TEST_SUBDIR: ${{ matrix.subdir }}
 
     steps:
@@ -218,11 +210,9 @@ jobs:
 
   # linux test suite
   linux:
-    # only run test suite if there are code changes
+    # debug: only run the failing Windows job
     needs: changes
-    if: >-
-      (!github.event.repository.fork && github.event_name == 'schedule')
-      || needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -370,9 +360,9 @@ jobs:
 
   # linux benchmarks
   linux-benchmarks:
-    # only run benchmarks if there are code changes
+    # debug: only run the failing Windows job
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-24.04
     permissions:
@@ -521,9 +511,9 @@ jobs:
 
   # linux typing
   linux-typing:
-    # only run test suite if there are code changes
+    # debug: only run the failing Windows job
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-24.04
     defaults:
@@ -617,11 +607,9 @@ jobs:
 
   # linux-qemu test suite
   linux-qemu:
-    # only run test suite if there are code changes
+    # debug: only run the failing Windows job
     needs: changes
-    if: >-
-      (!github.event.repository.fork && github.event_name == 'schedule')
-      || needs.changes.outputs.code == 'true'
+    if: false
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -678,9 +666,9 @@ jobs:
 
   # linux memray
   linux-memray:
-    # only run test suite if there are code changes
+    # debug: only run the failing Windows job
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-latest
     defaults:
@@ -749,11 +737,9 @@ jobs:
 
   # macos test suite
   macos:
-    # only run test suite if there are code changes
+    # debug: only run the failing Windows job
     needs: changes
-    if: >-
-      (!github.event.repository.fork && github.event_name == 'schedule')
-      || needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -879,14 +865,9 @@ jobs:
 
   # aggregate and upload
   aggregate:
-    # only aggregate test suite if there are code changes
+    # debug: only run the failing Windows job
     needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
-    if: >-
-      !cancelled()
-      && (
-        (!github.event.repository.fork && github.event_name == 'schedule')
-        || needs.changes.outputs.code == 'true'
-      )
+    if: false
 
     runs-on: ubuntu-slim
     steps:
@@ -956,9 +937,9 @@ jobs:
 
   # check conda-build imports
   downstream:
-    # only run test suite if there are code changes
+    # debug: only run the failing Windows job
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: false
 
     runs-on: ubuntu-latest
     defaults:
