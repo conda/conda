@@ -90,7 +90,6 @@ jobs:
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
-      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       PYTEST_EXTRA: -x
       # match the release-branch job, which includes classic solver variants
       CONDA_TEST_SOLVERS: rattler,libmamba,classic
@@ -181,12 +180,11 @@ jobs:
         # keep the test directories shorter
         run: |
           $env:CONDA_EXE = "$env:CONDA_PREFIX\Scripts\conda.exe"
-          python -m pytest `
+          # Ordered, commentable list; uncommented lines run in file order.
+          $order = Get-Content .github/repro-test-order.txt | Where-Object { $_.Trim() -and -not $_.Trim().StartsWith("#") }
+          python -m pytest @order `
           --cov=conda `
           --basetemp=${{ runner.temp }} `
-          --durations-path=durations\${{ runner.os }}.json `
-          --group=${{ matrix.test-group }} `
-          --splits=${{ env.PYTEST_SPLITS }} `
           -m "${{ env.PYTEST_MARKER }}" `
           ${{ env.PYTEST_EXTRA }}
 
