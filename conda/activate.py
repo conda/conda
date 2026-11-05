@@ -412,6 +412,11 @@ class _Activator(metaclass=abc.ABCMeta):
             for name, value in self._get_environment_env_vars(prefix).items()
             if value != CONDA_ENV_VARS_UNSET_VAR
         }
+        saved_vars = {}
+        for name in env_vars:
+            if context.envvars_force_uppercase:
+                name = name.upper()
+            saved_vars[name] = os.getenv(name)
 
         # get clobbered environment variables
         clobber_vars = set(env_vars).intersection(os.environ)
@@ -469,23 +474,53 @@ class _Activator(metaclass=abc.ABCMeta):
             )
             deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
 
+            def saved_env_vars_at_level(level):
+                saved = os.getenv(f"__CONDA_ENV_VARS_{level - 1}")
+                if saved:
+                    return json.loads(bytes.fromhex(saved))
+                previous_prefix = (
+                    old_conda_prefix
+                    if level == old_conda_shlvl
+                    else os.getenv(f"CONDA_PREFIX_{level}")
+                )
+                if not previous_prefix:
+                    return {}
+                names = (
+                    name.upper() if context.envvars_force_uppercase else name
+                    for name, value in self._get_environment_env_vars(
+                        previous_prefix
+                    ).items()
+                    if value != CONDA_ENV_VARS_UNSET_VAR
+                )
+                return {
+                    name: os.getenv(f"__CONDA_SHLVL_{level - 1}_{name}")
+                    for name in names
+                }
+
             # Restore or unset environment variables of the replaced environment
-            # that the new environment does not set itself
-            for env_var, value in self._get_environment_env_vars(
-                old_conda_prefix
-            ).items():
-                # vars marked as unset were never set on activation
-                if value == CONDA_ENV_VARS_UNSET_VAR:
-                    continue
-                if context.envvars_force_uppercase:
-                    env_var = env_var.upper()
+            # that the new environment does not set itself, following the saved
+            # values through earlier non-stacked activations
+            for env_var, save_value in saved_env_vars_at_level(old_conda_shlvl).items():
                 if env_var in export_vars:
                     continue
-                save_value = os.getenv(f"__CONDA_SHLVL_{old_conda_shlvl - 1}_{env_var}")
+                save_level = old_conda_shlvl
+                while (
+                    save_level > 1 and f"CONDA_STACKED_{save_level}" not in os.environ
+                ):
+                    previous_vars = saved_env_vars_at_level(save_level - 1)
+                    if env_var not in previous_vars:
+                        break
+                    save_value = previous_vars[env_var]
+                    save_level -= 1
                 if save_value is not None:
                     export_vars[env_var] = save_value
                 elif env_var not in unset_vars:
                     unset_vars.append(env_var)
+
+        # Hex keeps the record safe in every shell's assignment syntax.
+        export_vars[f"__CONDA_ENV_VARS_{old_conda_shlvl}"] = (
+            json.dumps(saved_vars).encode().hex()
+        )
 
         set_vars = {}
         if context.changeps1:
@@ -514,12 +549,26 @@ class _Activator(metaclass=abc.ABCMeta):
                 "activate_scripts": (),
             }
         deactivate_scripts = self._get_deactivate_scripts(old_conda_prefix)
+        # Use the record saved on activation so that changes to the state file
+        # while active don't affect deactivation; fall back to the state file
+        # for shells activated by older conda versions
+        saved_vars_name = f"__CONDA_ENV_VARS_{old_conda_shlvl - 1}"
+        saved_vars_value = os.getenv(saved_vars_name)
+        saved_vars = (
+            json.loads(bytes.fromhex(saved_vars_value)) if saved_vars_value else {}
+        )
         # vars marked as unset were never set on activation, so skip them
-        old_conda_environment_env_vars = {
-            name: value
-            for name, value in self._get_environment_env_vars(old_conda_prefix).items()
-            if value != CONDA_ENV_VARS_UNSET_VAR
-        }
+        old_conda_environment_env_vars = (
+            saved_vars
+            if saved_vars_value
+            else {
+                name.upper() if context.envvars_force_uppercase else name: value
+                for name, value in self._get_environment_env_vars(
+                    old_conda_prefix
+                ).items()
+                if value != CONDA_ENV_VARS_UNSET_VAR
+            }
+        )
 
         new_conda_shlvl = old_conda_shlvl - 1
         set_vars = {}
@@ -591,16 +640,32 @@ class _Activator(metaclass=abc.ABCMeta):
             self._update_prompt(set_vars, conda_prompt_modifier)
 
         # Handle environment variables that need to be unset during deactivation
-        for env_var in old_conda_environment_env_vars.keys():
-            save_value = os.getenv(f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}")
+        for env_var in old_conda_environment_env_vars:
+            if saved_vars_value:
+                save_value = saved_vars.get(env_var)
+            else:
+                save_value = os.getenv(f"__CONDA_SHLVL_{new_conda_shlvl}_{env_var}")
             if save_value is not None:
                 export_vars[env_var] = save_value
             else:
-                # Apply case conversion for environment variables that need to be unset
-                if context.envvars_force_uppercase:
-                    unset_vars.append(env_var.upper())
-                else:
-                    unset_vars.append(env_var)
+                unset_vars.append(env_var)
+
+        if saved_vars_value:
+            unset_vars.append(saved_vars_name)
+        if old_conda_shlvl > 1:
+            # Track variables newly configured for the environment we return to
+            returning_vars_name = f"__CONDA_ENV_VARS_{new_conda_shlvl - 1}"
+            returning_vars_value = os.getenv(returning_vars_name)
+            if returning_vars_value:
+                returning_vars = json.loads(bytes.fromhex(returning_vars_value))
+                for name in new_conda_environment_env_vars:
+                    if context.envvars_force_uppercase:
+                        name = name.upper()
+                    if name not in returning_vars:
+                        returning_vars[name] = saved_vars.get(name, os.getenv(name))
+                export_vars[returning_vars_name] = (
+                    json.dumps(returning_vars).encode().hex()
+                )
 
         return {
             "unset_vars": unset_vars,
