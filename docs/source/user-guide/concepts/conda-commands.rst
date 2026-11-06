@@ -92,6 +92,10 @@ conda, usually ``base``. Starting with conda 26.11.0, use
 to manage their conda packages. Select the target environment with ``--name`` or
 ``--prefix``.
 
+Use ``conda plugins list`` to see installed plugins and ``conda plugins info NAME``
+to inspect a plugin's metadata and registered hooks. These commands report on the
+environment running conda and also support ``--json`` output.
+
 Installing a plugin into another environment does not make its command available
 to the main ``conda`` command. That environment must contain conda, and you must
 run its Python interpreter to load its plugins. See :doc:`Plugins <conda-plugins>`
