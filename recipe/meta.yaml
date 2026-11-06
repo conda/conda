@@ -73,10 +73,11 @@ requirements:
     - tqdm >=4
     - truststore >=0.8.0
     # Plugins to bundle with conda
+    - conda-pycosat-solver >=26.10.0
     - conda-libmamba-solver >=26.7.0
     - conda-lockfiles >=0.2.2
     - conda-pypi >=0.13.0
-    - conda-rattler-solver >=0.2.0
+    - conda-rattler-solver >=26.10.2
     - conda-self >=0.3.0
   run_constrained:
     # eMudhra Intermediate CA Compromise

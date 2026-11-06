@@ -101,7 +101,7 @@ jobs:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ (matrix.subdir == 'win-arm64' || github.event_name == 'pull_request') && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ (matrix.subdir == 'win-arm64' || github.event_name == 'pull_request') && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
       CONDA_TEST_SUBDIR: ${{ matrix.subdir }}
 
     steps:
@@ -254,7 +254,7 @@ jobs:
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.14' || matrix.default-channel == 'conda-forge' ) && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.14' || matrix.default-channel == 'conda-forge' ) && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
 
     steps:
       - name: Checkout Source
@@ -789,7 +789,7 @@ jobs:
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'libmamba' || 'libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
 
     steps:
       - name: Checkout Source

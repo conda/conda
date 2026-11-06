@@ -138,6 +138,8 @@ def test_resume_download(
 
     iter_content_mock = mocker.patch("requests.Response.iter_content")
 
+    iter_content_mock = mocker.patch("requests.Response.iter_content")
+
     # Download gets interrupted by an exception
     iter_content_mock.side_effect = iter_content_interrupted
     with pytest.raises(expected_error):

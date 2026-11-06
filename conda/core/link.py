@@ -61,7 +61,7 @@ from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..models.version import VersionOrder
 from ..reporters import confirm_yn, get_spinner
-from ..resolve import MatchSpec
+from ..models.match_spec import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
 from .portability import batch_codesign_calls
