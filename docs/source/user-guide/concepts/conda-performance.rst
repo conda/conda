@@ -104,23 +104,3 @@ This section goes over some of the best practices we recommend for addressing pe
        :width: 50%
    .. figure:: ../../img/strict-enabled.png
        :width: 50%
-
-4. **Enable sharded repodata.** This splits your repodata into multiple small files and fetches only what is needed, which dramatically speeds up environment creation and updates. Learn more in `CEP 16 <https://conda.org/learn/ceps/cep-0016>`_.
-
-   .. note::
-
-      This option is currently available for conda-forge and prefix.dev for all channels as of March 2026.
-
-   Follow these steps to opt-in to sharded repodata:
-
-   #. Update conda-libmamba-solver, if needed:
-
-      .. code-block:: shell
-
-         conda install --name base "conda-libmamba-solver>=25.11.0"
-
-   #. Set the ``use_sharded_repodata`` plugin to ``true``:
-
-      .. code-block:: shell
-
-         conda config --set plugins.use_sharded_repodata true
