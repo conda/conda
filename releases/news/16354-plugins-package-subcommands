@@ -13,7 +13,7 @@
 
 ### Docs
 
-* Document temporary channel selection for plugin installation before a `.condarc` exists and how to run plugins from a selected environment. (#16354 via #16357)
+* Document compatible package sources, temporary channel selection, and how to run plugins from a selected environment. (#16354 via #16357)
 
 ### Other
 

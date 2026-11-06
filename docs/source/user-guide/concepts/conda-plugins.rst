@@ -14,16 +14,39 @@ Installing plugins
 
 Use ``conda plugins install`` to install a conda plugin package into an environment.
 Select the environment containing the conda installation you want to extend with
-``--name`` or ``--prefix``. For example, to install ``conda-tree`` into ``base``:
+``--name`` or ``--prefix``. Choose plugin packages from channels compatible with
+the packages already installed there.
+
+For example, Miniforge uses conda-forge by default. With that channel configuration,
+install ``conda-tree`` directly into its ``base`` environment:
 
 .. code-block:: console
 
-   conda plugins install --name base --override-channels --channel conda-forge conda-tree
+   conda plugins install --name base conda-tree
+
+This command uses the configured channels.
+
+If your environment uses Anaconda's ``defaults`` channels instead, install plugins
+from those channels. To use a plugin from conda-forge, create a separate
+environment containing conda and install the plugin there:
+
+.. code-block:: console
+
+   conda create --name conda-forge-plugins --override-channels --channel conda-forge conda
+   conda run --name conda-forge-plugins python -m conda plugins install --override-channels --channel conda-forge conda-tree
+
+Your existing conda installation can create and manage this separate environment.
+The second command runs the conda installed in it to install the plugin.
 
 ``--channel`` (``-c``) selects a package source for this command. Repeat it to search
-multiple sources in the specified order. ``--override-channels`` excludes the
-configured channels, so explicit sources can be used before a ``.condarc`` exists.
-These options do not create or modify channel configuration. Without
+multiple compatible sources in the specified order. ``--override-channels``
+excludes the configured channels from the search. It does not isolate packages
+already installed in the target environment or migrate them to another channel.
+See :ref:`channel-best-practices`.
+
+These options do not create or modify channel configuration and can be used before
+a ``.condarc`` exists. Use ``--override-channels --channel conda-forge`` again for
+subsequent installs and updates in ``conda-forge-plugins``. Without
 ``--override-channels``, conda also searches the configured channels.
 
 Channel aliases, authentication, network settings, and channel restrictions are
@@ -36,14 +59,13 @@ same environment. Activating another environment does not change the conda
 installation used by the shell's ``conda`` command.
 
 To load a plugin installed in another environment, run that environment's Python.
-The environment must also contain conda. For example, with ``conda-tree`` installed
-in an environment named ``my-env``:
+The environment must also contain conda, as in the example above:
 
 .. code-block:: console
 
-   conda run --name my-env python -m conda tree --help
-   conda run --name my-env python -m conda plugins list
-   conda run --name my-env python -m conda plugins info conda-tree
+   conda run --name conda-forge-plugins python -m conda tree --help
+   conda run --name conda-forge-plugins python -m conda plugins list
+   conda run --name conda-forge-plugins python -m conda plugins info conda-tree
 
 
 Implementation
