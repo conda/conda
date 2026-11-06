@@ -30,11 +30,11 @@ Bootstrap and set up an environment for **development and testing** from the rep
 
 ### Functions and methods
 
-- Keep straightforward, single-use logic inline. Prefer a readable sequence of local statements when extracting helpers would make readers jump between definitions to follow the same operation.
-- Before adding a helper, look for an existing function, method, or test fixture that already provides the behavior. Avoid wrappers that only forward arguments unless an existing API requires them. Do not add helpers that only rename an obvious expression.
-- Extract a helper when it removes meaningful existing duplication or separates a substantial operation whose name, inputs, and result make the caller easier to understand. A single caller is fine when that benefit is clear. Do not extract for hypothetical future reuse.
-- Review each new helper together with its callers. Check whether readers can follow the control flow and state changes without immediately opening another helper. Keep tightly coupled steps together, especially when helpers pass the same state through a chain of calls.
-- Do not split code solely to meet a line-count or complexity target. Do not extract trivial helpers solely to test them separately. Test observable behavior through existing entry points where practical. Apply this guidance to the requested change, and follow the deprecation policy before removing released functions or methods.
+- Before introducing a helper, check whether existing code or a test fixture already does the job.
+- Keep related steps together when separating them would obscure their order or shared state. Extract an operation when its name and inputs clarify the calling code or make nested control flow easier to understand. One caller can be enough.
+- A helper can also make substantial logic easier to test without unrelated filesystem, network, or configuration setup. Avoid creating trivial functions just to test expressions separately. Retain coverage through the calling code where needed.
+- Assess the caller and helper together, including state changes and error handling. When requesting extraction or inlining, explain the specific improvement in readability or testing. Shorter functions and lower complexity scores alone do not establish that improvement.
+- Avoid speculative reuse and wrappers that merely pass arguments unless an API requires them. Keep refactoring within the requested change and follow the deprecation policy for released APIs.
 
 ## Changelog (`releases/news/`)
 
