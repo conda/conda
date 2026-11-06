@@ -32,15 +32,11 @@ smoketest:
 
 
 unit:
-	pytest -m "not integration and not installed"
+	pytest -m "not integration"
 
 
 integration: clean pytest-version
-	pytest -m "integration and not installed"
-
-
-test-installed:
-	pytest -m "installed" --shell=bash --shell=zsh
+	pytest -m "integration"
 
 
 html:

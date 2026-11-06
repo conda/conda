@@ -1,0 +1,54 @@
+### Title
+Render a recipe with a platform-named parent directory in the build path.
+
+### Why
+Channel parsing must preserve parent directories such as `osx-arm64` and `linux-64`.
+Dropping these directories causes conda-build rendering to fail when its package cache is empty.
+
+### Platforms
+- [ ] Windows
+- [x] macOS
+- [x] Linux
+
+### Prerequisites
+Activate an environment with the patched conda, conda-build 26.9.1, and conda-libmamba-solver 26.10.0.
+The `defaults` channel must be accessible.
+
+### Steps
+1. Create a recipe and fresh build and package-cache directories:
+
+   ```sh
+   repro_root=$(mktemp -d)
+   mkdir -p "$repro_root/recipe" "$repro_root/osx-arm64/conda-bld" "$repro_root/pkgs"
+   cat > "$repro_root/recipe/meta.yaml" <<'EOF'
+   package:
+     name: platform-directory-repro
+     version: 1.0
+   build:
+     number: 0
+   requirements:
+     host:
+       - python
+     run:
+       - python
+   EOF
+   ```
+
+2. Render with the libmamba solver and the fresh package cache:
+
+   ```sh
+   CONDA_SOLVER=libmamba \
+   CONDA_PKGS_DIRS="$repro_root/pkgs" \
+   CONDA_BLD_PATH="$repro_root/osx-arm64/conda-bld" \
+     conda-render "$repro_root/recipe" -c defaults -O --no-repodata-use-shards
+   ```
+
+3. Repeat with a fresh temporary directory, replacing the `osx-arm64` parent directory with `linux-64`.
+
+### Pass criteria
+Both renders exit successfully and print the rendered recipe without an `UnavailableInvalidChannel` error.
+
+### Out of scope / notes
+Do not reuse a populated package cache, which can hide the failure.
+Automated coverage is in `tests/common/test_url.py`, `tests/models/test_channel.py`, and `tests/core/test_index.py`.
+See conda/conda-libmamba-solver#1108.
