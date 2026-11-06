@@ -1,0 +1,3 @@
+### Bug fixes
+
+* Fix `conda search` output ordering and introduce `BuildString` data type with rich comparisons on `PackageRecord` to sort package versions by `VersionOrder` and numeric build numbers. (#16810 via #16849)

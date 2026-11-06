@@ -7,7 +7,8 @@ from conda.core.prefix_data import PrefixData
 from conda.models.channel import Channel
 from conda.models.enums import PackageType
 from conda.models.match_spec import MatchSpec
-from conda.models.records import PackageRecord, PrefixRecord
+from conda.models.records import PackageCacheRecord, PackageRecord, PrefixRecord
+from conda.models.version import VersionOrder
 
 blas_value = "accelerate" if context.subdir == "osx-64" else "openblas"
 
@@ -269,3 +270,364 @@ def test_requested_spec(tmp_env, test_recipes_channel):
         assert sorted(requested.requested_specs) == sorted(specs)
         assert not transitive.get("requested_spec")
         assert not transitive.get("requested_specs")
+
+
+def test_package_record_comparison_names():
+    """Ensure PackageRecords with different names sort alphabetically."""
+    r_a = PackageRecord(name="arrow", version="1.0.0", build="0", build_number=0)
+    r_z = PackageRecord(name="zstandard", version="0.1.0", build="0", build_number=0)
+    assert r_a < r_z
+    assert r_z > r_a
+    assert r_a <= r_z
+    assert r_z >= r_a
+    assert r_a != r_z
+
+
+def test_package_record_comparison_versions():
+    """Ensure PackageRecords sort by VersionOrder instead of string comparison."""
+    r_1_3 = PackageRecord(name="maturin", version="1.3.0", build="0", build_number=0)
+    r_1_11 = PackageRecord(name="maturin", version="1.11.5", build="0", build_number=0)
+    assert r_1_3 < r_1_11
+    assert not (r_1_11 < r_1_3)
+    assert r_1_3 <= r_1_11
+    assert r_1_11 >= r_1_3
+
+
+def test_package_record_comparison_semantically_equivalent_versions():
+    """Ensure semantically equivalent VersionOrder strings tie-break deterministically."""
+    r1 = PackageRecord(name="pkg", version="1.1", build="0", build_number=0)
+    r2 = PackageRecord(name="pkg", version="1.1.0", build="0", build_number=0)
+    # Both have VersionOrder('1.1') == VersionOrder('1.1.0')
+    # Deterministic tie-breaker on raw version string ensures total order
+    assert r1 < r2
+    assert not (r2 < r1)
+    assert r1 != r2
+
+
+def test_package_record_comparison_equivalent_versions_conflicting_build_numbers():
+    """Ensure authoritative build_number takes precedence over raw version string.
+
+    When two records have semantically equivalent VersionOrder (e.g. '1.1' and '1.1.0'),
+    the authoritative numeric build_number must decide the order, not lexical
+    comparison of the raw version strings.
+    """
+    # r_b2 has version '1.1' (lexically < '1.1.0') but build_number 2
+    r_b2 = PackageRecord(name="pkg", version="1.1", build="2", build_number=2)
+    # r_b1 has version '1.1.0' (lexically > '1.1') but build_number 1
+    r_b1 = PackageRecord(name="pkg", version="1.1.0", build="1", build_number=1)
+
+    assert VersionOrder(r_b2.version) == VersionOrder(r_b1.version)
+    # build_number 1 must sort before build_number 2
+    assert r_b1 < r_b2
+    assert not (r_b2 < r_b1)
+    assert r_b1 <= r_b2
+    assert r_b2 >= r_b1
+    assert r_b1 != r_b2
+
+    # When both semantic version and build_number are identical,
+    # raw version string breaks the tie deterministically
+    r_same1 = PackageRecord(name="pkg", version="1.1", build="1", build_number=1)
+    r_same2 = PackageRecord(name="pkg", version="1.1.0", build="1", build_number=1)
+    assert r_same1 < r_same2
+    assert not (r_same2 < r_same1)
+
+
+def test_package_record_comparison_build_numbers():
+    """Ensure numeric build numbers are ordered numerically (e.g. 2 before 10)."""
+    r_2 = PackageRecord(name="pkg", version="1.0.0", build="py312_2", build_number=2)
+    r_10 = PackageRecord(name="pkg", version="1.0.0", build="py312_10", build_number=10)
+    assert r_2 < r_10
+    assert r_10 > r_2
+    assert r_2 <= r_10
+    assert r_10 >= r_2
+
+    # Authoritative metadata precedence: build_number 1 sorts before build_number 2
+    # even if build string had an unusual suffix
+    r_meta1 = PackageRecord(
+        name="pkg", version="1.0.0", build="cuda_99", build_number=1
+    )
+    r_meta2 = PackageRecord(name="pkg", version="1.0.0", build="cuda_0", build_number=2)
+    assert r_meta1 < r_meta2
+
+
+def test_package_record_comparison_build_strings():
+    """Ensure BuildString tie-breaker orders variant suffixes when build_numbers match."""
+    r_cpu = PackageRecord(
+        name="pkg", version="1.0.0", build="py312_0_cpu", build_number=0
+    )
+    r_cuda = PackageRecord(
+        name="pkg", version="1.0.0", build="py312_0_cuda", build_number=0
+    )
+    assert r_cpu < r_cuda
+    assert r_cuda > r_cpu
+
+
+def test_package_record_comparison_equality_and_hash_invariance():
+    """Ensure rich comparison is strictly consistent with __eq__ and __hash__."""
+    r1 = PackageRecord(name="pkg", version="1.0.0", build="0", build_number=0)
+    r2 = PackageRecord(name="pkg", version="1.0.0", build="0", build_number=0)
+
+    assert r1 == r2
+    assert not (r1 < r2)
+    assert not (r2 < r1)
+    assert r1 <= r2
+    assert r2 <= r1
+    assert r1 >= r2
+    assert r2 >= r1
+    assert hash(r1) == hash(r2)
+
+    # Dictionary / set key behaviour
+    s = {r1}
+    assert r2 in s
+    d = {r1: "value"}
+    assert d[r2] == "value"
+
+
+def test_package_record_comparison_transitivity_and_totality():
+    """Ensure comparison operators satisfy strict total order laws."""
+    records = [
+        PackageRecord(name="a", version="1.0", build="0", build_number=0),
+        PackageRecord(name="b", version="0.9", build="0", build_number=0),
+        PackageRecord(name="b", version="1.3.0", build="0", build_number=0),
+        PackageRecord(name="b", version="1.11.5", build="0", build_number=0),
+        PackageRecord(name="b", version="1.11.5", build="1", build_number=1),
+        PackageRecord(name="b", version="1.11.5", build="10", build_number=10),
+    ]
+    for i in range(len(records)):
+        for j in range(i + 1, len(records)):
+            assert records[i] < records[j]
+            assert not (records[j] < records[i])
+            assert records[i] <= records[j]
+            assert not (records[j] <= records[i])
+            for k in range(j + 1, len(records)):
+                assert records[i] < records[k]
+
+
+def test_package_record_comparison_separate_format_cache(monkeypatch):
+    """Ensure separate_format_cache includes filename in tie-breaker consistently."""
+    # When separate_format_cache is False (default), records test equal
+    monkeypatch.setattr(context, "separate_format_cache", False)
+    r_tar = PackageRecord(
+        name="pkg", version="1.0", build="0", build_number=0, fn="pkg-1.0-0.tar.bz2"
+    )
+    r_conda = PackageRecord(
+        name="pkg", version="1.0", build="0", build_number=0, fn="pkg-1.0-0.conda"
+    )
+    assert r_tar == r_conda
+    assert not (r_tar < r_conda)
+    assert not (r_conda < r_tar)
+    assert r_tar <= r_conda
+    assert r_conda <= r_tar
+
+    # When separate_format_cache is True, filename is part of identity and sort order
+    monkeypatch.setattr(context, "separate_format_cache", True)
+    r_tar2 = PackageRecord(
+        name="pkg", version="1.0", build="0", build_number=0, fn="pkg-1.0-0.tar.bz2"
+    )
+    r_conda2 = PackageRecord(
+        name="pkg", version="1.0", build="0", build_number=0, fn="pkg-1.0-0.conda"
+    )
+    assert r_tar2 != r_conda2
+    # '.conda' sorts before '.tar.bz2'
+    assert r_conda2 < r_tar2
+    assert not (r_tar2 < r_conda2)
+
+
+def test_package_record_comparison_none_fields():
+    """Ensure None in optional fields does not raise TypeError during comparison."""
+    r1 = PackageRecord(
+        name="pkg",
+        version="1.0",
+        build="0",
+        build_number=0,
+        channel=None,
+        subdir=None,
+        fn=None,
+    )
+    r2 = PackageRecord(
+        name="pkg",
+        version="2.0",
+        build="0",
+        build_number=0,
+        channel=Channel("defaults"),
+        subdir="noarch",
+        fn="pkg-2.0-0.conda",
+    )
+    assert r1 < r2
+    assert r2 > r1
+
+
+def test_package_record_cross_subclass_comparison():
+    """Ensure PackageRecord, PrefixRecord, and PackageCacheRecord compare consistently."""
+    pr = PrefixRecord(
+        name="pkg",
+        version="1.0",
+        build="0",
+        build_number=0,
+        url="https://repo.anaconda.com/pkgs/main/noarch/pkg-1.0-0.conda",
+        md5="12345678901234567890123456789012",
+        files=(),
+    )
+    cache = PackageCacheRecord(
+        name="pkg",
+        version="1.5",
+        build="0",
+        build_number=0,
+        package_tarball_full_path="C:/cache/pkg-1.5-0.tar.bz2",
+        extracted_package_dir="C:/cache/pkg-1.5-0",
+    )
+    prec = PackageRecord(name="pkg", version="2.0", build="0", build_number=0)
+
+    assert pr < cache < prec
+    assert prec > cache > pr
+    assert pr <= cache <= prec
+    assert prec >= cache >= pr
+
+
+def test_package_record_unsupported_operands():
+    """Ensure comparing PackageRecord to incompatible types raises TypeError."""
+    prec = PackageRecord(name="pkg", version="1.0", build="0", build_number=0)
+    for bad in (None, 123, "pkg-1.0-0", MatchSpec("pkg")):
+        with pytest.raises(TypeError):
+            _ = prec < bad
+        with pytest.raises(TypeError):
+            _ = prec <= bad
+        with pytest.raises(TypeError):
+            _ = prec > bad
+        with pytest.raises(TypeError):
+            _ = prec >= bad
+
+
+def test_package_record_comparison_none_vs_empty_channel_subdir_fn(monkeypatch):
+    """Ensure None and empty string in optional fields do not collide in _sort_key.
+
+    Tests both valid model records and defensive conditions across all six
+    comparison operations (<, <=, >, >=, ==, !=) and hashing consistency.
+    """
+    from unittest.mock import Mock
+
+    from conda.models.records import _safe_opt_str
+
+    def assert_strict_total_order(lesser, greater):
+        # Identity / distinctness
+        assert lesser is not greater
+        assert lesser != greater
+        assert greater != lesser
+        assert not (lesser == greater)
+        assert not (greater == lesser)
+
+        # Strict ordering
+        assert lesser < greater
+        assert lesser <= greater
+        assert not (lesser > greater)
+        assert not (lesser >= greater)
+        assert greater > lesser
+        assert greater >= lesser
+        assert not (greater < lesser)
+        assert not (greater <= lesser)
+
+    # 1. Channel: valid empty canonical name vs named channel
+    r_c_empty = PackageRecord(
+        name="pkg", version="1.0", build="0", build_number=0, channel=Channel("")
+    )
+    r_c_def = PackageRecord(
+        name="pkg",
+        version="1.0",
+        build="0",
+        build_number=0,
+        channel=Channel("defaults"),
+    )
+    assert_strict_total_order(r_c_empty, r_c_def)
+
+    # Verify equal-but-distinct hashing and symmetric equality
+    r_c_def_clone = PackageRecord(
+        name="pkg",
+        version="1.0",
+        build="0",
+        build_number=0,
+        channel=Channel("defaults"),
+    )
+    assert r_c_def is not r_c_def_clone
+    assert r_c_def == r_c_def_clone
+    assert r_c_def_clone == r_c_def
+    assert hash(r_c_def) == hash(r_c_def_clone)
+    assert not (r_c_def < r_c_def_clone)
+    assert not (r_c_def_clone < r_c_def)
+    assert r_c_def <= r_c_def_clone
+    assert r_c_def_clone <= r_c_def
+
+    # 1b. Channel defensive: channel_name is None vs empty string
+    r_c_none = PackageRecord(name="pkg", version="1.0", build="0", build_number=0)
+    c_mock = Mock()
+    c_mock.canonical_name = None
+    r_c_none.__dict__["channel"] = c_mock
+    assert r_c_none.channel_name is None
+    assert_strict_total_order(r_c_none, r_c_empty)
+
+    # 2. Subdir: valid empty subdir vs named subdir
+    r_s_empty = PackageRecord(
+        name="pkg", version="1.0", build="0", build_number=0, subdir=""
+    )
+    r_s_noarch = PackageRecord(
+        name="pkg", version="1.0", build="0", build_number=0, subdir="noarch"
+    )
+    assert_strict_total_order(r_s_empty, r_s_noarch)
+
+    # 2b. Subdir defensive: verify _safe_opt_str guarantees None < "" < values
+    assert _safe_opt_str(None) < _safe_opt_str("")
+    assert _safe_opt_str("") < _safe_opt_str("noarch")
+
+    # 3. Fn: valid empty fn vs package filename under separate_format_cache
+    monkeypatch.setattr(context, "separate_format_cache", True)
+    r_fn_empty = PackageRecord(
+        name="pkg", version="1.0", build="0", build_number=0, fn=""
+    )
+    r_fn_pkg = PackageRecord(
+        name="pkg",
+        version="1.0",
+        build="0",
+        build_number=0,
+        fn="pkg-1.0-0.conda",
+    )
+    assert_strict_total_order(r_fn_empty, r_fn_pkg)
+
+    # 3b. Fn defensive: verify _safe_opt_str guarantees None < "" < filenames
+    assert _safe_opt_str(None) < _safe_opt_str("")
+    assert _safe_opt_str("") < _safe_opt_str("pkg-1.0-0.conda")
+
+
+def test_package_record_subclass_custom_pkey():
+    """Verify behavior when a PackageRecord subclass customizes _pkey.
+
+    Distinct subclass identities can share a base _sort_key. If a subclass
+    customizes _pkey (e.g. to include a custom tracking attribute) without
+    overriding _sort_key, instances with identical base package metadata will
+    compare unequal under __eq__, yet evaluate as ordering-equivalent ties in
+    _sort_key comparisons (neither < nor >).
+
+    The total order consistent with equality applies across standard PackageRecord
+    instances. Subclasses introducing additional identity dimensions must also
+    override _sort_key if those dimensions should be distinguished during sorting.
+    """
+
+    class CustomTrackingRecord(PackageRecord):
+        @property
+        def _pkey(self):
+            return (*super()._pkey, getattr(self, "tracking_tag", ""))
+
+    c1 = CustomTrackingRecord(name="pkg", version="1.0", build="0", build_number=0)
+    c1.tracking_tag = "tag-alpha"
+    c2 = CustomTrackingRecord(name="pkg", version="1.0", build="0", build_number=0)
+    c2.tracking_tag = "tag-beta"
+
+    # Distinct tracking tags cause distinct _pkey and unequal identity
+    assert c1 != c2
+    assert c2 != c1
+
+    # Base _sort_key considers standard fields only, resulting in an ordering tie
+    assert not (c1 < c2)
+    assert not (c2 < c1)
+    assert c1 <= c2
+    assert c2 <= c1
+    assert c1 >= c2
+    assert c2 >= c1
