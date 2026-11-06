@@ -133,6 +133,8 @@ jobs:
           conda install
           --yes
           conda-libmamba-solver
+          conda-pycosat-solver
+          conda-rattler-solver
           --file tests/requirements-${{ runner.os }}.txt
           --file tests/requirements-ci-py315.txt
           --file tests/requirements-s3.txt
