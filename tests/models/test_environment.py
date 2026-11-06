@@ -478,39 +478,122 @@ def test_from_cli_nodefaults(
     override_channels,
     expected,
 ):
-    """nodefaults is never sent to the solver by environment files and suppresses configured."""
+    """A file-level nodefaults drops configured channels from the final model list."""
+    # Override the real .condarc and file parsing so this test only exercises
+    # channel selection: configured channels come from context_config, and the
+    # fake path maps to the in-memory Environment below.
     context_config = EnvironmentConfig(channels=context_channels)
     mocker.patch(
         "conda.models.environment.EnvironmentConfig.from_context",
         return_value=context_config,
     )
 
+    file_env = Environment(
+        prefix="/path",
+        platform=context.subdir,
+        requested_packages=[MatchSpec("numpy")],
+        explicit_packages=[],
+        config=EnvironmentConfig(channels=file_channels),
+    )
+    mocker.patch(
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=SimpleNamespace(
+            environment_spec=lambda fpath: FixedEnvSpec(file_env)
+        ),
+    )
+
     args = {
         "name": "testenv",
         "packages": [],
-        "file": [],
+        "file": ["/some/env.yaml"],
     }
-    if file_channels is not None:
-        file_env = Environment(
-            prefix="/path",
-            platform=context.subdir,
-            requested_packages=[MatchSpec("numpy")],
-            explicit_packages=[],
-            config=EnvironmentConfig(channels=file_channels),
-        )
-        mocker.patch(
-            "conda.models.environment.context.plugin_manager.get_environment_specifier",
-            return_value=SimpleNamespace(
-                environment_spec=lambda fpath: FixedEnvSpec(file_env)
-            ),
-        )
-        args["file"] = ["/some/env.yaml"]
     if cli_channels:
         args["channel"] = cli_channels
     if override_channels:
         args["override_channels"] = True
 
     env = Environment.from_cli(SimpleNamespace(**args))
+    assert env.config.channels == expected
+
+
+# EnvironmentConfig.merge prepends later configs, so later files win priority.
+@pytest.mark.parametrize(
+    "files_channels,expected",
+    [
+        pytest.param(
+            [("file-one-chan",), ("file-two-chan",)],
+            ("file-two-chan", "file-one-chan", "defaults", "base-channel"),
+            id="multiple-files-base-case-adding-configured",
+        ),
+        pytest.param(
+            [("file-one-chan", "nodefaults"), ("file-two-chan",)],
+            ("file-two-chan", "file-one-chan"),
+            id="multiple-files-with-one-nodefaults-still-cuts",
+        ),
+        pytest.param(
+            [("nodefaults",), ("nodefaults",)],
+            ("defaults", "base-channel"),
+            id="only-nodefaults-across-files-falls-back",
+        ),
+        pytest.param(
+            [
+                ("file-one-chan", "nodefaults"),
+                ("file-two-chan", "nodefaults", "nodefaults"),
+            ],
+            ("file-two-chan", "file-one-chan"),
+            id="multiple-files-later-file-wins",
+        ),
+        pytest.param(
+            [("file-one-chan", "nodefaults"), ("nodefaults", "nodefaults")],
+            ("file-one-chan",),
+            id="repeated-nodefaults-across-files",
+        ),
+        pytest.param(
+            [("file-channel", "nodefaults", "nodefaults")],
+            ("file-channel",),
+            id="repeated-nodefaults-within-file",
+        ),
+    ],
+)
+def test_from_cli_multiple_file_channels(
+    mocker: MockerFixture,
+    files_channels: list[tuple[str, ...]],
+    expected: tuple[str, ...],
+):
+    """Later files win priority; configured channels follow unless nodefaults opts out."""
+    context_config = EnvironmentConfig(channels=("defaults", "base-channel"))
+    file_paths = [f"/some/env{index}.yaml" for index in range(len(files_channels))]
+    file_envs = {
+        path: Environment(
+            prefix="/path",
+            platform=context.subdir,
+            requested_packages=[MatchSpec("numpy")],
+            explicit_packages=[],
+            config=EnvironmentConfig(channels=channels),
+        )
+        for path, channels in zip(file_paths, files_channels)
+    }
+    # Skip file detection and just return in memory Environment
+    mocker.patch(
+        "conda.models.environment.context.plugin_manager.get_environment_specifier",
+        return_value=SimpleNamespace(
+            environment_spec=lambda fpath: FixedEnvSpec(file_envs[fpath])
+        ),
+    )
+    # Ignore the real base config (.condarc, env vars, etc) and use context_config
+    mocker.patch(
+        "conda.models.environment.EnvironmentConfig.from_context",
+        return_value=context_config,
+    )
+
+    env = Environment.from_cli(
+        SimpleNamespace(
+            name="testenv",
+            packages=[],
+            file=file_paths,
+        ),
+        add_default_packages=False,
+    )
     assert env.config.channels == expected
 
 
