@@ -1,5 +1,6 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+import errno
 import os
 from os.path import exists, isfile, join, lexists
 from pathlib import Path
@@ -47,6 +48,27 @@ def test_hard_link(tmp_path: Path):
 
     os.unlink(path1_real_file)
     assert not lexists(path1_real_file)
+
+
+def test_hardlink_cross_device(mocker, tmp_path: Path):
+    """A failed hard link must not be reported as supported, even if copying works."""
+    source = tmp_path / "pkgs" / "index.json"
+    source.parent.mkdir()
+    source.touch()
+    dest_dir = tmp_path / "env"
+    dest_dir.mkdir()
+
+    # simulate pkgs/ and env/ residing on different filesystems
+    def cross_device_link(src, dst):
+        if Path(dst).parent == dest_dir:
+            raise OSError(errno.EXDEV, "Invalid cross-device link")
+        return link(src, dst)
+
+    mocker.patch("conda.gateways.disk.create.link", side_effect=cross_device_link)
+    disk_test.hardlink_supported.cache_clear()
+
+    assert not disk_test.hardlink_supported(str(source), str(dest_dir))
+    assert not list(dest_dir.iterdir())
 
 
 def test_soft_link(tmp_path: Path):
