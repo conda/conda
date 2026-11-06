@@ -58,6 +58,22 @@ def test_clear_cache_removes_channel_response_caches(
     assert not channel_response_cache.exists()
 
 
+def test_clear_cache_preserves_response_locks(
+    notices_cache_file: Path,
+    channel_response_cache: Path,
+) -> None:
+    lock_file = channel_response_cache.with_suffix(".json.lock")
+    lock_file.touch()
+    lock_inode = lock_file.stat().st_ino
+
+    notices_cache.clear_cache()
+
+    assert lock_file.is_file()
+    assert lock_file.stat().st_ino == lock_inode
+    assert not channel_response_cache.exists()
+    assert notices_core.is_channel_notices_cache_expired()
+
+
 @pytest.mark.parametrize(
     "failing_target",
     ["channel_response_cache", "notices_cache"],

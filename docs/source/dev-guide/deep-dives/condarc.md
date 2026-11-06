@@ -14,8 +14,22 @@ modifying, and writing conda configuration files (`.condarc`). It handles:
 - Configuration file validation
 - Type checking and conversion
 - Parameter existence checking
-- Atomic file operations via context manager
+- File writes with conflict detection
 - Support for sequence, map, and primitive parameters
+
+## File writes
+
+`ConfigurationFile` handles YAML serialization, text encoding, and no-op
+detection. It delegates byte persistence to the
+{doc}`file-writing API </dev-guide/file-writes>` and reports filesystem and
+conflict errors as `CondaError`.
+
+Changed contents normally use atomic replacement. On POSIX, an existing writable
+file in a read-only directory can instead be updated in place. This fallback is
+non-atomic and attempts to restore the original contents after a caught write
+error. Restoration can fail, and cannot recover from process termination or a
+system crash. Successful context-manager exit calls `write()` with these same
+guarantees.
 
 ## Concurrent edits
 
@@ -28,9 +42,9 @@ when `write()` begins. Supplying `content=` without reading does the same.
 
 Writers using this API coordinate through a persistent `<target>.lock` file next
 to the resolved target. The lock covers the final conflict check and replacement.
-It also serializes writers in the same process. The lock file must be writable by
-the cooperating editors and must not be removed between writes. The `no_lock`
-setting affects the index cache and does not disable configuration locking.
+It also serializes writers in the same process. Do not remove the lock file while
+writers may exist. The `no_lock` setting affects the index cache and does not
+disable configuration locking.
 An unchanged write does not create a lock file or require a writable directory.
 
 The containing directory and its parent directories must be controlled by trusted
@@ -106,7 +120,7 @@ config.write()
 
 ### Using Context Manager
 
-For atomic operations, use the context manager pattern:
+Use the context manager to write changes on successful exit:
 
 ```python
 from conda.cli.condarc import ConfigurationFile
@@ -346,7 +360,7 @@ Here's a complete example that demonstrates multiple operations:
 ```python
 from conda.cli.condarc import ConfigurationFile
 
-# Use context manager for atomic operations
+# Write changes on successful context-manager exit
 with ConfigurationFile.from_user_condarc() as config:
     # Set primitive parameters
     config.set_key("auto_update_conda", False)
@@ -445,8 +459,8 @@ threads, consider using locks or creating separate instances for each thread.
 
 ## Best Practices
 
-1. **Use context managers**: For atomic operations, always use the context manager pattern to ensure
-   changes are only written on success.
+1. **Use context managers**: Write changes on successful exit. The same file-writing
+   guarantees apply as with an explicit `write()` call.
 
 2. **Validate keys**: Use `key_exists()` to check parameter validity before attempting operations.
 
@@ -466,4 +480,5 @@ threads, consider using locks or creating separate instances for each thread.
 
 - {ref}`deep_dive_context` - Understanding the conda context object
 - {doc}`/configuration` - User-facing configuration documentation
+- {doc}`/dev-guide/file-writes` - File snapshots and byte writes
 - {doc}`/dev-guide/api/conda/cli/index` - CLI API documentation
