@@ -623,7 +623,37 @@ class Environment:
         )
 
         if envs_from_file:
+            # CEP-24: when an environment file uses the `nodefaults` sentinel, do not
+            # append the configured channel list. Keep the rest of the context
+            # config intact.  If `nodefaults` is the only channel, treat as a no-op
+            # and still use configured channels (old behavior).
+            # Note: the `nodefaults` only applies to environment files.  It holds no
+            # value to CLI or .condarc.
+            envs_channels = list(
+                chain.from_iterable([env.config.channels for env in envs_from_file])
+            )
+            uses_nodefaults = "nodefaults" in envs_channels and any(
+                chan != "nodefaults" for chan in envs_channels
+            )
+            if uses_nodefaults:
+                base_env = replace(
+                    base_env, config=replace(base_env.config, channels=())
+                )
+
             file_env = cls.merge(*envs_from_file)
+            # CEP-24: `nodefaults` MUST NOT be passed to the solver.
+            file_env = replace(
+                file_env,
+                config=replace(
+                    file_env.config,
+                    channels=tuple(
+                        chan
+                        for chan in file_env.config.channels
+                        if chan != "nodefaults"
+                    ),
+                ),
+            )
+
             merged = cls.merge(base_env, file_env, cli_env)
 
         else:
