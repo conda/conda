@@ -12,6 +12,45 @@ This page contains recent additions to `conda` worth your attention, including f
 
 :::
 ---
+## Manage conda plugins
+
+::::{card}
+:class-card: sd-rounded-3 conda-feature-card conda-feature-stable
+
+{bdg-light}`Available in conda 26.11.0 or later` &nbsp; {bdg-success}`Stable`
+
+Install, update, and remove plugin packages with `conda plugins install`,
+`conda plugins update`, and `conda plugins remove`. Conda checks requested packages
+for conda entry points before confirming installation or updates. This identifies
+plugin packages, but does not verify that their code is safe.
+
+:::{dropdown} How to manage a plugin
+:animate: fade-in-slide-down
+
+For a Miniforge installation using its default conda-forge channels:
+
+```console
+conda plugins install --name base conda-tree
+conda plugins update --name base conda-tree
+conda plugins remove --name base conda-tree
+```
+
+Use `conda plugins update --name base --all` to update all installed conda plugin
+packages. This disables automatic conda upgrades, but dependency changes may
+still update conda or other packages. Review the package plan before confirming.
+
+Plugins must be installed in the environment running conda. Choose channels
+compatible with that environment's existing packages; the guide below explains
+how to use a separate environment when needed.
+
+:::
+
+See **{doc}`Managing plugin packages </user-guide/concepts/conda-plugins>`** for
+examples, including the existing `conda plugins list` and `conda plugins info`
+commands, or **{doc}`the command reference </commands/plugins>`** for all options.
+
+::::
+
 ## Faster solves: conda-rattler-solver is now conda's default solver
 
 ::::{card}

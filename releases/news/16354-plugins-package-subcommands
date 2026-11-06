@@ -13,7 +13,8 @@
 
 ### Docs
 
-* Document compatible package sources, temporary channel selection, and how to run plugins from a selected environment. (#16354 via #16357)
+* Document plugin installation, updates, removal, compatible package sources, and how to run plugins from a selected environment. (#16354 via #16357)
+* Add `conda plugins` to the command reference and highlight plugin package management in the new features guide. (#16865 via #16357)
 
 ### Other
 
