@@ -518,6 +518,28 @@ def test_pretty_record():
         "p 1 1\n-----\nfile name   : p-1-1\nname        : p\nversion     : 1\nbuild       : 1\nbuild number: 1\nsubdir      :"
     )
 
+    # None fields are omitted
+    assert "sha256      :" not in args[0]
+
+    with_hashes = _pretty_record_format(
+        PackageRecord.from_objects(
+            {
+                "name": "p",
+                "version": "1",
+                "build": "1",
+                "build_number": 1,
+                "channel": "https://repo.anaconda.com/pkgs/main",
+                "md5": "0123456789abcdef0123456789abcdef",
+                "sha256": "f" * 64,
+            }
+        )
+    )
+
+    assert "channel     : pkgs/main\n" in with_hashes
+    assert "channel     : defaults\n" not in with_hashes
+    assert "md5         : 0123456789abcdef0123456789abcdef\n" in with_hashes
+    assert "sha256      : " + "f" * 64 + "\n" in with_hashes
+
     # cover timestamp, size, constrains lines
     with_timestamp_and_constrains = _pretty_record_format(
         PackageRecord.from_objects(
