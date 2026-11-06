@@ -36,6 +36,21 @@ $ git remote add upstream git@github.com:conda/conda
 > git remote add upstream git@github.com:conda/conda
 ```
 
+```{tab-item} PowerShell (Windows)
+```powershell
+# choose the repository location
+# warning: not the location of an existing conda installation!
+> $env:CONDA_PROJECT_ROOT = "$HOME\conda"
+
+# clone the project
+# replace `your-username` with your actual GitHub username
+> git clone git@github.com:your-username/conda "$env:CONDA_PROJECT_ROOT"
+> cd "$env:CONDA_PROJECT_ROOT"
+
+# set the `upstream` as the main repository
+> git remote add upstream git@github.com:conda/conda
+```
+
 ````
 
 ## Development Environment Setup
@@ -54,11 +69,37 @@ $ source ./dev/start
 > .\dev\start.bat
 ```
 
+```{tab-item} PowerShell (Windows)
+```powershell
+> . .\dev\start.ps1
+```
+
 ````
 
 This command will create a project-specific base environment (see `devenv` in your repo directory after running this command). If the base environment already exists this command will simply activate the already-created `devenv` environment.
 
+```{important}
+In PowerShell the script must be *dot-sourced*: note the leading `. ` (a period followed by a space) before `.\dev\start.ps1`.
+This is the PowerShell equivalent of `source` and is what allows the script to activate the environment in your current session.
+Running `.\dev\start.ps1` without it does nothing useful and prints an error.
+```
+
 To be sure that the conda code being interpreted is the code in the project directory, look at the value of `conda location:` in the output of `conda info --all`.
+
+### Windows Architectures
+
+On Windows the scripts detect whether you are running on x86_64 (`win-64`) or ARM64 (`win-arm64`) and download the matching installer.
+Use the `/A` option of `start.bat` and `start.ps1` to override the detected architecture, for example to test the x86_64 installer on an ARM64 machine.
+Each architecture gets its own installer and environment under `devenv\Windows\x86_64` or `devenv\Windows\arm64`.
+
+The default Python version on Windows depends on what is available for the platform (all other platforms default to 3.11):
+
+| Platform | miniconda | miniforge |
+| --- | --- | --- |
+| `win-64` | 3.11 | 3.11 |
+| `win-arm64` | 3.12 | 3.14 |
+
+An explicit Python version (`-p` or `/P`) always takes precedence.
 
 ### Choosing Your Installer
 
@@ -91,7 +132,7 @@ Choose conda installer:
 Enter choice [1]:
 ```
 
-You can also specify the installer directly using the `-i` or `--installer` flag:
+You can also specify the installer directly using the `-i` or `--installer` flag (`/I` in `start.bat` and `start.ps1`):
 
 ````{tab-set}
 
@@ -107,10 +148,19 @@ $ source ./dev/start -i miniforge
 ```{tab-item} cmd.exe (Windows)
 ```batch
 :: Use miniconda (default behavior)
-> .\dev\start.bat -i miniconda
+> .\dev\start.bat /I miniconda
 
 :: Use miniforge
-> .\dev\start.bat -i miniforge
+> .\dev\start.bat /I miniforge
+```
+
+```{tab-item} PowerShell (Windows)
+```powershell
+# Use miniconda (default behavior)
+> . .\dev\start.ps1 /I miniconda
+
+# Use miniforge
+> . .\dev\start.ps1 /I miniforge
 ```
 
 ````
@@ -119,6 +169,9 @@ $ source ./dev/start -i miniforge
 
 The `dev/start` script supports several other options for customizing your development environment:
 
+````{tab-set}
+
+```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
 # See all available options
 $ source ./dev/start --help
@@ -132,6 +185,47 @@ $ source ./dev/start -u
 # Preview what would be done without making changes
 $ source ./dev/start -n
 ```
+
+```{tab-item} cmd.exe (Windows)
+```batch
+:: See all available options
+> .\dev\start.bat /?
+
+:: Use a specific Python version
+> .\dev\start.bat /P 3.12
+
+:: Force update packages
+> .\dev\start.bat /U
+
+:: Preview what would be done without making changes
+> .\dev\start.bat /N
+
+:: Use a specific architecture
+> .\dev\start.bat /A x86_64
+```
+
+```{tab-item} PowerShell (Windows)
+```powershell
+# See all available options
+> . .\dev\start.ps1 /?
+
+# Use a specific Python version
+> . .\dev\start.ps1 /P 3.12
+
+# Force update packages
+> . .\dev\start.ps1 /U
+
+# Preview what would be done without making changes
+> . .\dev\start.ps1 /N
+
+# Use a specific architecture
+> . .\dev\start.ps1 /A x86_64
+```
+
+````
+
+`start.ps1` passes its options straight through to `start.bat`, which does the actual setup, so both scripts accept the same options.
+The only difference is that `start.ps1` activates the environment in your PowerShell session.
 
 ### Switching Between Installers
 
@@ -151,10 +245,19 @@ $ source ./dev/start -i miniforge
 ```{tab-item} cmd.exe (Windows)
 ```batch
 :: Set up and activate miniconda-based environment
-> .\dev\start.bat -i miniconda
+> .\dev\start.bat /I miniconda
 
 :: Later, set up and activate miniforge-based environment
-> .\dev\start.bat -i miniforge
+> .\dev\start.bat /I miniforge
+```
+
+```{tab-item} PowerShell (Windows)
+```powershell
+# Set up and activate miniconda-based environment
+> . .\dev\start.ps1 /I miniconda
+
+# Later, set up and activate miniforge-based environment
+> . .\dev\start.ps1 /I miniforge
 ```
 
 ````
@@ -196,7 +299,10 @@ If you prefer to set up your development environment manually instead of using t
 
    ```{tab-item} Windows (PowerShell)
    ```powershell
-   > (New-Object System.Net.WebClient).DownloadFile("https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe", "$env:TEMP\miniforge.exe")
+   # choose the installer matching your machine: x86_64 or arm64
+   > $arch = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
+   > $arch = if ($arch -eq "ARM64") { "arm64" } else { "x86_64" }
+   > (New-Object System.Net.WebClient).DownloadFile("https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-$arch.exe", "$env:TEMP\miniforge.exe")
    > Start-Process $env:TEMP\miniforge.exe -ArgumentList "/InstallationType=JustMe","/RegisterPython=0","/AddToPath=0","/NoRegistry=1","/NoShortcuts=1","/S","/D=$PWD\devenv" -Wait -NoNewWindow
    > rm $env:TEMP\miniforge.exe
    ```
@@ -328,6 +434,16 @@ $ CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compo
 > set "CONDA_DOCKER_DEFAULT_CHANNEL="
 ```
 
+```{tab-item} PowerShell (Windows)
+```powershell
+> $env:CONDA_DOCKER_PYTHON = "3.12"
+> $env:CONDA_DOCKER_DEFAULT_CHANNEL = "conda-forge"
+> docker compose build --no-cache
+> docker compose run interactive
+> Remove-Item Env:CONDA_DOCKER_PYTHON
+> Remove-Item Env:CONDA_DOCKER_DEFAULT_CHANNEL
+```
+
 ````
 
 > The `conda` repository will be mounted to `/opt/conda-src`, so all changes done in your editor will be reflected live while the Docker container is running.
@@ -387,6 +503,25 @@ $ git commit
 > git commit
 ```
 
+```{tab-item} PowerShell (Windows)
+```powershell
+# reuse the development environment created above
+> . .\dev\start.ps1
+# or start the Docker image in interactive mode
+# > docker compose run interactive
+
+# install pre-commit hooks for conda
+> cd "$env:CONDA_PROJECT_ROOT"
+> pre-commit install
+
+# manually running pre-commit on current changes
+# note: by default pre-commit only runs on staged files
+> pre-commit run
+
+# automatically running pre-commit during commit
+> git commit
+```
+
 ````
 
 Beware that some of the tools run by pre-commit can potentially modify the
@@ -425,6 +560,34 @@ $ pytest --cov -m "not integration" conda tests
 
 # or you can use pytest to focus on one specific test
 $ pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
+```
+
+```{tab-item} cmd.exe (Windows)
+```batch
+:: reuse the development environment created above
+> .\dev\start.bat
+:: or start the Docker image in interactive mode
+:: > docker compose run interactive
+
+:: run conda's unit tests
+> pytest --cov -m "not integration" conda tests
+
+:: or you can use pytest to focus on one specific test
+> pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
+```
+
+```{tab-item} PowerShell (Windows)
+```powershell
+# reuse the development environment created above
+> . .\dev\start.ps1
+# or start the Docker image in interactive mode
+# > docker compose run interactive
+
+# run conda's unit tests
+> pytest --cov -m "not integration" conda tests
+
+# or you can use pytest to focus on one specific test
+> pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
 ```
 
 ````

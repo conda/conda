@@ -62,7 +62,7 @@ The Application Identity Service is required for AppLocker to function properly.
 
 After setting up AppLocker, you can test conda to ensure it works correctly:
 
-1. Start your development environment with `.\dev\start.bat`
+1. Start your development environment with `.\dev\start.bat` (cmd.exe) or `. .\dev\start.ps1` (PowerShell)
 2. Run `conda activate` to test activation
 3. Test other conda commands to ensure they function properly
 
