@@ -25,6 +25,11 @@ We recommend the following conda distribtions to install conda:
 
             :fab:`windows` Windows :bdg-light-line:`x86_64` :octicon:`download`
 
+        .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-arm64.exe
+            :color: primary
+
+            :fab:`windows` Windows :bdg-light-line:`arm64` :octicon:`download`
+
         .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg
             :color: primary
 
@@ -63,6 +68,11 @@ We recommend the following conda distribtions to install conda:
             :color: primary
 
             :fab:`windows` Windows :bdg-light-line:`x86_64` :octicon:`download`
+
+        .. button-link:: https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-arm64.exe
+            :color: primary
+
+            :fab:`windows` Windows :bdg-light-line:`arm64` :octicon:`download`
 
         .. button-link:: https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
             :color: primary
