@@ -27,6 +27,12 @@
     @SHIFT
     @GOTO :ARGS_LOOP
 )
+@IF "%_ARG%"=="/A" (
+    @SET "_ARCH=%~2"
+    @SHIFT
+    @SHIFT
+    @GOTO :ARGS_LOOP
+)
 @IF "%_ARG%"=="/U" (
     @SET "_UPDATE=0"
     @SHIFT
@@ -43,16 +49,23 @@
     @SHIFT
     @GOTO :ARGS_LOOP
 )
+@IF "%_ARG%"=="/E" (
+    @SET "_EXPORT=0"
+    @SHIFT
+    @GOTO :ARGS_LOOP
+)
 @IF "%_ARG%"=="/?" (
     @ECHO Usage: %_SCRIPT% [options]
     @ECHO.
     @ECHO Options:
-    @ECHO   /P  VERSION    Python version for the env to activate. ^(default: 3.11^)
+    @ECHO   /P  VERSION    Python version for the env to activate. ^(default: 3.11; win-arm64: 3.12 miniconda, 3.14 miniforge^)
     @ECHO   /I  INSTALLER  Installer to use: miniconda or miniforge, can also be defined in ~\.condarc. ^(default: miniconda^)
+    @ECHO   /A  ARCH       Architecture to install: x86_64 or arm64. ^(default: auto-detected^)
     @ECHO   /U             Force update packages. ^(default: update every 24 hours^)
     @ECHO   /D  PATH       Path to base env install, can also be defined in ~\.condarc.
     @ECHO                  Path is appended with Windows. ^(default: devenv^)
     @ECHO   /N             Display env to activate. ^(default: false^)
+    @ECHO   /E             Provision only, then print KEY=VALUE paths for other shells ^(used by start.ps1^).
     @ECHO   /?             Display this.
     @EXIT /B 0
 )
@@ -88,7 +101,6 @@
 :SKIP_PROMPT
 
 :: fallback to default values if not set
-@IF "%_PYTHON%"=="" @SET "_PYTHON=3.11"
 @IF "%_INSTALLER_TYPE%"=="" @SET "_INSTALLER_TYPE=miniconda"
 @IF "%_DEVENV%"=="" @SET "_DEVENV=%_SRC%\devenv"
 @IF "%_UPDATE%"=="" @SET "_UPDATE=1"
@@ -101,17 +113,44 @@
 @EXIT /B 1
 :INSTALLER_VALID
 
-:: installer location is root devenv directory
-@SET "_INSTALLER=%_DEVENV%\installers\Windows"
+:: detect architecture if not set
+@IF "%_ARCH%"=="" @CALL :DETECT_ARCH
+@IF "%_ARCH%"=="" (
+    @ECHO Error: unsupported architecture '%PROCESSOR_ARCHITECTURE%'. Use /A to specify x86_64 or arm64. 1>&2
+    @EXIT /B 1
+)
 
-:: devenv include OS
-@SET "_DEVENV=%_DEVENV%\Windows"
+:: normalize and validate architecture
+@IF /I "%_ARCH%"=="AMD64" @SET "_ARCH=x86_64"
+@IF /I "%_ARCH%"=="x64" @SET "_ARCH=x86_64"
+@IF /I "%_ARCH%"=="aarch64" @SET "_ARCH=arm64"
+@IF /I "%_ARCH%"=="x86_64" @SET "_ARCH=x86_64"
+@IF /I "%_ARCH%"=="arm64" @SET "_ARCH=arm64"
+@IF NOT "%_ARCH%"=="x86_64" @IF NOT "%_ARCH%"=="arm64" (
+    @ECHO Error: invalid architecture '%_ARCH%'. Must be 'x86_64' or 'arm64'. 1>&2
+    @EXIT /B 1
+)
+
+:: default python depends on what is available for the platform:
+::   win-64: 3.11, win-arm64 defaults: 3.12, win-arm64 conda-forge: 3.14
+@IF NOT "%_PYTHON%"=="" @GOTO :PYTHON_SET
+@SET "_PYTHON=3.11"
+@IF "%_ARCH%"=="arm64" @IF "%_INSTALLER_TYPE%"=="miniconda" @SET "_PYTHON=3.12"
+@IF "%_ARCH%"=="arm64" @IF "%_INSTALLER_TYPE%"=="miniforge" @SET "_PYTHON=3.14"
+:PYTHON_SET
+
+:: installer location is root devenv directory
+@SET "_INSTALLER=%_DEVENV%\installers\Windows\%_ARCH%"
+
+:: devenv include OS and architecture
+@SET "_DEVENV=%_DEVENV%\Windows\%_ARCH%"
 
 :: other environment variables
 @SET "_NAME=devenv-%_PYTHON%-%_INSTALLER_TYPE%"
 @SET "_ENV=%_DEVENV%\envs\%_NAME%"
 @SET "_UPDATED=%_ENV%\.devenv-updated"
 @SET "_BASEEXE=%_DEVENV%\Scripts\conda.exe"
+@SET "_BASEPYTHONEXE=%_DEVENV%\python.exe"
 @SET "_ENVEXE=%_ENV%\Scripts\conda.exe"
 @SET "_PYTHONEXE=%_ENV%\python.exe"
 @SET "_CONDABAT=%_ENV%\condabin\conda.bat"
@@ -120,10 +159,10 @@
 :: set installer-specific values
 @IF "%_INSTALLER_TYPE%"=="miniconda" (
     @SET "_INSTALLER_FILE=%_INSTALLER%\miniconda.exe"
-    @SET "_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
+    @SET "_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-%_ARCH%.exe"
 ) ELSE IF "%_INSTALLER_TYPE%"=="miniforge" (
     @SET "_INSTALLER_FILE=%_INSTALLER%\miniforge.exe"
-    @SET "_DOWNLOAD_URL=https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe"
+    @SET "_DOWNLOAD_URL=https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-%_ARCH%.exe"
 )
 
 :: dryrun printout
@@ -133,7 +172,8 @@
 @IF NOT EXIST "%_INSTALLER%" @MKDIR "%_INSTALLER%"
 @IF NOT EXIST "%_DEVENV%" @MKDIR "%_DEVENV%"
 
-:: deactivate any prior envs
+:: deactivate any prior envs, in export mode the calling shell does this itself
+@IF NOT "%_EXPORT%"=="" @GOTO :DEACTIVATED
 @IF "%CONDA_SHLVL%"=="" @GOTO :DEACTIVATED
 @IF %CONDA_SHLVL%==0 @GOTO :DEACTIVATED
 @ECHO Deactivating %CONDA_SHLVL% environment(s)...
@@ -166,10 +206,10 @@
 @ECHO Downloading %_INSTALLER_TYPE%...
 @powershell.exe -NoProfile -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '%_DOWNLOAD_URL%' -OutFile '%_INSTALLER_FILE%' | Out-Null"
 @FOR %%F IN ("%_INSTALLER_FILE%") DO @IF NOT EXIST "%%F" (
-    @ECHO Error: failed to download %_INSTALLER_TYPE% (file missing) 1>&2
+    @ECHO Error: failed to download %_INSTALLER_TYPE% ^(file missing^) 1>&2
     @EXIT /B 1
 ) ELSE IF %%~zF EQU 0 (
-    @ECHO Error: failed to download %_INSTALLER_TYPE% (file empty) 1>&2
+    @ECHO Error: failed to download %_INSTALLER_TYPE% ^(file empty^) 1>&2
     @EXIT /B 1
 )
 :DOWNLOADED
@@ -253,6 +293,9 @@
     @EXIT /B 1
 )
 
+:: export mode: hand the resolved paths to another shell instead of activating here
+@IF NOT "%_EXPORT%"=="" @GOTO :EXPORT
+
 :: initialize conda command
 @ECHO Initializing shell integration...
 @SET "CONDA_AUTO_ACTIVATE=0"
@@ -262,6 +305,11 @@
     @ECHO Error: failed to initialize shell integration 1>&2
     @EXIT /B 1
 )
+
+:: the hook derives conda's root from its own location (the env), so point it back
+:: at the base install, otherwise the env is activated as "base"
+@SET "CONDA_EXE=%_BASEEXE%"
+@SET "CONDA_PYTHON_EXE=%_BASEPYTHONEXE%"
 
 :: activate env
 @ECHO Activating %_NAME%...
@@ -278,15 +326,19 @@
 )
 
 :CLEANUP
+@SET _ARCH=
 @SET _ARG=
 @SET _BASEEXE=
+@SET _BASEPYTHONEXE=
 @SET _CHANNEL_NAME=
 @SET _CONDABAT=
+@SET _DETECTED=
 @SET _DEVENV=
 @SET _DOWNLOAD_URL=
 @SET _DRYRUN=
 @SET _ENV=
 @SET _ENVEXE=
+@SET _EXPORT=
 @SET _INSTALLER=
 @SET _INSTALLER_FILE=
 @SET _INSTALLER_INITIAL=
@@ -317,6 +369,15 @@
 @SET _PATH=
 @GOTO :EOF
 
+:DETECT_ARCH
+:: PROCESSOR_ARCHITEW6432 is set (to the native arch) only for 32-bit processes on 64-bit Windows
+@SET "_DETECTED=%PROCESSOR_ARCHITECTURE%"
+@IF NOT "%PROCESSOR_ARCHITEW6432%"=="" @SET "_DETECTED=%PROCESSOR_ARCHITEW6432%"
+@IF /I "%_DETECTED%"=="AMD64" @SET "_ARCH=x86_64"
+@IF /I "%_DETECTED%"=="ARM64" @SET "_ARCH=arm64"
+@SET _DETECTED=
+@EXIT /B 0
+
 :DEVENV_CONDARC
 :: read devenv from ~\.condarc
 :: check if ~\.condarc exists
@@ -346,9 +407,21 @@
 @powershell.exe -NoProfile -Command "Exit (Get-Item '"%_UPDATED%"').LastWriteTime -ge (Get-Date).AddHours(-24)"
 @EXIT /B %ErrorLevel%
 
+:EXPORT
+:: print resolved values for another shell, prefixed so they can be told apart from progress output
+@ECHO DEVENV:NAME=%_NAME%
+@ECHO DEVENV:ENV=%_ENV%
+@ECHO DEVENV:SRC=%_SRC%
+@ECHO DEVENV:BASEEXE=%_BASEEXE%
+@ECHO DEVENV:BASEPYTHONEXE=%_BASEPYTHONEXE%
+@ECHO DEVENV:ENVEXE=%_ENVEXE%
+@ECHO DEVENV:ROOT=%_DEVENV%
+@EXIT /B 0
+
 :DRYRUN
 :: dry-run printout
 @ECHO Python: %_PYTHON%
+@ECHO Architecture: %_ARCH%
 @IF EXIST "%_INSTALLER_FILE%" (
     @ECHO Installer [%_INSTALLER_TYPE%]: %_INSTALLER_FILE% [exists]
 ) ELSE (
