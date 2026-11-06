@@ -8,6 +8,7 @@ into one global stateful object to be used across all of conda.
 
 from __future__ import annotations
 
+import copy
 import logging
 import os
 import platform
@@ -22,7 +23,7 @@ from itertools import chain
 from os.path import abspath, exists, expanduser, isdir, isfile, join
 from os.path import split as path_split
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 from frozendict import frozendict
 
@@ -37,7 +38,11 @@ from ..common.configuration import (
     DEFAULT_CONDARC_FILENAME,
     Configuration,
     ConfigurationLoadError,
+    ConfigurationObject,
     MapParameter,
+    ObjectLoadedParameter,
+    ObjectParameter,
+    Parameter,
     ParameterLoader,
     PrimitiveParameter,
     SequenceParameter,
@@ -216,6 +221,72 @@ def ssl_verify_validation(value: str) -> str | Literal[True]:
     return True
 
 
+class PkgsDirConfig(ConfigurationObject):
+    """A ``pkgs_dirs`` entry and the policies for that package cache."""
+
+    def __init__(self):
+        self.path = PrimitiveParameter("", str)
+        self.read_only = PrimitiveParameter(False)
+        # link policies left unset (None) fall back to the global setting
+        self.allow_softlinks = PrimitiveParameter(None, element_type=(bool, NoneType))
+        self.always_softlink = PrimitiveParameter(None, element_type=(bool, NoneType))
+        self.always_copy = PrimitiveParameter(None, element_type=(bool, NoneType))
+
+    def __repr__(self):
+        fields = ", ".join(f"{name}={value!r}" for name, value in vars(self).items())
+        return f"{type(self).__name__}({fields})"
+
+    def __eq__(self, other):
+        if type(other) is type(self):
+            return self.path == other.path
+        return NotImplemented
+
+    def __hash__(self):
+        return hash(self.path)
+
+
+class LinkPolicy(NamedTuple):
+    """The effective link settings for one package cache."""
+
+    always_copy: bool
+    always_softlink: bool
+    allow_softlinks: bool
+
+
+def pkgs_dir_validation(value: PkgsDirConfig) -> str | Literal[True]:
+    if not value.path:
+        return "pkgs_dirs entries must have a 'path'."
+    if value.always_copy and value.always_softlink:
+        return (
+            "'always_copy' and 'always_softlink' are mutually exclusive. "
+            f"Only one can be set to 'True' for path '{value.path}'."
+        )
+    return True
+
+
+class PkgsDirParameter(ObjectParameter):
+    """A ``pkgs_dirs`` entry, given as a path string or a map of ``PkgsDirConfig`` fields."""
+
+    def load(self, name, match):
+        if not isinstance(match.value(self._element_type), str):
+            return super().load(name, match)
+
+        # a plain path string uses the defaults for every policy
+        config = copy.deepcopy(self._element_type)
+        config.path = config.path.load(name, match)
+        for attr_name, parameter in vars(config).items():
+            if isinstance(parameter, Parameter):
+                setattr(config, attr_name, parameter.default)
+        return ObjectLoadedParameter(
+            name,
+            config,
+            self._element_type,
+            match.keyflag(),
+            None,
+            validation=self._validation,
+        )
+
+
 class Context(Configuration):
     add_pip_as_python_dependency = ParameterLoader(PrimitiveParameter(True))
     allow_conda_downgrades = ParameterLoader(PrimitiveParameter(False))
@@ -336,7 +407,9 @@ class Context(Configuration):
         expandvars=True,
     )
     _pkgs_dirs = ParameterLoader(
-        SequenceParameter(PrimitiveParameter("", str)),
+        SequenceParameter(
+            PkgsDirParameter(PkgsDirConfig(), validation=pkgs_dir_validation)
+        ),
         aliases=("pkgs_dirs",),
         expandvars=True,
     )
@@ -828,10 +901,67 @@ class Context(Configuration):
             self.root_writable, self.root_prefix, self._envs_dirs
         )
 
+    def pkg_dir(self, pkg_dir: str) -> PkgsDirConfig:
+        """Get the PkgsDirConfig for a package cache path.
+
+        If the path is in the configured set of pkg_dirs, return that config.
+        Otherwise, check if that requested path is in the set of default paths,
+        and return a PkgsDirConfig with all the default values.
+        If no config is found for the requested path, nothing is returned.
+        """
+        # compare expanded paths, since pkgs_dirs (and PackageCacheData) only see those
+        pkg_config = [p for p in self._pkgs_dirs if expand(p.path) == expand(pkg_dir)]
+        if len(pkg_config) > 0:
+            return pkg_config[0]
+        if expand(pkg_dir) in self.pkgs_dirs:
+            # a default pkgs_dir has no configured entry, so it uses the defaults for every policy
+            config = PkgsDirConfig()
+            for attr_name, parameter in vars(config).items():
+                if isinstance(parameter, Parameter):
+                    setattr(config, attr_name, parameter.default.value)
+            config.path = pkg_dir
+            return config
+
+    def link_policy(self, pkg_dir: str) -> LinkPolicy:
+        """Get the effective link settings for packages in a package cache.
+
+        Precedence, from highest to lowest:
+
+        1. ``--copy`` on the command line
+        2. the link settings of the ``pkgs_dirs`` entry for the cache
+        3. the global ``always_copy``, ``always_softlink`` and ``allow_softlinks``
+        """
+        pkg_dir_config = self.pkg_dir(pkg_dir)
+        if self._argparse_args.get("copy"):
+            return LinkPolicy(
+                always_copy=True,
+                always_softlink=False,
+                allow_softlinks=pkg_dir_config.allow_softlinks
+                if pkg_dir_config is not None
+                else self.allow_softlinks,
+            )
+
+        always_copy = self.always_copy
+        always_softlink = self.always_softlink
+        allow_softlinks = self.allow_softlinks
+
+        if pkg_dir_config is not None:
+            if pkg_dir_config.always_copy is not None:
+                always_copy = pkg_dir_config.always_copy
+            if pkg_dir_config.allow_softlinks is not None:
+                allow_softlinks = pkg_dir_config.allow_softlinks
+            if pkg_dir_config.always_softlink is not None:
+                always_softlink = pkg_dir_config.always_softlink
+            elif pkg_dir_config.allow_softlinks is False:
+                # a cache that disallows soft links isn't overridden by a global always_softlink
+                always_softlink = False
+
+        return LinkPolicy(always_copy, always_softlink, allow_softlinks)
+
     @property
     def pkgs_dirs(self) -> tuple[PathType, ...]:
         if self._pkgs_dirs:
-            return tuple(dict.fromkeys(expand(p) for p in self._pkgs_dirs))
+            return tuple(dict.fromkeys(expand(p.path) for p in self._pkgs_dirs))
         else:
             cache_dir_name = "pkgs32" if context.force_32bit else "pkgs"
             fixed_dirs = (
@@ -1911,7 +2041,10 @@ class Context(Configuration):
                 """
                 The list of directories where locally-available packages are linked from at
                 install time. Packages not locally available are downloaded and extracted
-                into the first writable directory.
+                into the first writable directory. Each entry is either a path or a map
+                with the keys 'path' (required), 'read_only' (default false), and
+                'allow_softlinks', 'always_softlink' and 'always_copy', which default to
+                the global setting of the same name.
                 """
             ),
             proxy_servers=dals(
