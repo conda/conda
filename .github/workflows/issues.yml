@@ -27,14 +27,16 @@ jobs:
       && !github.event.issue.pull_request
       && contains(github.event.issue.labels.*.name, 'pending::feedback')
     runs-on: ubuntu-slim
+    env:
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
     steps:
       # remove [pending::feedback]
-      - run: gh issue edit --remove-label "${FEEDBACK_LBL}"
+      - run: gh issue edit "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --remove-label "${FEEDBACK_LBL}"
         env:
           GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
 
       # add [pending::support], if still open
       - if: github.event.issue.state == 'open'
-        run: gh issue edit --add-label "${SUPPORT_LBL}"
+        run: gh issue edit "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --add-label "${SUPPORT_LBL}"
         env:
           GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
