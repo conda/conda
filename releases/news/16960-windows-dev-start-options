@@ -1,0 +1,20 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* Fix `dev\start.bat /?` printing the `ECHO` command's help after its own, and escape the parentheses in its download error messages so they print in full. (#16960)
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Fix the Windows `cmd.exe` instructions in the development environment guide to use `dev\start.bat`'s Windows-style options (`/I`, `/P`, `/U`, `/N`, `/?`), and add Windows examples for the additional options. (#16960)
+* Use `::` comments and `%USERPROFILE%` in the guide's `cmd.exe` repository setup example, since `#` lines fail in `cmd.exe` and `%HOMEPATH%` has no drive letter. (#16960)
+
+### Other
+
+* <news item>

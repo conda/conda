@@ -23,16 +23,16 @@ $ git remote add upstream git@github.com:conda/conda
 
 ```{tab-item} cmd.exe (Windows)
 ```batch
-# choose the repository location
-# warning: not the location of an existing conda installation!
-> set "CONDA_PROJECT_ROOT=%HOMEPATH%\conda"
+:: choose the repository location
+:: warning: not the location of an existing conda installation!
+> set "CONDA_PROJECT_ROOT=%USERPROFILE%\conda"
 
-# clone the project
-# replace `your-username` with your actual GitHub username
+:: clone the project
+:: replace `your-username` with your actual GitHub username
 > git clone git@github.com:your-username/conda "%CONDA_PROJECT_ROOT%"
-> cd "%CONDA_PROJECT_ROOT%"
+> cd /d "%CONDA_PROJECT_ROOT%"
 
-# set the `upstream` as the main repository
+:: set the `upstream` as the main repository
 > git remote add upstream git@github.com:conda/conda
 ```
 
@@ -91,7 +91,7 @@ Choose conda installer:
 Enter choice [1]:
 ```
 
-You can also specify the installer directly using the `-i` or `--installer` flag:
+You can also specify the installer directly using the `-i` or `--installer` flag (`/I` on Windows `cmd.exe`):
 
 ````{tab-set}
 
@@ -107,18 +107,22 @@ $ source ./dev/start -i miniforge
 ```{tab-item} cmd.exe (Windows)
 ```batch
 :: Use miniconda (default behavior)
-> .\dev\start.bat -i miniconda
+> .\dev\start.bat /I miniconda
 
 :: Use miniforge
-> .\dev\start.bat -i miniforge
+> .\dev\start.bat /I miniforge
 ```
 
 ````
 
 ### Additional Options
 
-The `dev/start` script supports several other options for customizing your development environment:
+The `dev/start` script supports several other options for customizing your development environment.
+On Windows, `dev\start.bat` takes the same options in Windows style (`/P`, `/U`, `/N`, `/?`):
 
+````{tab-set}
+
+```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
 # See all available options
 $ source ./dev/start --help
@@ -132,6 +136,23 @@ $ source ./dev/start -u
 # Preview what would be done without making changes
 $ source ./dev/start -n
 ```
+
+```{tab-item} cmd.exe (Windows)
+```batch
+:: See all available options
+> .\dev\start.bat /?
+
+:: Use a specific Python version
+> .\dev\start.bat /P 3.11
+
+:: Force update packages
+> .\dev\start.bat /U
+
+:: Preview what would be done without making changes
+> .\dev\start.bat /N
+```
+
+````
 
 ### Switching Between Installers
 
@@ -151,10 +172,10 @@ $ source ./dev/start -i miniforge
 ```{tab-item} cmd.exe (Windows)
 ```batch
 :: Set up and activate miniconda-based environment
-> .\dev\start.bat -i miniconda
+> .\dev\start.bat /I miniconda
 
 :: Later, set up and activate miniforge-based environment
-> .\dev\start.bat -i miniforge
+> .\dev\start.bat /I miniforge
 ```
 
 ````
