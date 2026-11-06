@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 from typing import TYPE_CHECKING
 
 from ....base.context import context
@@ -19,6 +20,7 @@ from ....common.constants import NULL
 from ....exceptions import CondaValueError
 from .package_validation import (
     get_installed_plugin_package_names,
+    require_plugin_transaction,
     require_plugin_update_environment,
 )
 
@@ -74,5 +76,11 @@ def execute(args: Namespace) -> int:
     else:
         args._validate_environment = require_plugin_update_environment
 
+    args._validate_transaction = partial(
+        require_plugin_transaction,
+        prefetch_link_precs=True,
+        command="update",
+    )
     args.cmd = "update"
-    return main_update.execute(args, args._plugin_parser)
+    with context._override("auto_update_conda", False):
+        return main_update.execute(args, args._plugin_parser)

@@ -43,9 +43,11 @@ Verify that the plugin package commands operate on the requested environment, re
 
 5. Confirm that the plugin is installed, its subcommand loads, and installation can be repeated.
 
+   Use the target environment's Python so the checks load its plugins.
+
    ```console
    conda list --name qa-plugins-16354 conda-tree
-   conda run --name qa-plugins-16354 conda tree --help
+   conda run --name qa-plugins-16354 python -m conda tree --help
    conda plugins install --yes --name qa-plugins-16354 --override-channels --channel conda-forge conda-tree=1.2.0
    ```
 
@@ -53,7 +55,7 @@ Verify that the plugin package commands operate on the requested environment, re
 
    ```console
    conda plugins update --yes --name qa-plugins-16354 --override-channels --channel conda-forge --force-reinstall conda-tree
-   conda run --name qa-plugins-16354 conda tree --help
+   conda run --name qa-plugins-16354 python -m conda tree --help
    ```
 
 7. Update all plugin packages in the named environment.
@@ -72,7 +74,7 @@ Verify that the plugin package commands operate on the requested environment, re
 
    ```console
    conda list --name qa-plugins-16354 conda-tree
-   conda run --name qa-plugins-16354 conda tree --help
+   conda run --name qa-plugins-16354 python -m conda tree --help
    ```
 
 10. Remove the disposable environment.
@@ -87,9 +89,9 @@ Verify that the plugin package commands operate on the requested environment, re
 - NumPy is absent from the target environment after rejection.
 - `conda-tree` installs into `qa-plugins-16354`.
 - Repeating installation recognizes the installed plugin and succeeds without changes.
-- `conda tree --help` succeeds before and after the forced update.
+- `python -m conda tree --help` succeeds in the target environment before and after the forced update.
 - Updating all plugin packages completes successfully.
-- Removing `conda-tree` leaves it absent and causes `conda tree --help` to fail with an unrecognized-command error.
+- Removing `conda-tree` leaves it absent and causes `python -m conda tree --help` in the target environment to fail with an unrecognized-command error.
 - No package is linked into the target environment before confirmation.
 
 ### Out of scope / notes

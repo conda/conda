@@ -80,12 +80,13 @@ def require_plugin_update_environment(environment: Environment) -> None:
     )
 
 
-def require_plugin_install_transaction(
+def require_plugin_transaction(
     unlink_link_transaction: UnlinkLinkTransaction,
     *,
     prefetch_link_precs: bool = False,
+    command: str = "install",
 ) -> None:
-    """Validate requested plugin install specs in a transaction."""
+    """Validate requested plugin packages in a transaction."""
     invalid_specs = []
     inspect_link_precs = prefetch_link_precs and not context.dry_run
 
@@ -127,7 +128,7 @@ def require_plugin_install_transaction(
 
     if invalid_specs:
         raise CondaValueError(
-            "`conda plugins install` can only install conda plugin packages. "
+            f"`conda plugins {command}` can only {command} conda plugin packages. "
             f"Not conda plugin packages: {', '.join(invalid_specs)}."
         )
 

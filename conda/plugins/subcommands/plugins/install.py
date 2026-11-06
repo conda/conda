@@ -18,7 +18,7 @@ from ....cli.helpers import (
 from ....common.constants import NULL
 from .package_validation import (
     require_explicit_plugin_packages,
-    require_plugin_install_transaction,
+    require_plugin_transaction,
 )
 
 if TYPE_CHECKING:
@@ -50,7 +50,7 @@ def configure_parser(parser: ArgumentParser) -> None:
 def execute(args: Namespace) -> int:
     args._validate_explicit_packages = require_explicit_plugin_packages
     args._validate_transaction = partial(
-        require_plugin_install_transaction,
+        require_plugin_transaction,
         prefetch_link_precs=True,
     )
     args.cmd = "install"

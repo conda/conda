@@ -14,6 +14,7 @@ from conda.plugins import package_extractors, solvers
 from .. import TEST_RECIPES_CHANNEL
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
 
     from pytest import MonkeyPatch
@@ -26,7 +27,9 @@ if TYPE_CHECKING:
 @pytest.fixture
 def plugin_manager_with_plugins_command(
     plugin_manager_with_reporter_backends: CondaPluginManager,
+    monkeypatch: MonkeyPatch,
 ) -> CondaPluginManager:
+    monkeypatch.setenv("CONDA_NUMBER_CHANNEL_NOTICES", "0")
     plugin_manager_with_reporter_backends.load_plugins(
         *package_extractors.plugins,
         solvers,
@@ -47,6 +50,32 @@ def plugin_manager_with_test_plugin(
         == 1
     )
     return plugin_manager_with_plugins_command
+
+
+@pytest.fixture
+def installed_plugin_prefix(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    tmp_pkgs_dir: Path,
+) -> Iterator[Path]:
+    from conda.core.prefix_data import PrefixData
+    from conda.models.records import PrefixRecord
+
+    with tmp_env("conda", "dependent=1.0", "--solver=classic") as prefix:
+        entry_points = prefix / "dependent-1.0.dist-info" / "entry_points.txt"
+        entry_points.parent.mkdir()
+        entry_points.write_text("[conda]\ndependent = dependent.plugin\n")
+        prefix_data = PrefixData(prefix)
+        record = prefix_data.get("dependent")
+        prefix_data.remove(record.name)
+        prefix_data.insert(
+            PrefixRecord.from_objects(
+                record,
+                files=(*record.files, entry_points.relative_to(prefix).as_posix()),
+            )
+        )
+        yield prefix
 
 
 def test_plugins_help(
@@ -186,10 +215,7 @@ def test_plugins_install_delegates_to_conda_install(
         args._validate_explicit_packages
         is install_module.require_explicit_plugin_packages
     )
-    assert (
-        args._validate_transaction.func
-        is install_module.require_plugin_install_transaction
-    )
+    assert args._validate_transaction.func is install_module.require_plugin_transaction
     assert args._validate_transaction.keywords == {"prefetch_link_precs": True}
     assert not hasattr(args, "_validate_prepared_transaction")
     assert parser.prog.endswith("plugins install")
@@ -259,7 +285,7 @@ def test_plugins_install_validation_rejects_non_plugin(
     )
 
     with pytest.raises(CondaValueError) as exc:
-        package_validation.require_plugin_install_transaction(
+        package_validation.require_plugin_transaction(
             transaction,
             prefetch_link_precs=prefetch_link_precs,
         )
@@ -590,6 +616,159 @@ def test_plugins_update_delegates_to_conda_update(
     assert parser.prog.endswith("plugins update")
     assert not out
     assert not err
+
+
+@pytest.mark.parametrize("package_args", (("dependent",), ("--all",)))
+def test_plugins_update_rejects_non_plugin_replacement(
+    package_args: tuple[str, ...],
+    installed_plugin_prefix: Path,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+):
+    from conda.base.context import context
+    from conda.core.prefix_data import PrefixData
+
+    monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "true")
+    out, _, exc = conda_cli(
+        "plugins",
+        "update",
+        *package_args,
+        f"--prefix={installed_plugin_prefix}",
+        "--solver=classic",
+        "--yes",
+        raises=CondaValueError,
+    )
+
+    assert "`conda plugins update` can only update conda plugin packages" in str(
+        exc.value
+    )
+    assert "Not conda plugin packages: dependent." in str(exc.value)
+    assert "Package Plan" not in out
+    assert PrefixData(installed_plugin_prefix).get("dependent").version == "1.0"
+    assert context.auto_update_conda is True
+
+
+@pytest.mark.parametrize("package_args", (("dependent",), ("--all",)))
+def test_plugins_update_dry_run_does_not_update_conda_or_prefetch(
+    package_args: tuple[str, ...],
+    installed_plugin_prefix: Path,
+    tmp_pkgs_dir: Path,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+):
+    import sys
+
+    from conda.core.prefix_data import PrefixData
+    from conda.exceptions import DryRunExit
+    from conda.models.records import PrefixRecord
+
+    prefix_data = PrefixData(installed_plugin_prefix)
+    record = prefix_data.get("conda")
+    prefix_data.remove(record.name)
+    prefix_data.insert(
+        PrefixRecord.from_objects(record, version="0.9", fn="conda-0.9-0.conda")
+    )
+    mocker.patch.object(sys, "prefix", str(installed_plugin_prefix))
+    monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "true")
+
+    out, _, _ = conda_cli(
+        "plugins",
+        "update",
+        *package_args,
+        f"--prefix={installed_plugin_prefix}",
+        "--solver=classic",
+        "--dry-run",
+        "--json",
+        raises=DryRunExit,
+    )
+
+    actions = json.loads(out)["actions"]
+    assert {record["name"] for record in actions["LINK"]} == {
+        "dependent",
+        "dependency",
+    }
+    assert not (tmp_pkgs_dir / "dependent-2.0-0.conda").exists()
+    assert not (tmp_pkgs_dir / "dependent-2.0-0").exists()
+
+
+def test_plugins_update_accepts_installed_plugin(
+    installed_plugin_prefix: Path,
+    conda_cli: CondaCLIFixture,
+):
+    out, err, code = conda_cli(
+        "plugins",
+        "update",
+        "dependent",
+        f"--prefix={installed_plugin_prefix}",
+        "--solver=classic",
+        "--satisfied-skip-solve",
+    )
+
+    assert code == 0, f"conda plugins update failed ({code}): {err}"
+    assert "All requested packages already installed." in out
+
+
+def test_plugins_update_accepts_plugin_replacement(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    installed_plugin_prefix: Path,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+):
+    from conda.base.context import context
+    from conda.core.prefix_data import PrefixData
+
+    monkeypatch.setenv("CONDA_AUTO_UPDATE_CONDA", "true")
+    mocker.patch.object(
+        plugin_manager_with_plugins_command,
+        "is_conda_plugin_package",
+        return_value=True,
+    )
+
+    _, err, code = conda_cli(
+        "plugins",
+        "update",
+        "dependent",
+        f"--prefix={installed_plugin_prefix}",
+        "--solver=classic",
+        "--yes",
+    )
+
+    assert code == 0, f"conda plugins update failed ({code}): {err}"
+    assert PrefixData(installed_plugin_prefix).get("dependent").version == "2.0"
+    assert context.auto_update_conda is True
+
+
+@pytest.mark.parametrize("fails", (False, True))
+def test_plugins_update_restores_auto_update_conda(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    mocker: MockerFixture,
+    fails: bool,
+):
+    from argparse import ArgumentParser
+
+    from conda.base.context import context
+
+    update_module = import_module("conda.plugins.subcommands.plugins.update")
+    parser = ArgumentParser()
+    update_module.configure_parser(parser)
+    args = parser.parse_args(["dependent"])
+
+    def execute(args, parser):
+        assert context.auto_update_conda is False
+        if fails:
+            raise CondaValueError("update failed")
+        return 0
+
+    mocker.patch.object(update_module.main_update, "execute", side_effect=execute)
+    with context._override("auto_update_conda", True):
+        if fails:
+            with pytest.raises(CondaValueError, match="update failed"):
+                update_module.execute(args)
+        else:
+            assert update_module.execute(args) == 0
+        assert context.auto_update_conda is True
 
 
 def test_plugins_update_validator_rejects_non_plugin_package(

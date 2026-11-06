@@ -30,7 +30,20 @@ Channel aliases, authentication, network settings, and channel restrictions are
 handled by conda in the same way as ``conda install``. Plugin packages are checked
 for a conda entry point before the installation transaction is confirmed.
 
-Start a new conda process from the target environment to load an installed plugin.
+Conda loads plugins from the environment containing the Python interpreter that
+runs it. ``conda plugins list`` and ``conda plugins info`` report plugins from that
+same environment. Activating another environment does not change the conda
+installation used by the shell's ``conda`` command.
+
+To load a plugin installed in another environment, run that environment's Python.
+The environment must also contain conda. For example, with ``conda-tree`` installed
+in an environment named ``my-env``:
+
+.. code-block:: console
+
+   conda run --name my-env python -m conda tree --help
+   conda run --name my-env python -m conda plugins list
+   conda run --name my-env python -m conda plugins info conda-tree
 
 
 Implementation
