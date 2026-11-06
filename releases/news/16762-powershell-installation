@@ -1,3 +1,0 @@
-### Other
-
-* Keep PowerShell CI installations separate from PowerShell's runtime cache. (#16762 via #16907)
