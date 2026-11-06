@@ -18,7 +18,13 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 log = getLogger(__name__)
-pytestmark = pytest.mark.integration
+pytestmark = [
+    pytest.mark.integration,
+    # setDaemon comes from the pexpect.spawn class, which is used by the Shell fixture.
+    pytest.mark.filterwarnings(
+        "ignore:setDaemon\\(\\) is deprecated:DeprecationWarning"
+    ),
+]
 PARAMETRIZE_POWERSHELL = pytest.mark.parametrize(
     "shell",
     [
