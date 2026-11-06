@@ -1,7 +1,7 @@
 ### Enhancements
 
-* Add `conda plugins install`, `conda plugins remove`, and `conda plugins update` subcommands that validate plugin packages before installation and updates. (#16354)
-* Avoid automatic conda upgrades during plugin updates while allowing changes required by plugin dependencies. (#16354)
+* Add `conda plugins install`, `conda plugins remove`, and `conda plugins update` subcommands that validate plugin packages before installation and updates. (#16354 via #16357)
+* Avoid automatic conda upgrades during plugin updates while allowing changes required by plugin dependencies. (#16354 via #16357)
 
 ### Bug fixes
 
@@ -13,7 +13,7 @@
 
 ### Docs
 
-* Document temporary channel selection for plugin installation before a `.condarc` exists and how to run plugins from a selected environment. (#16354)
+* Document temporary channel selection for plugin installation before a `.condarc` exists and how to run plugins from a selected environment. (#16354 via #16357)
 
 ### Other
 
