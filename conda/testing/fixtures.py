@@ -157,7 +157,14 @@ def temp_package_cache(tmp_path_factory, monkeypatch: MonkeyPatch) -> Iterator[P
     pkgs_dir = tmp_path_factory.mktemp("pkgs")
     monkeypatch.setenv("CONDA_PKGS_DIRS", str(pkgs_dir))
     reset_context()
+    # Cached package- and repodata-level objects still point at the old cache;
+    # clear them so callers cannot observe records from the previous cache.
+    PackageCacheData.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
     yield pkgs_dir
+    # Do not leave cache objects pointing at this test's temporary cache.
+    PackageCacheData.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
 @pytest.fixture(
