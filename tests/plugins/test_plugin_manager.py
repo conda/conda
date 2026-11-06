@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from conda.exceptions import CondaValueError
-from conda.plugins import package_extractors, solvers
+from conda.plugins import package_extractors
 
 from .. import TEST_RECIPES_CHANNEL
 
@@ -32,7 +32,7 @@ def plugin_manager_with_plugins_command(
     monkeypatch.setenv("CONDA_NUMBER_CHANNEL_NOTICES", "0")
     plugin_manager_with_reporter_backends.load_plugins(
         *package_extractors.plugins,
-        solvers,
+        import_module("conda_pycosat_solver.plugin"),
         import_module("conda.plugins.subcommands.plugins"),
     )
     return plugin_manager_with_reporter_backends
