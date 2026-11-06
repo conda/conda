@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Document `dev\start.bat` `/I`, `/P`, `/U`, `/N`, and `/?` flags in the development environment guide. (#16960)
+* Document `dev\start.bat` `/I`, `/P`, `/U`, `/N`, and `/?` flags in the development environment guide. (#16960 via #16963)
 
 ### Other
 
