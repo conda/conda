@@ -75,7 +75,7 @@ jobs:
           - ubuntu-latest  # linux-64
           - ubuntu-24.04-arm  # linux-aarch64
         python-version: ['3.15']
-        default-channel: [conda-forge]
+        default-channel: [conda-forge, defaults]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
