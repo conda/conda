@@ -2,44 +2,68 @@
 
 ## 26.10.0 (2026-11-06)
 
+### ✨ Special announcement ✨
+
+This is an announcement about an important change in conda's functionality:
+
+#### **With this 26.10.0 release we are changing the default solver of conda to [`conda-rattler-solver`](https://github.com/conda/conda-rattler-solver)!** 🥳 🚀
+
+The previous default, the `libmamba` solver, remains available as an alternative, as does the `pycosat` solver (also known as `classic`). The `classic` solver now ships as the separate [`conda-pycosat-solver`](https://github.com/conda/conda-pycosat-solver) plugin, which is bundled with conda. Existing `solver: classic` settings and `--solver=classic` commands keep working, and the plugin also accepts `--solver=pycosat`.
+
+#### Why are we switching the solver?
+
+In short: to make conda faster and more accurate.
+
+Rattler is a set of Rust libraries for working with conda packages. The `conda-rattler-solver` plugin uses rattler's dependency solver and optimized sparse repodata parsing, which reduces overhead when resolving complex dependency trees. It solves environments faster than libmamba, with the largest improvements on large or heavily constrained environments.
+
+Conda 26.10.0 switches to rattler for fresh installations and upgrades that do not have an explicit solver setting. If you have already selected a solver, conda keeps that choice.
+
+#### What can I do if this update doesn't work for me?
+
+If the new solver is not working as you expect:
+
+- Check if the behavior you are observing is a [known limitation](https://conda.github.io/conda-rattler-solver/user-guide/known-limitations/) or a deliberate change.
+- If that's not the case, please submit a bug report or feature request in the [conda-rattler-solver repository](https://github.com/conda/conda-rattler-solver/issues/new/choose).
+- If necessary, you can go back to using the `libmamba` solver without modifying your conda installation:
+  - When possible, pass the command line option `--solver=libmamba` to your `conda` calls.
+  - Otherwise (e.g. for `conda build ...` or `constructor ...`), set the environment variable `CONDA_SOLVER=libmamba`.
+  - For permanent changes, use the conda configuration system: `conda config --set solver libmamba`.
+- The `pycosat` solver (also known as `classic`) remains available with `--solver=pycosat` or `--solver=classic`.
+
+#### Where can I learn more about conda-rattler-solver?
+
+The documentation of the `conda-rattler-solver` plugin can be found at [conda.github.io/conda-rattler-solver](https://conda.github.io/conda-rattler-solver/), including the [known limitations and differences](https://conda.github.io/conda-rattler-solver/user-guide/known-limitations/), and in the [conda solvers guide](https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/solvers.html).
+
 ### Enhancements
 
-* Track the last time an environment was activated via user invocation. Activation modifies the mtime of `<prefix>/conda-meta/last_activated` (best-effort; failures are ignored). The timestamp is exposed `last_activated` in json output. (#14308 via #16808)
-* `PrefixData` now has is_active property. (#14308 via #16808)
-* Add `--disable-plugins` to selectively disable plugins at runtime using comma-separated names or repeated options. Keep `--no-plugins` as a boolean flag to disable all external plugins. (#15914 via #15915)
+* IMPORTANT: Set `solver: rattler` as the new default solver, including after upgrades when no solver is explicitly configured. Require `conda-rattler-solver >=26.10.2`. (#16853 via #16944)
+* Track the last time an environment was activated via user invocation. Activation modifies the mtime of `<prefix>/conda-meta/last_activated` (best-effort; failures are ignored). The timestamp is exposed as `last_activated` in JSON output. (#14308 via #16808)
+* Add an `is_active` property to `PrefixData`. (#14308 via #16808)
+* Add `--disable-plugins` to selectively disable plugins at runtime using comma-separated names or by repeating the option. Keep `--no-plugins` as a boolean flag to disable all external plugins. (#15914 via #15915)
 * Add `--enable-plugins` to keep selected plugins enabled when using `--no-plugins` or `CONDA_NO_PLUGINS`, including solver plugins needed for recovery. (#15914 via #15915)
-* Add a `root_extras` option to `conda._private.shards.subset.build_repodata_subset`
-  (and the underlying `RepodataSubset.reachable*` methods) so callers can request
-  CEP 44 `extra_depends` groups be fetched only for specific root/user-requested
-  packages, without recursing into extras of their dependencies. (#16724 via #16742)
-* Add `LinkSourceNotFoundError` and `LinkScriptError` (a `LinkError` subclass) so callers can detect a missing package cache source and a failed pre-/post-link script with `isinstance` and inspect `src`, `action`, `prec` and `path` instead of parsing error messages. Error text is unchanged, and `LinkScriptError` remains catchable as `LinkError`, but code that matched the missing-source case against a bare `CondaError` now needs `LinkSourceNotFoundError`. (#16785 via #16747)
-* Use rattler as the default solver, including after upgrades when no solver is explicitly configured. Require `conda-rattler-solver >=26.10.2`. (#16853 via #16944)
-* Follow CEP 44 extras explicitly requested by dependency specs (e.g. `pkg[extras=more]`)
-  when fetching sharded repodata, and revisit a package when another dependency activates an
-  additional extras group. Groups that were not requested stay inactive. Previously only
-  extras requested for root packages via `root_extras` were followed. (#16891 via #16908)
-* Parse `MatchSpec` strings with the v3 parser for all solvers, instead of only for `rattler`. This keeps complete `extras` and `flags` lists (e.g. `httpx2[extras=[cli,http2]]` or `httpx2[extras=cli,http2]`) and accepts nested `when` expressions. (#16724 via #16906)
+* Add a `root_extras` option to `conda._private.shards.subset.build_repodata_subset` (and the underlying `RepodataSubset.reachable*` methods) so callers can request that CEP 44 `extra_depends` groups be fetched only for specific root/user-requested packages, without recursing into extras of their dependencies. (#16724 via #16742)
+* Add `LinkSourceNotFoundError` and `LinkScriptError` (a `LinkError` subclass) so callers can detect a missing package cache source and a failed pre-/post-link script with `isinstance` and inspect `src`, `action`, `prec`, and `path` instead of parsing error messages. Error text is unchanged, and `LinkScriptError` remains catchable as `LinkError`, but code that matched the missing-source case against a bare `CondaError` now needs `LinkSourceNotFoundError`. (#16785 via #16747)
+* Follow CEP 44 extras explicitly requested by dependency specs (e.g. `pkg[extras=more]`) when fetching sharded repodata, and revisit a package when another dependency activates an additional extras group. Groups that were not requested stay inactive. Previously only extras requested for root packages via `root_extras` were followed. (#16891 via #16908)
+* Parse `MatchSpec` strings with the v3 parser for all solvers, not just for `rattler`. This keeps complete `extras` and `flags` lists (e.g. `httpx2[extras=[cli,http2]]` or `httpx2[extras=cli,http2]`) and accepts nested `when` expressions. (#16724 via #16906)
 
 ### Bug fixes
 
 * Preserve platform-named parent directories when parsing channel and package URLs, fixing conda-build failures with paths such as `osx-arm64/conda-bld`. (conda/conda-libmamba-solver#1108 via #16926)
 * Preserve nested shard URLs when adding stored Anaconda tokens. (#16946 via #16948)
-* Avoid `FileNotFoundError` on Windows when `rmtree()` deletes a directory that
-  `RD /S /Q` already removed (for example during `conda package` temp cleanup).
-  (#16539 via #16803)
-* Write configuration files atomically when directory permissions allow, preserve macOS ACLs, and reject detected intervening edits. Keep writable files editable in read-only directories, with best-effort recovery after write failures. (#16694 via #16695)
+* Avoid `FileNotFoundError` on Windows when `rmtree()` deletes a directory that `RD /S /Q` already removed (for example during `conda package` temp cleanup). (#16539 via #16803)
+* Write configuration files atomically when directory permissions allow, preserve macOS ACLs, and reject writes if the file changed in the meantime. Keep writable files editable in read-only directories, with best-effort recovery after write failures. (#16694 via #16695)
 * Ask once before `conda env remove` and `conda remove --all` delete an environment. Those commands previously confirmed the package unlink and then, after the packages were already uninstalled, asked again before deleting the rest of the prefix, including non-conda files. Declining that second prompt left a half-deleted environment. The package plan and the prefix-deletion warning are now shown together before anything is removed, and declining leaves the environment unchanged. (#16753 via #16852)
 * Fix `conda config --get` writing to the config file when no key is given. (#16825 via #16831)
-* Fix shard records with raw-bytes hashes (`sha256`, `md5`, `legacy_bz2_md5`, `attestations_sha256`), as written by e.g. `rattler-index`, not being converted to hex strings when iterating records via `iter_records_v3()`. (#16866)
+* Fix `iter_records_v3()` not converting raw-bytes hashes (`sha256`, `md5`, `legacy_bz2_md5`, `attestations_sha256`) to hex strings, as written by e.g. `rattler-index`. (#16866)
 * Retry remote requests that fail with HTTP 502 (Bad Gateway) or 504 (Gateway Timeout), which are usually transient server or CDN errors. (#16848)
-* Allow expanding env vars in `ObjectParameter` config type. (#16897)
+* Fix `ObjectParameter` configuration types not expanding environment variables when `expandvars=True`. (#16897)
 * Fix `conda.deprecations.deprecated` and `conda.deprecations.deprecated.argument` to preserve generator functions when decorating, instead of wrapping them in a plain function and losing generator semantics (e.g. `pytest` yield-fixtures now warn and yield correctly when stacked under `@pytest.fixture`). (#16900)
 * Use a fresh YAML parser for every read and write to prevent concurrent calls and failed operations from corrupting later results. (#16943 via #16949)
 * Show environment names in PowerShell prompts for canary packages built with `changeps1: false`. (#16858)
 
 ### Deprecations
 
-* Mark `conda.plugins.solvers`, `conda.resolve`, `conda.common.logic`, and `conda.common._logic` as pending deprecation, to be removed in 27.9. Depend on [`conda-pycosat-solver`](https://github.com/conda/conda-pycosat-solver) instead. (#14170 via #16520)
+* Mark `conda.plugins.solvers`, `conda.resolve`, `conda.common.logic`, and `conda.common._logic` as pending deprecation, to be removed in 27.9. Use [`conda-pycosat-solver`](https://github.com/conda/conda-pycosat-solver) instead. (#14170 via #16520)
 * Mark `conda.models.prefix_graph.GeneralGraph` and its `breadth_first_search_by_name` method as pending deprecation, to be removed in 27.9. (#16802)
 * Mark `conda.testing.cases` as pending deprecation, to be removed in 27.9. Use native `pytest` fixtures instead. (#16900)
 * Mark `conda.testing.helpers.assert_equals`, `assert_in`, and `assert_not_in` as pending deprecation, to be removed in 27.9. Use a plain `assert` instead. (#16900)
@@ -54,10 +78,10 @@
 
 ### Docs
 
-* Added small explaination to documentation about json timestamps.
+* Document the `last_activated` timestamp in the JSON output. (#14308 via #16808)
 * Add a "Rendering output" deep dive documenting the reporter backend as the output system for the conda CLI, with logging and error handling guidelines. (#16700 via #16843)
-* Document logging guidelines for library code on the logging deep dive. (#16701 via #16912)
-* Add Choosing a solver guide to documentation, with information about current solvers and how to change your solver. (#16844)
+* Document logging guidelines for library code in the logging deep dive. (#16701 via #16912)
+* Add a guide to choosing a solver to the documentation, with information about the available solvers and how to change your solver. (#16844)
 
 ### Other
 
@@ -66,12 +90,9 @@
 * Add `tmp_repodata_channel` for constructing local test channels from in-memory package metadata. (#16807)
 * Replace production-channel inputs in `test_neutering_of_historic_specs` with a small local channel while preserving historical-spec regression coverage. (#16767 via #16807)
 * Speed up `test_cross_channel_incompatibility` by using two small local channels instead of remote conda-forge/defaults metadata, preserving optional-constraint regression coverage. (#16768 via #16796)
-* Raise the minimum Python version required to run conda to 3.11, following
-  [conda-build#6176](https://github.com/conda/conda-build/issues/6176). Conda can still create
-  and manage environments containing Python 3.10 and older; this only affects the interpreter
-  used to run conda itself. (#16795 via #16801)
-* Don't allow local condarc's to populate context_testdata fixture. (16797 via #16809)
-* Warn when conda doctor reinstall attempt fails due to malformed conda-meta data. (#16636 via #16834)
+* Raise the minimum Python version required to run conda to 3.11, following [conda-build#6176](https://github.com/conda/conda-build/issues/6176). Conda can still create and manage environments containing Python 3.10 and older; this only affects the interpreter used to run conda itself. (#16795 via #16801)
+* Do not allow local condarc files to populate the `context_testdata` fixture. (#16797 via #16809)
+* Warn when a `conda doctor` reinstall attempt fails due to malformed `conda-meta` data. (#16636 via #16834)
 * Convert raw-bytes hash digests to hex strings in memory when sharded repodata is decoded, rather than re-converting records on each read. (#16868)
 
 ### Contributors
@@ -79,7 +100,7 @@
 * @aditya0929 made their first contribution in <https://github.com/conda/conda/pull/16831>
 * @conda-bot
 * @danyeaw
-* @dependabot[bot] made their first contribution in <https://github.com/conda/conda/pull/11965>
+* @dependabot[bot]
 * @dholth
 * @ForgottenProgramme
 * @gavinw2143 made their first contribution in <https://github.com/conda/conda/pull/16796>
@@ -87,7 +108,7 @@
 * @kathatherine
 * @kenodegard
 * @larsoner made their first contribution in <https://github.com/conda/conda/pull/16848>
-* @pre-commit-ci[bot] made their first contribution in <https://github.com/conda/conda/pull/11042>
+* @pre-commit-ci[bot]
 * @r3wretrhy made their first contribution in <https://github.com/conda/conda/pull/16803>
 * @ryanskeith
 * @soapy1
