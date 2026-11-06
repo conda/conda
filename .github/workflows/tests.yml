@@ -79,20 +79,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # reproduce the failing CI job only; keep the original split/group so the order is unchanged
-        runs-on: [windows-latest]
-        python-version: ['3.14']
-        default-channel: [defaults]
-        test-type: [integration]
-        test-group: [1]
+        # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
+        runs-on: [windows-latest, windows-11-arm]
+        python-version: ['3.11', '3.14']
+        default-channel: [defaults, conda-forge]
+        test-type: [unit, integration]
+        test-group: [1, 2, 3]
+        exclude:
+          - default-channel: conda-forge
+            python-version: '3.11'
+          - test-type: unit
+            test-group: 3
+          - runs-on: windows-11-arm
+            python-version: '3.11'
         include:
           - subdir: win-64
+          - runs-on: windows-11-arm
+            default-channel: conda-forge
+            subdir: win-arm64
     env:
       ErrorActionPreference: Stop  # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
-      PYTEST_EXTRA: -x
-      # match the release-branch job, which includes classic solver variants
-      CONDA_TEST_SOLVERS: rattler,libmamba,classic
+      PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
+      CONDA_TEST_SOLVERS: ${{ (matrix.subdir == 'win-arm64' || github.event_name == 'pull_request') && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
       CONDA_TEST_SUBDIR: ${{ matrix.subdir }}
 
     steps:
@@ -180,11 +189,12 @@ jobs:
         # keep the test directories shorter
         run: |
           $env:CONDA_EXE = "$env:CONDA_PREFIX\Scripts\conda.exe"
-          # Ordered, commentable list; uncommented lines run in file order.
-          $order = Get-Content .github/repro-test-order.txt | Where-Object { $_.Trim() -and -not $_.Trim().StartsWith("#") }
-          python -m pytest @order `
+          python -m pytest `
           --cov=conda `
           --basetemp=${{ runner.temp }} `
+          --durations-path=durations\${{ runner.os }}.json `
+          --group=${{ matrix.test-group }} `
+          --splits=${{ env.PYTEST_SPLITS }} `
           -m "${{ env.PYTEST_MARKER }}" `
           ${{ env.PYTEST_EXTRA }}
 
@@ -208,9 +218,11 @@ jobs:
 
   # linux test suite
   linux:
-    # debug: only run the failing Windows job
+    # only run test suite if there are code changes
     needs: changes
-    if: false
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -358,9 +370,9 @@ jobs:
 
   # linux benchmarks
   linux-benchmarks:
-    # debug: only run the failing Windows job
+    # only run benchmarks if there are code changes
     needs: changes
-    if: false
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-24.04
     permissions:
@@ -509,9 +521,9 @@ jobs:
 
   # linux typing
   linux-typing:
-    # debug: only run the failing Windows job
+    # only run test suite if there are code changes
     needs: changes
-    if: false
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-24.04
     defaults:
@@ -605,9 +617,11 @@ jobs:
 
   # linux-qemu test suite
   linux-qemu:
-    # debug: only run the failing Windows job
+    # only run test suite if there are code changes
     needs: changes
-    if: false
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
 
     # Run one single fast test per docker+qemu emulated linux platform to test that
     # test execution is possible there (container+tools+dependencies work). Can be
@@ -664,9 +678,9 @@ jobs:
 
   # linux memray
   linux-memray:
-    # debug: only run the failing Windows job
+    # only run test suite if there are code changes
     needs: changes
-    if: false
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
@@ -735,9 +749,11 @@ jobs:
 
   # macos test suite
   macos:
-    # debug: only run the failing Windows job
+    # only run test suite if there are code changes
     needs: changes
-    if: false
+    if: >-
+      (!github.event.repository.fork && github.event_name == 'schedule')
+      || needs.changes.outputs.code == 'true'
 
     runs-on: ${{ matrix.runs-on }}
     defaults:
@@ -863,9 +879,14 @@ jobs:
 
   # aggregate and upload
   aggregate:
-    # debug: only run the failing Windows job
+    # only aggregate test suite if there are code changes
     needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
-    if: false
+    if: >-
+      !cancelled()
+      && (
+        (!github.event.repository.fork && github.event_name == 'schedule')
+        || needs.changes.outputs.code == 'true'
+      )
 
     runs-on: ubuntu-slim
     steps:
@@ -935,9 +956,9 @@ jobs:
 
   # check conda-build imports
   downstream:
-    # debug: only run the failing Windows job
+    # only run test suite if there are code changes
     needs: changes
-    if: false
+    if: needs.changes.outputs.code == 'true'
 
     runs-on: ubuntu-latest
     defaults:
