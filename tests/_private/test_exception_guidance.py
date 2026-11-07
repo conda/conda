@@ -265,3 +265,71 @@ def test_coerce_guidance_dict_unknown_keys_rejected() -> None:
 def test_coerce_guidance_invalid_type() -> None:
     with pytest.raises(TypeError, match="guidance must be dict or ErrorGuidance"):
         ErrorGuidance.coerce("not a dict or ErrorGuidance")  # type: ignore[arg-type]
+
+
+def test_ErrorGuidance_with_hint_appends_hint() -> None:
+    guidance = ErrorGuidance(
+        summary=(summary := "Headline."),
+        cause=(cause := "Root cause."),
+        hints=(hint := GuidanceHint("First step.", "first"),),
+    )
+    updated = guidance.with_hint(text := "Second step.", hint_code := "second")
+    assert updated is not guidance
+    assert updated.summary == summary
+    assert updated.cause == cause
+    assert updated.hints == (hint, GuidanceHint(text, hint_code))
+
+
+def test_ErrorGuidance_with_hint_last_wins() -> None:
+    guidance = ErrorGuidance(
+        hints=(
+            GuidanceHint("Old step.", hint_code := "do_the_thing"),
+            hint := GuidanceHint("Keep me.", "keep_me"),
+        ),
+    )
+    updated = guidance.with_hint(text := "New step.", hint_code)
+    assert updated is not guidance
+    assert updated.hints == (GuidanceHint(text, hint_code), hint)
+
+
+def test_ErrorGuidance_with_hint_noop_returns_self() -> None:
+    guidance = ErrorGuidance(hints=(GuidanceHint("Step.", "step"),))
+    assert guidance.with_hint("Step.", "step") is guidance
+
+
+def test_CondaError_append_hint() -> None:
+    exc = CondaError(
+        "legacy",
+        guidance={
+            "summary": (summary := "Initial summary."),
+            "cause": (cause := "Initial cause."),
+        },
+    )
+    exc.append_hint(text := "Do the thing.", hint_code := "do_the_thing")
+    assert exc.guidance is not None
+    assert exc.guidance.summary == summary
+    assert exc.guidance.cause == cause
+    assert exc.guidance.hints == (GuidanceHint(text, hint_code),)
+
+
+def test_CondaError_append_hint_without_existing_guidance() -> None:
+    exc = CondaError("legacy")
+    exc.append_hint(text := "Do the thing.", hint_code := "do_the_thing")
+    assert exc.guidance is not None
+    assert exc.guidance.summary is None
+    assert exc.guidance.cause is None
+    assert exc.guidance.hints == (GuidanceHint(text, hint_code),)
+
+
+def test_CondaError_append_hint_replaces_same_code() -> None:
+    exc = CondaError(
+        "legacy",
+        guidance={
+            "hints": [
+                {"text": "Old step.", "hint_code": (hint_code := "do_the_thing")}
+            ],
+        },
+    )
+    exc.append_hint(text := "New step.", hint_code)
+    assert exc.guidance is not None
+    assert exc.guidance.hints == (GuidanceHint(text, hint_code),)
