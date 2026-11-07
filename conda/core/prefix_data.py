@@ -70,6 +70,21 @@ if TYPE_CHECKING:
 log = getLogger(__name__)
 
 
+def _parse_creation_marker(text: str) -> datetime | None:
+    """Parse a creation marker written by current or older conda versions."""
+    text = text.strip()
+    try:
+        creation_time = datetime.fromisoformat(text)
+    except ValueError:
+        try:
+            return datetime.fromtimestamp(float(text), tz=UTC)
+        except (ValueError, OverflowError, OSError):
+            return None
+    if creation_time.tzinfo is None:
+        creation_time = creation_time.replace(tzinfo=UTC)
+    return creation_time.astimezone(UTC)
+
+
 class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
 
@@ -424,11 +439,11 @@ class PrefixData(metaclass=PrefixDataType):
                 try:
                     creation_time = stat.st_birthtime
                 except AttributeError:
-                    # Fallback to magic file conda-meta/.creation-timestamp
+                    # Fallback to magic file conda-meta/created_at
                     try:
                         magicfile = self.prefix_path / PREFIX_CREATION_TIMESTAMP_FILE
-                        creation_time = float(magicfile.read_text().strip())
-                    except (OSError, ValueError, TypeError):
+                        return _parse_creation_marker(magicfile.read_text())
+                    except OSError:
                         return None
             return datetime.fromtimestamp(creation_time, tz=UTC)
 
@@ -751,13 +766,14 @@ class PrefixData(metaclass=PrefixDataType):
 
     def set_creation_time(self) -> None:
         """
-        Writes a .creation-time file in conda-meta with the current timestamp, meant
+        Writes a created_at file in conda-meta with the current timestamp, meant
         to be used by .created property as a fallback.
         """
-        timestamp = self.created or self.last_modified or datetime.now(UTC).timestamp()
         timestamp_file = self.prefix_path / PREFIX_CREATION_TIMESTAMP_FILE
+        if timestamp_file.exists():
+            return
         timestamp_file.parent.mkdir(parents=True, exist_ok=True)
-        timestamp_file.write_text(str(timestamp))
+        timestamp_file.write_text(datetime.now(UTC).isoformat())
 
     def set_nonadmin(self) -> None:
         """Creates $PREFIX/.nonadmin if sys.prefix/.nonadmin exists (on Windows)."""
