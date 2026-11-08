@@ -54,7 +54,7 @@ jobs:
           FORK="$(gh api repos/:owner/:repo/forks --method POST -f default_branch_only=true --jq .full_name)"
           echo "FORK=${FORK}" >> "$GITHUB_ENV"
         env:
-          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}  # zizmor: ignore[secrets-outside-env] Cross-repo sync token; environment policy unchanged.
 
       - name: Compose pull request body
         # written to disk (instead of `body:`) to avoid E2BIG ("Argument list
@@ -78,10 +78,10 @@ jobs:
           TEMPLATES_SUMMARY: ${{ steps.templates.outputs.summary }}
           GITHUB_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
 
-      - uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+      - uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1  # zizmor: ignore[superfluous-actions] Handles fork push and PR creation.
         with:
           push-to-fork: ${{ env.FORK }}
-          token: ${{ secrets.SYNC_TOKEN }}
+          token: ${{ secrets.SYNC_TOKEN }}  # zizmor: ignore[secrets-outside-env] Cross-repo sync token; environment policy unchanged.
           branch: update
           delete-branch: true
           title: 🤖 Update infrastructure file(s)
