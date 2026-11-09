@@ -40,6 +40,125 @@ $ git remote add upstream git@github.com:conda/conda
 
 ## Development Environment Setup
 
+Development environments are managed with [pixi](https://pixi.sh/). Install pixi,
+then create and activate an environment from the repository root:
+
+````{tab-set}
+
+```{tab-item} Bash (macOS, Linux, Windows)
+```bash
+# activate the default environment (Python 3.11, Anaconda main channel)
+$ pixi shell
+
+# or choose a Python version and channel
+$ pixi shell -e py314-conda-forge
+```
+
+```{tab-item} cmd.exe (Windows)
+```batch
+:: activate the default environment (Python 3.11, Anaconda main channel)
+> pixi shell
+
+:: or choose a Python version and channel
+> pixi shell -e py314-conda-forge
+```
+
+````
+
+The environments are defined in `pyproject.toml` (see `[tool.pixi]`) and pinned in
+`pixi.lock`. They are created in the `.pixi` directory of your repo. Activating an
+environment sets `PYTHONPATH` to the repository root, so `conda` runs from your
+source checkout.
+
+To be sure that the conda code being interpreted is the code in the project directory,
+look at the value of `conda location:` in the output of `conda info --all`.
+
+Run a command in an environment without activating it using `pixi run`:
+
+```bash
+$ pixi run -e py314-conda-forge unit
+```
+
+Open a new shell before activating a pixi environment: pixi does not deactivate
+conda environments that are already active.
+
+### Choosing Python and Channel
+
+There is one environment for each combination of Python version (3.11 to 3.14) and
+channel, named `py<version>-<channel>`:
+
+| Environment              | Python | Channel                                                 |
+| ------------------------ | ------ | ------------------------------------------------------- |
+| `py311-main`             | 3.11   | Anaconda `main` (same as `defaults`)                    |
+| `py312-main`             | 3.12   | Anaconda `main`                                         |
+| `py313-main`             | 3.13   | Anaconda `main`                                         |
+| `py314-main`             | 3.14   | Anaconda `main`                                         |
+| `py311-conda-forge`      | 3.11   | `conda-forge`                                           |
+| `py312-conda-forge`      | 3.12   | `conda-forge`                                           |
+| `py313-conda-forge`      | 3.13   | `conda-forge`                                           |
+| `py314-conda-forge`      | 3.14   | `conda-forge`                                           |
+| `py314-conda-forge-full` | 3.14   | `conda-forge`, plus the S3 and typing test requirements |
+| `default`                | 3.11   | Anaconda `main`                                         |
+
+Each environment sets `CONDARC` to a file in `dev/pixi` that configures the channel
+(`defaults` for `main`, `conda-forge` otherwise) like the condarc used by CI. Your own
+`~/.condarc` is still read, so settings there can affect the tests.
+
+```{note}
+The `main` environments are not available on `osx-64` since the Anaconda `main`
+channel does not provide current conda releases for that platform. Use a
+`conda-forge` environment instead. A few packages that are not available on `main`
+(for example `xonsh` and `backports.zstd`) are taken from `conda-forge` in the `main`
+environments.
+```
+
+### Tasks
+
+The following tasks are available through `pixi run`:
+
+| Task          | Description                                                |
+| ------------- | ---------------------------------------------------------- |
+| `unit`        | Run the unit tests (`pytest -m "not integration"`)         |
+| `integration` | Run the integration tests (`pytest -m integration`)        |
+| `smoketest`   | Run the create/install/update/remove smoke test            |
+| `lint`        | Run all pre-commit hooks on all files                      |
+| `conda-init`  | Run `conda init --install` to update the shell scripts     |
+
+`conda-init` modifies files in the environment, not your shell profile. It is not run
+automatically.
+
+### Updating
+
+`pixi.lock` pins every package so that everyone gets the same environment. Update the
+pins with `pixi update`.
+
+### Dependencies
+
+The dependencies are listed in `pyproject.toml` and must be kept in sync with
+`tests/requirements*.txt`, which are used by CI. `tests/test_dev_environment.py`
+fails if they drift apart.
+
+## Legacy `dev/start` Scripts
+
+```{warning}
+`dev/start` and `dev\start.bat` are pending deprecation. They will be deprecated in
+conda 27.3 and removed in conda 27.9. Use pixi instead. Set
+`CONDA_DEV_START_NO_WARN=1` to silence the warning the scripts print.
+```
+
+| `dev/start`                                  | pixi                                                   |
+| -------------------------------------------- | ------------------------------------------------------ |
+| `source ./dev/start`                         | `pixi shell`                                           |
+| `-p 3.12`                                    | `-e py312-<channel>`                                   |
+| `-i miniconda`                               | `-e py3XX-main`                                        |
+| `-i miniforge`                               | `-e py3XX-conda-forge`                                 |
+| `installer_type` in `~/.condarc`, prompt     | Dropped, use the default environment or `-e`           |
+| `-u`, `--update`                             | `pixi update`                                          |
+| `-n`, `--dry-run`                            | `pixi info`, `pixi list -e <env>`                      |
+| `-d`, `--devenv`, `devenv` in `~/.condarc`   | `pixi config set detached-environments <path>`         |
+| `-m`, `--mach`, `-a`, `--arch`               | Dropped, environments are locked for each platform     |
+| `conda init --install`                       | `pixi run conda-init`                                  |
+
 Create a local development environment and activate it using the `dev/start` scripts:
 
 ````{tab-set}
@@ -57,8 +176,6 @@ $ source ./dev/start
 ````
 
 This command will create a project-specific base environment (see `devenv` in your repo directory after running this command). If the base environment already exists this command will simply activate the already-created `devenv` environment.
-
-To be sure that the conda code being interpreted is the code in the project directory, look at the value of `conda location:` in the output of `conda info --all`.
 
 ### Choosing Your Installer
 
@@ -352,7 +469,7 @@ what you need to get started below:
 ```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
 # reuse the development environment created above
-$ source ./dev/start
+$ pixi shell
 # or start the Docker image in interactive mode
 # $ docker compose run interactive
 
@@ -371,7 +488,7 @@ $ git commit
 ```{tab-item} cmd.exe (Windows)
 ```batch
 :: reuse the development environment created above
-> .\dev\start.bat
+> pixi shell
 :: or start the Docker image in interactive mode
 :: > docker compose run interactive
 
@@ -413,7 +530,7 @@ but generally speaking all you need is the following:
 ```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
 # reuse the development environment created above
-$ source ./dev/start
+$ pixi shell
 # or start the Docker image in interactive mode
 # $ docker compose run interactive
 

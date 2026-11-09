@@ -1,5 +1,13 @@
 @CALL :CLEANUP
 
+:: TODO(27.9): remove this script, replaced by the pixi environments in pyproject.toml
+@IF NOT "%CONDA_DEV_START_NO_WARN%"=="" @GOTO :SKIP_WARN
+@ECHO WARNING: dev\start.bat is pending deprecation ^(deprecated in 27.3, removed in 27.9^). 1>&2
+@ECHO          Use pixi instead: pixi shell -e py314-conda-forge 1>&2
+@ECHO          See https://docs.conda.io/projects/conda/en/latest/dev-guide/development-environment.html 1>&2
+@ECHO          Set CONDA_DEV_START_NO_WARN=1 to silence this warning. 1>&2
+:SKIP_WARN
+
 :: preserve script for help
 @SET "_SCRIPT=%~0"
 
@@ -45,6 +53,8 @@
 )
 @IF "%_ARG%"=="/?" (
     @ECHO Usage: %_SCRIPT% [options]
+    @ECHO.
+    @ECHO NOTE: This script is pending deprecation ^(deprecated in 27.3, removed in 27.9^), use pixi instead.
     @ECHO.
     @ECHO Options:
     @ECHO   /P  VERSION    Python version for the env to activate. ^(default: 3.11^)

@@ -253,7 +253,8 @@ it can be edited directly. Below is an example ``.condarc`` file:
   # and in 'conda list'. The default is False.
   show_channel_urls: True
 
-  # Development environment settings (used by dev/start scripts)
+  # Development environment settings (only used by the dev/start scripts,
+  # which are pending deprecation in favor of pixi)
   # Custom path for conda development environments
   devenv: ~/my-conda-devenv
 

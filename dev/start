@@ -44,6 +44,14 @@ updating() {
 
 cleanup
 
+# TODO(27.9): remove this script, replaced by the pixi environments in pyproject.toml
+if [ -z "${CONDA_DEV_START_NO_WARN:-}" ]; then
+    echo "WARNING: dev/start is pending deprecation (deprecated in 27.3, removed in 27.9)." >&2
+    echo "         Use pixi instead: pixi shell -e py314-conda-forge" >&2
+    echo "         See https://docs.conda.io/projects/conda/en/latest/dev-guide/development-environment.html" >&2
+    echo "         Set CONDA_DEV_START_NO_WARN=1 to silence this warning." >&2
+fi
+
 # get source path
 # since zsh is MacOS standard fallback to $0 if not in bash
 _SRC="$(cd "$(dirname "$(dirname "${BASH_SOURCE:-$0}")")" 2>&1 > /dev/null; pwd -P)"
@@ -121,6 +129,8 @@ while [ $# -gt 0 ]; do
         -h|--help)
             # since zsh is MacOS standard fallback to $0 if not in bash
             echo "Usage: source ${BASH_SOURCE:-$0} [options]"
+            echo ""
+            echo "NOTE: This script is pending deprecation (deprecated in 27.3, removed in 27.9), use pixi instead."
             echo ""
             echo "Options:"
             echo "  -p, --python    VERSION    Python version for the env to activate. (default: ${_DEFAULT_PYTHON})"
