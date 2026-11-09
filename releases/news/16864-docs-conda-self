@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Document `conda self` as the recommended way to update conda and manage plugins in the `base` environment, keeping `conda update --name base conda` as a fallback (#16864).
+* Document `conda self` as the recommended way to update conda and manage plugins in the `base` environment, keeping `conda update --name base conda` as a fallback (#16864 via #16979).
 
 ### Other
 
