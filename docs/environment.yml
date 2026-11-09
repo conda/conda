@@ -30,6 +30,7 @@ dependencies:
   - sphinxcontrib-qthelp==2.0.0
   - sphinxcontrib-serializinghtml==2.0.0
   - tqdm>=4.70.1
+  - weasyprint>=69.0
   - conda-libmamba-solver>=26.10.0
   - conda-rattler-solver>=26.10.2
   - pip>25
