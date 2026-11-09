@@ -22,6 +22,15 @@ These commands manage conda packages that provide plugins. Use
 the running conda installation. See :doc:`the command reference
 <../../commands/plugins>` for all subcommands and options.
 
+.. tip::
+
+   For plugins in the ``base`` environment, ``conda self install``,
+   ``conda self update``, and ``conda self remove`` are the safer path: they
+   always target ``base`` and also work when ``base`` is protected
+   (see :ref:`frozen-env`). See the
+   `conda-self documentation <https://conda.github.io/conda-self/>`_
+   for details.
+
 Installing plugins
 ------------------
 

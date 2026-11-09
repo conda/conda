@@ -46,13 +46,18 @@ Conda is also included in the [Anaconda Distribution](https://repo.anaconda.com)
 To update `conda` to the newest version, use the following command:
 
 ```
-$ conda update --name base conda
+$ conda self update
 ```
+
+If `conda self` is not available (for example, on an older conda installation),
+use `conda update --name base conda` instead.
 
 > [!TIP]
 > It is possible that `conda update` does not install the newest version
 > if the existing `conda` version is far behind the current release.
-> In this case, updating needs to be done in stages.
+> In this case, updating needs to be done in stages. Such old versions
+> do not provide `conda self`, so this manual path uses `conda install`
+> and `conda update`.
 >
 > For example, to update from `conda 4.12` to `conda 23.10.0`,
 > `conda 22.11.1` needs to be installed first:

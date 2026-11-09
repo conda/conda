@@ -58,7 +58,9 @@ Updating conda
 
 #. Open a terminal window.
 
-#. Run ``conda update conda``.
+#. Run ``conda self update``.
+
+   If ``conda self`` is not available, run ``conda update conda`` instead.
 
 
 Uninstalling conda

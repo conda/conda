@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Document `conda self` as the recommended way to update conda and manage plugins in the `base` environment, keeping `conda update --name base conda` as a fallback (#16864).
+
+### Other
+
+* <news item>

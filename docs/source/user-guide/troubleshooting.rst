@@ -344,7 +344,8 @@ Solution
 ~~~~~~~~
 Make sure your conda is up-to-date: ``conda --version``
 
-If not, run: ``conda update conda``
+If not, run: ``conda self update`` (or ``conda update conda`` if
+``conda self`` is not available)
 
 Try using the operating system certificate store. Set you ``ssl_verify`` variable to ``truststore``
 using the following command::

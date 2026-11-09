@@ -67,7 +67,7 @@ Scroll to the right to see the entire table.
      - ``pip install --upgrade $PACKAGE_NAME``
      - X
    * - Update package manager
-     - ``conda update conda``
+     - ``conda self update``
      - Linux/macOS: ``pip install -U pip`` Win: ``python -m pip install -U pip``
      - X
    * - Uninstall a package

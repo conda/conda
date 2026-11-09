@@ -70,7 +70,7 @@ This section goes over some of the best practices we recommend for addressing pe
 
       .. code-block:: shell
 
-         conda install --name base conda-rattler-solver
+         conda self install conda-rattler-solver
 
    #. Set rattler as your solver:
 

@@ -220,7 +220,7 @@ If either is below the minimum required version
 
 .. code-block:: bash
 
-   conda install --name base conda-rattler-solver
+   conda self install conda-rattler-solver
 
 Additional resources
 --------------------
