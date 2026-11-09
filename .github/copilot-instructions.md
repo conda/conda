@@ -23,7 +23,7 @@ This policy exists because conda is a complex, interdependent ecosystem where ch
 When providing code suggestions or answering questions about this codebase via Copilot Chat (not code review), follow these guidelines:
 
 - conda is a Python project that uses a plugin-based architecture with pluggy.
-- conda uses the libmamba solver as its default dependency resolver via conda-libmamba-solver.
+- conda uses the rattler solver as its default dependency resolver via conda-rattler-solver.
 - conda follows the conda Enhancement Proposal (CEP) process for significant changes.
 - Test changes thoroughly — conda has an extensive test suite using pytest. Always consider cross-platform compatibility (Linux, macOS, Windows).
 - Do not suggest adding new dependencies without careful consideration of the dependency chain impact on the wider conda ecosystem.

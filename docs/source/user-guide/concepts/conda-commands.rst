@@ -86,7 +86,18 @@ Conda plugins can add their own commands or subcommands to the conda
 command-line interface. For example, a plugin may add a command for a custom
 workflow, package source, or environment management task.
 
-Plugins that add conda commands must be installed in the ``base`` environment,
-where conda itself is installed. You can use ``conda self install`` to install
-a plugin into the ``base`` environment. Installing a plugin into another
-environment does not make its command available to the main ``conda`` command.
+Plugins that add conda commands must be installed in the environment running
+conda, usually ``base``. Starting with conda 26.11.0, use
+``conda plugins install``, ``conda plugins update``, and ``conda plugins remove``
+to manage their conda packages. Select the target environment with ``--name`` or
+``--prefix``.
+
+Use ``conda plugins list`` to see installed plugins and ``conda plugins info NAME``
+to inspect a plugin's metadata and registered hooks. These commands report on the
+environment running conda and also support ``--json`` output.
+
+Installing a plugin into another environment does not make its command available
+to the main ``conda`` command. That environment must contain conda, and you must
+run its Python interpreter to load its plugins. See :doc:`Plugins <conda-plugins>`
+for installation examples and :doc:`conda plugins <../../commands/plugins>` for
+the command reference.

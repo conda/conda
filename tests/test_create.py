@@ -24,7 +24,6 @@ from uuid import uuid4
 import menuinst
 import pytest
 
-from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
     CONDA_TEMP_EXTENSION,
@@ -53,6 +52,9 @@ from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
     ClobberError,
+    CondaError,
+    CondaExitZero,
+    CondaMultiError,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
@@ -78,8 +80,12 @@ from conda.history import History
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
-from conda.resolve import Resolve
-from conda.testing.helpers import CHANNEL_DIR_V2, forward_to_subprocess, in_subprocess
+from conda.testing.helpers import (
+    CHANNEL_DIR_V2,
+    deprecated_import,
+    forward_to_subprocess,
+    in_subprocess,
+)
 from conda.testing.integration import (
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
@@ -887,6 +893,9 @@ def test_strict_channel_priority(
 
 
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
+    with deprecated_import("conda.resolve"):
+        from conda.resolve import Resolve
+
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
     # The historical anaconda package is not available for win-arm64.
@@ -2201,6 +2210,7 @@ def test_conda_pip_interop_compatible_release_operator(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     pip_cli: PipCLIFixture,
+    temp_package_cache: Path,
 ):
     if "conda-forge" in context.channels:
         pytest.skip("This test is too slow with conda-forge as default channel.")
@@ -2702,6 +2712,7 @@ def test_entry_point_failure_rolls_back(
     mocker: MockerFixture,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    temp_package_cache: Path,
 ):
     with tmp_env("conda-forge::pygments[subdir=noarch]") as prefix:
         record = package_is_installed(prefix, "pygments")

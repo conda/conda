@@ -15,6 +15,7 @@ import pytest
 import responses.matchers
 import responses.registries
 from conda_package_handling.utils import checksum
+from requests.exceptions import ChunkedEncodingError, ConnectionError, ReadTimeout
 
 from conda.base.constants import DEFAULT_CHANNEL_ALIAS, PARTIAL_EXTENSION
 from conda.base.context import context, reset_context
@@ -102,7 +103,18 @@ def test_tmpDownload(monkeypatch: MonkeyPatch):
 
 
 @responses.activate
-def test_resume_download(mocker: MockerFixture, tmp_path):
+@pytest.mark.parametrize(
+    "request_error,expected_error",
+    [
+        (ConnectionAbortedError, ConnectionAbortedError),
+        (ConnectionError, CondaHTTPError),
+        (ReadTimeout, CondaHTTPError),
+        (ChunkedEncodingError, CondaHTTPError),
+    ],
+)
+def test_resume_download(
+    mocker: MockerFixture, tmp_path, request_error, expected_error
+):
     # This test works offline.
     test_file = [b"first:", b"second:", b"last"]
     size = len(b"".join(test_file))
@@ -122,13 +134,15 @@ def test_resume_download(mocker: MockerFixture, tmp_path):
     def iter_content_interrupted(*args, **kwargs):
         yield test_file[0]
         yield test_file[1]
-        raise ConnectionAbortedError("Aborted")
+        raise request_error("Aborted")
+
+    iter_content_mock = mocker.patch("requests.Response.iter_content")
 
     iter_content_mock = mocker.patch("requests.Response.iter_content")
 
     # Download gets interrupted by an exception
     iter_content_mock.side_effect = iter_content_interrupted
-    with pytest.raises(ConnectionAbortedError):
+    with pytest.raises(expected_error):
         download(url, output_path, size=size, sha256=sha256)
 
     # Check that only the partial file is present

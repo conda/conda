@@ -6,7 +6,9 @@ from __future__ import annotations
 import logging
 import re
 import sys
+from argparse import Namespace
 from dataclasses import dataclass
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pluggy
@@ -15,12 +17,15 @@ from packaging.metadata import Metadata
 from packaging.version import Version
 
 from conda import CondaError, plugins
-from conda.base.context import reset_context
+from conda.base.context import context, reset_context
 from conda.common.url import urlparse
 from conda.core import solve
 from conda.exceptions import CondaValueError, PluginError
-from conda.plugins import solvers, virtual_packages
+from conda.models.enums import PathEnum
+from conda.models.records import PathDataV1, PathsData, PrefixRecord
+from conda.plugins import virtual_packages
 from conda.plugins.types import CondaPlugin
+from conda.testing.helpers import deprecated_import
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -81,6 +86,92 @@ def test_get_plugin_source_entrypoint_distribution(
     solvers_list = [p for ps in plugin_manager.hook.conda_solvers() for p in ps]
     solver = next(p for p in solvers_list if p.name == "test")
     assert plugin_manager.get_plugin_source(solver) == "conda-test-plugin 1.0"
+
+
+@pytest.mark.parametrize(
+    ("entry_points_text", "expected"),
+    (
+        ("[conda]\nexample = conda_example_plugin.plugin\n", True),
+        ("[console_scripts]\nconsole-only = console_only:main\n", False),
+    ),
+)
+def test_is_conda_plugin_package(
+    entry_points_text: str,
+    expected: bool,
+    plugin_manager: CondaPluginManager,
+    tmp_path,
+):
+    entry_points = (
+        tmp_path
+        / "lib"
+        / "python3.12"
+        / "site-packages"
+        / "conda_example_plugin.dist-info"
+        / "entry_points.txt"
+    )
+    entry_points.parent.mkdir(parents=True)
+    entry_points.write_text(entry_points_text)
+    package = SimpleNamespace(
+        extracted_package_dir=str(tmp_path),
+        paths_data=PathsData(
+            paths_version=1,
+            paths=(
+                PathDataV1(
+                    _path=entry_points.relative_to(tmp_path).as_posix(),
+                    path_type=PathEnum.hardlink,
+                ),
+            ),
+        ),
+    )
+
+    assert plugin_manager.is_conda_plugin_package(package) is expected
+
+
+@pytest.mark.parametrize(
+    "site_packages", ("lib/python3.13/site-packages", "Lib/site-packages")
+)
+@pytest.mark.parametrize("has_paths_data", (False, True))
+@pytest.mark.parametrize(
+    ("entry_points_text", "expected"),
+    (
+        ("[conda]\nexample = conda_example_plugin.plugin\n", True),
+        ("[console_scripts]\nconsole-only = console_only:main\n", False),
+    ),
+)
+def test_is_installed_conda_plugin_package(
+    site_packages: str,
+    has_paths_data: bool,
+    entry_points_text: str,
+    expected: bool,
+    plugin_manager: CondaPluginManager,
+    tmp_path,
+):
+    metadata_path = "conda_example_plugin.dist-info/entry_points.txt"
+    installed_path = f"{site_packages}/{metadata_path}"
+    entry_points = tmp_path / installed_path
+    entry_points.parent.mkdir(parents=True)
+    entry_points.write_text(entry_points_text)
+    package = PrefixRecord(
+        name="conda-example-plugin",
+        version="1.0",
+        build="0",
+        build_number=0,
+        noarch="python",
+        files=(installed_path,),
+        paths_data=PathsData(
+            paths_version=1,
+            paths=(
+                PathDataV1(
+                    _path=f"site-packages/{metadata_path}",
+                    path_type=PathEnum.hardlink,
+                ),
+            ),
+        )
+        if has_paths_data
+        else None,
+    )
+
+    assert plugin_manager.is_conda_plugin_package(package, prefix=tmp_path) is expected
 
 
 def test_load_without_plugins(plugin_manager: CondaPluginManager):
@@ -322,6 +413,46 @@ def test_load_entrypoints_register_valueerror(plugin_manager: CondaPluginManager
     assert plugin_manager.load_entrypoints("test_plugin", "success") == 0
 
 
+@pytest.mark.usefixtures("reset_conda_context")
+@pytest.mark.parametrize(
+    "configured,environment,command_line,expected",
+    [
+        (None, None, None, "rattler"),
+        ("libmamba", None, None, "libmamba"),
+        ("classic", None, None, "classic"),
+        ("pycosat", None, None, "pycosat"),
+        ("classic", "libmamba", None, "libmamba"),
+        ("libmamba", "classic", None, "classic"),
+        ("libmamba", "pycosat", None, "pycosat"),
+        ("classic", "libmamba", "rattler", "rattler"),
+        ("rattler", "classic", "libmamba", "libmamba"),
+        ("rattler", "libmamba", "classic", "classic"),
+        ("rattler", "libmamba", "pycosat", "pycosat"),
+    ],
+)
+def test_configured_solver_backend(
+    configured: str | None,
+    environment: str | None,
+    command_line: str | None,
+    expected: str,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("CONDA_SOLVER", raising=False)
+    monkeypatch.delenv("CONDA_EXPERIMENTAL_SOLVER", raising=False)
+    condarc = tmp_path / "condarc"
+    condarc.write_text(f"solver: {configured}\n" if configured else "")
+    if environment:
+        monkeypatch.setenv("CONDA_SOLVER", environment)
+    args = Namespace(solver=command_line) if command_line else Namespace()
+    reset_context([condarc], argparse_args=args)
+
+    backend = context.plugin_manager.get_solver_backend()
+    expected_backend = context.plugin_manager.get_solvers()[expected].backend
+    assert context.solver == expected
+    assert issubclass(backend, expected_backend)
+
+
 def test_unknown_solver(plugin_manager: CondaPluginManager):
     """
     Cover getting a solver that doesn't exist.
@@ -433,6 +564,9 @@ def test_get_canonical_name_instance(plugin_manager: CondaPluginManager):
 def test_conflicting_plugin_error_names_registered_instances(
     plugin_manager: CondaPluginManager,
 ) -> None:
+    with deprecated_import("conda.plugins.solvers"):
+        from conda.plugins import solvers
+
     class IntruderSolver:
         hide_module = True
 

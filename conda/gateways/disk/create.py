@@ -277,7 +277,7 @@ def _do_copy(src, dst):
         log.debug("%r", e)
 
 
-def create_link(src, dst, link_type=LinkType.hardlink, force=False):
+def create_link(src, dst, link_type=LinkType.hardlink, force=False, fallback_copy=True):
     if link_type == LinkType.directory:
         # A directory is technically not a link.  So link_type is a misnomer.
         #   Naming is hard.
@@ -305,6 +305,10 @@ def create_link(src, dst, link_type=LinkType.hardlink, force=False):
             log.log(TRACE, "hard linking %s => %s", src, dst)
             link(src, dst)
         except OSError as e:
+            # Try to copy if `fallback_copy` is enabled. Otherwise,
+            # re-raise the error
+            if not fallback_copy:
+                raise e
             log.debug("%r", e)
             log.debug(
                 "hard-link failed. falling back to copy\n"

@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: BSD-3-Clause
 """YAML and JSON serialization and deserialization functions."""
 
-import functools
 from io import StringIO
 from logging import getLogger
 
@@ -16,11 +15,11 @@ log = getLogger(__name__)
     "27.3",
     addendum="Use `conda.common.serialize.yaml._yaml()` instead.",
 )
-@functools.cache
 def _yaml_round_trip():
     import ruamel.yaml as yaml
 
     parser = yaml.YAML(typ="rt")
+    parser.Emitter = yaml.emitter.Emitter
     parser.indent(mapping=2, offset=2, sequence=4)
     return parser
 
@@ -30,7 +29,6 @@ def _yaml_round_trip():
     "27.3",
     addendum="Use `conda.common.serialize.yaml._yaml()` instead.",
 )
-@functools.cache
 def _yaml_safe():
     import ruamel.yaml as yaml
 

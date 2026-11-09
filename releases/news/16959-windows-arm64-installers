@@ -12,7 +12,7 @@
 
 ### Docs
 
-* Add Choosing a solver guide to documentation, with information about current solvers and how to change your solver. (#16844)
+* Add Windows ARM64 Miniconda and Miniforge download buttons to the documentation front page. (#16959 via #16961).
 
 ### Other
 

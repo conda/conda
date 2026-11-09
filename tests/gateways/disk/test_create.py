@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from __future__ import annotations
 
+import errno
 import os
 from contextlib import nullcontext
 from typing import TYPE_CHECKING
@@ -12,6 +13,7 @@ from conda.common.compat import on_win
 from conda.exceptions import LinkSourceNotFoundError
 from conda.gateways.disk import create
 from conda.gateways.disk.create import create_link
+from conda.gateways.disk.link import link
 from conda.models.enums import LinkType
 
 if TYPE_CHECKING:
@@ -38,6 +40,44 @@ def test_create_link_missing_source_raises_link_source_not_found(tmp_path):
         create_link(src, dst, LinkType.softlink)
 
     assert exc.value.src == src
+
+
+@pytest.mark.parametrize(
+    "fallback_copy,raises",
+    [
+        pytest.param(True, False, id="fallback-to-copy"),
+        pytest.param(False, True, id="raise-error"),
+    ],
+)
+def test_create_hardlink_across_fs(mocker, tmp_path: Path, fallback_copy, raises):
+    source = tmp_path / "pkgs" / "index.json"
+    source.parent.mkdir()
+    source.touch()
+    dest_dir = tmp_path / "dest"
+    dest_dir.mkdir()
+
+    # simulate pkgs/ and env/ residing on different filesystems
+    def cross_device_link(src, dst):
+        if dst == dest_dir:
+            raise OSError(errno.EXDEV, "Invalid cross-device link")
+        return link(src, dst)
+
+    mocker.patch("conda.gateways.disk.create.link", side_effect=cross_device_link)
+
+    if raises:
+        with pytest.raises(OSError):
+            create_link(
+                source,
+                dest_dir,
+                link_type=LinkType.hardlink,
+                fallback_copy=fallback_copy,
+            )
+            assert not (dest_dir / "test-source").exists
+    else:
+        create_link(
+            source, dest_dir, link_type=LinkType.hardlink, fallback_copy=fallback_copy
+        )
+        assert (dest_dir / "test-source").exists
 
 
 @pytest.mark.skipif(on_win, reason="symlinks are copied as files on Windows")

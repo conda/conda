@@ -178,7 +178,9 @@ def split_filename(path_or_url):
     return (dn or None, fn) if "." in fn else (path_or_url, None)
 
 
-def strip_pkg_extension(path: str) -> tuple[str, str | None]:
+def strip_pkg_extension(
+    path: str, *, package_extensions: Iterable[str] | None = None
+) -> tuple[str, str | None]:
     """
     Split path into (base, extension) for known extensions.
 
@@ -188,6 +190,8 @@ def strip_pkg_extension(path: str) -> tuple[str, str | None]:
 
     Args:
         path: Path to split.
+        package_extensions: Registered lowercase package extensions. If omitted,
+            discover them through the package extractor plugins.
 
     Returns:
         Tuple of (base_path, extension) where extension is None if not found.
@@ -204,10 +208,17 @@ def strip_pkg_extension(path: str) -> tuple[str, str | None]:
         >>> strip_pkg_extension("/path/_license-1.1-py27_1")
         ('/path/_license-1.1-py27_1', None)
     """
-    from ...base.context import context
-
     # Check package extensions first (dynamic from plugins)
-    if ext := context.plugin_manager.has_package_extension(path):
+    if package_extensions is None:
+        from ...base.context import context
+
+        ext = context.plugin_manager.has_package_extension(path)
+    else:
+        path_lower = path.lower()
+        ext = next(
+            (ext for ext in package_extensions if path_lower.endswith(ext)), None
+        )
+    if ext:
         return path[: -len(ext)], ext
     # Then additional extensions (static)
     for ext in KNOWN_REPODATA_EXTENSIONS:
