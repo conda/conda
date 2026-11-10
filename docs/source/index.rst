@@ -131,7 +131,7 @@ If you are new to conda, we first recommend the following articles:
 .. seealso::
 
     Want to get even more in-depth training on how to use conda for free? Check out Anaconda's
-    `free course on conda basics <https://learning.anaconda.cloud/conda-basics>`_.
+    `free course on conda basics <https://learning.anaconda.com/courses/conda-basics>`_.
 
 Other useful resources :octicon:`light-bulb;1em;sd-text-primary`
 ......................................................................
