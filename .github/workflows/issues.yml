@@ -3,7 +3,7 @@ name: Automate Issues
 on:
   # NOTE: github.event is issue_comment payload:
   # https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#issue_comment
-  issue_comment:
+  issue_comment:  # zizmor: ignore[dangerous-triggers] Label swaps only; no untrusted data is used.
     types: [created]
 
 concurrency:
@@ -33,10 +33,10 @@ jobs:
       # remove [pending::feedback]
       - run: gh issue edit "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --remove-label "${FEEDBACK_LBL}"
         env:
-          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}  # zizmor: ignore[secrets-outside-env] Cross-repo bot token; environment policy intentionally unchanged.
 
       # add [pending::support], if still open
       - if: github.event.issue.state == 'open'
         run: gh issue edit "${ISSUE_NUMBER}" --repo "${GITHUB_REPOSITORY}" --add-label "${SUPPORT_LBL}"
         env:
-          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}  # zizmor: ignore[secrets-outside-env] Cross-repo bot token; environment policy intentionally unchanged.

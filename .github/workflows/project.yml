@@ -1,7 +1,7 @@
 name: Add to Project
 
 on:
-  pull_request_target:
+  pull_request_target:  # zizmor: ignore[dangerous-triggers] Adds PRs to a project board only; no untrusted code is checked out.
     types:
       - opened
 
@@ -22,4 +22,4 @@ jobs:
         with:
           # PRs are added to the Review project
           project-url: https://github.com/orgs/conda/projects/16
-          github-token: ${{ secrets.PROJECT_TOKEN }}
+          github-token: ${{ secrets.PROJECT_TOKEN }}  # zizmor: ignore[secrets-outside-env] Project board token; environment policy unchanged.
