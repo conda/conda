@@ -5,14 +5,13 @@
 from __future__ import annotations
 
 import collections
-import functools
 import pathlib
 import time
 from tempfile import TemporaryDirectory
 
 import pytest
 
-from ..base.context import context
+from ..base.context import context, reset_context
 from ..common.serialize import json
 from ..core.solve import Solver
 from ..deprecations import deprecated
@@ -27,12 +26,13 @@ from ..models.records import PackageRecord
 from . import helpers
 
 
-@functools.cache
 def index_packages(num):
     """Get the index data of the ``helpers.get_index_r_*`` helpers."""
     # XXX: get_index_r_X should probably be refactored to avoid loading the environment like this.
     get_index = getattr(helpers, f"get_index_r_{num}")
     index, _ = get_index(context.subdir)
+    # return a new list each time so tests that extend it in place do not leak
+    # records into later tests
     return list(index.values())
 
 
@@ -225,7 +225,7 @@ class SolverTests:
                 raise ValueError(
                     "Repo has multiple channels, the `channel` argument must be specified"
                 )
-            packages = self.env.repo_packages[kwargs["channel"]]
+            packages = self.env.repo_packages[kwargs.pop("channel")]
         else:
             packages = self.env.repo_packages
         return self.find_package_in_list(packages, **kwargs)
@@ -978,11 +978,7 @@ class SolverTests:
             "test::zlib-1.2.7-0",
         }
 
-    @pytest.mark.xfail(reason="CONDA_CHANNEL_PRIORITY does not seem to have any effect")
     def test_channel_priority_1(self, monkeypatch, env):
-        # XXX: Test is skipped because CONDA_CHANNEL_PRIORITY does not seems to
-        #      have any effect. I have also tried conda.common.io.env_var like
-        #      the other tests but no luck.
         env.repo_packages = {}
         env.repo_packages["channel-A"] = []
         env.repo_packages["channel-1"] = index_packages(1)
@@ -995,30 +991,35 @@ class SolverTests:
         )
         env.repo_packages["channel-A"].append(pandas_0)
 
-        # channel-1 has pandas np17py27_1, channel-A only has np17py27_0
-        # when priority is set, it channel-A should take precedence and
-        # np17py27_0 be installed, otherwise np17py27_1 should be installed as
-        # it has a higher build version
-        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
-        assert "channel-A::pandas-0.11.0-np16py27_0" in env.install(
-            "pandas", "python 2.7.*", "numpy 1.6.*"
-        )
-        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "False")
-        assert "channel-1::pandas-0.11.0-np16py27_1" in env.install(
-            "pandas", "python 2.7.*", "numpy 1.6.*"
-        )
+        # channel-A, listed first, only has pandas 0.10.1, while channel-1 also
+        # has the newer pandas 0.11.0.
+        # - With channel priority enabled, the channel-A record wins, despite its
+        #   lower version.
+        # - With channel priority disabled, or with channel-1 listed first, the
+        #   newer channel-1 record wins instead.
+        specs = ("pandas", "python 2.7.*")
+
+        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "flexible")
+        reset_context()
+        records = env.install(*specs)
+        assert "channel-A::pandas-0.10.1-np17py27_0" in records
+        assert "channel-1::pandas-0.11.0-np17py27_1" not in records
+
+        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "disabled")
+        reset_context()
+        records = env.install(*specs)
+        assert "channel-1::pandas-0.11.0-np17py27_1" in records
+        assert "channel-A::pandas-0.10.1-np17py27_0" not in records
+
         # now lets revert the channels
         env.repo_packages = dict(reversed(env.repo_packages.items()))
-        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
-        assert "channel-1::pandas-0.11.0-np16py27_1" in env.install(
-            "pandas", "python 2.7.*", "numpy 1.6.*"
-        )
+        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "flexible")
+        reset_context()
+        records = env.install(*specs)
+        assert "channel-1::pandas-0.11.0-np17py27_1" in records
+        assert "channel-A::pandas-0.10.1-np17py27_0" not in records
 
-    @pytest.mark.xfail(reason="CONDA_CHANNEL_PRIORITY does not seem to have any effect")
     def test_unsat_channel_priority(self, monkeypatch, env):
-        # XXX: Test is skipped because CONDA_CHANNEL_PRIORITY does not seems to
-        #      have any effect. I have also tried conda.common.io.env_var like
-        #      the other tests but no luck.
         env.repo_packages = {}
         # higher priority
         env.repo_packages["channel-1"] = [
@@ -1059,27 +1060,29 @@ class SolverTests:
             ),
         ]
 
-        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
+        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "flexible")
+        reset_context()
         records = env.install("a", "b", as_specs=True)
         # channel-1 a and b packages (1.0) installed
         assert any(k.name == "a" and k.version == "1.0" for k in records)
         assert any(k.name == "b" and k.version == "1.0" for k in records)
 
-        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "False")
+        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "disabled")
+        reset_context()
         records = env.install("a", "b", as_specs=True)
         # no channel priority, largest version of a and b (2.0) installed
         assert any(k.name == "a" and k.version == "2.0" for k in records)
         assert any(k.name == "b" and k.version == "2.0" for k in records)
 
-        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "True")
+        # strict priority confines c to channel-1, which only has c 1.0, so
+        # b cannot be satisfied. The classic solver also reports a, since it
+        # depends on the same conflicting c.
+        monkeypatch.setenv("CONDA_CHANNEL_PRIORITY", "strict")
+        reset_context()
         with pytest.raises(UnsatisfiableError) as exc_info:
             env.install("a", "b")
-        self.assert_unsatisfiable(exc_info, [("b", "c[version='>=2,<3']")])
+        self.assert_unsatisfiable(exc_info, [("a", "c"), ("b", "c[version='>=2,<3']")])
 
-    @pytest.mark.xfail(
-        reason="There is some weird global state making "
-        "this test fail when the whole test suite is run"
-    )
     def test_remove(self, env):
         env.repo_packages = index_packages(1)
         records = env.install("pandas", "python 2.7.*", as_specs=True)
