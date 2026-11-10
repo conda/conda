@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/miniconda
 {
-    "name": "Miniconda (default-channel=defaults)",
+    "name": "Miniconda (conda-workspaces)",
     "image": "continuumio/miniconda3",
 
     // Features to add to the dev container. More info: https://containers.dev/features.
@@ -12,7 +12,7 @@
 
     // Use 'postCreateCommand' to run commands after the container is created.
     "postCreateCommand": "bash /workspaces/conda/.devcontainer/post_create.sh",
-    "postStartCommand": "/opt/conda/bin/python -m conda init --dev bash",
+    "postStartCommand": "/opt/conda/bin/conda init bash",
 
     // Configure tool-specific properties.
     "customizations": {

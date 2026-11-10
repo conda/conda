@@ -6,6 +6,12 @@ if ! (return 0 2> /dev/null); then
     exit 1
 fi
 
+echo "WARNING: dev/start is pending deprecation and will be removed in conda 27.9." >&2
+echo "         Use conda-workspaces instead:" >&2
+echo "           conda install -n base conda-forge::conda-workspaces" >&2
+echo "           conda workspace install && conda workspace shell" >&2
+echo "         See docs/source/dev-guide/development-environment.md for details." >&2
+
 cleanup() {
     unset _ARCH
     unset _BASEEXE

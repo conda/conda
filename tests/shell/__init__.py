@@ -93,7 +93,7 @@ class InteractiveShellType(type):
         "zsh": {"base_shell": "posix"},
         # Hook from the checkout; CONDA_EXE is the conda launcher in sys.prefix.
         # PYTHONPATH (set in InteractiveShell) makes that launcher import the checkout,
-        # matching dev/start.bat.
+        # matching the development environment.
         "cmd.exe": {
             "activator": "cmd.exe",
             "init_command": (
