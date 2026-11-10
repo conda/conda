@@ -1,0 +1,15 @@
+### Enhancements
+
+* Add [conda-workspaces](https://conda-incubator.github.io/conda-workspaces/) development environments to `pyproject.toml` under `[tool.conda.*]`, with `default`, `py311`-`py314`, `s3`, `typing`, `docs`, and `lint` environments and `unit`, `integration`, `smoketest`, `typing`, `lint`, and `docs` tasks. (#0000)
+
+### Deprecations
+
+* Mark `dev/start` and `dev\start.bat` as pending deprecation in favor of `conda workspace`. They are scheduled for removal in 27.9. (#0000)
+
+### Docs
+
+* Rewrite the development environment guide, `AGENTS.md`, and related pages to use conda-workspaces. (#0000)
+
+### Other
+
+* Migrate the Dev Container (`.devcontainer/`) to conda-workspaces and stop passing the pending-deprecation `--dev` flag to `conda init`. (#0000)
