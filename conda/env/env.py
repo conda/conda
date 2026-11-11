@@ -118,7 +118,7 @@ def channels_validation(channels: list):
     for channel in channels:
         if not isinstance(channel, str):
             raise EnvironmentFileInvalid(
-                "`channels` key must only contain strings. Found '{channel}'"
+                f"`channels` key must only contain strings. Found '{channel}'"
             )
 
 
