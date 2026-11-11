@@ -90,27 +90,41 @@ class PythonDistribution:
             anchor_full_path = join(prefix_path, win_path_ok(anchor_file))
             sp_reference = basename(anchor_file)
             return PythonEggInfoDistribution(
-                anchor_full_path, python_version, sp_reference
+                anchor_full_path,
+                python_version,
+                sp_reference,
+                sp_dir=dirname(anchor_file),
             )
         elif ".egg-info" in anchor_file:
             anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
             sp_reference = basename(dirname(anchor_file))
             return PythonEggInfoDistribution(
-                anchor_full_path, python_version, sp_reference
+                anchor_full_path,
+                python_version,
+                sp_reference,
+                sp_dir=dirname(dirname(anchor_file)),
             )
         elif ".egg" in anchor_file:
             anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
             sp_reference = basename(dirname(anchor_file))
             return PythonEggInfoDistribution(
-                anchor_full_path, python_version, sp_reference
+                anchor_full_path,
+                python_version,
+                sp_reference,
+                sp_dir=dirname(dirname(anchor_file)),
             )
         else:
             raise NotImplementedError()
 
-    def __init__(self, anchor_full_path, python_version):
+    def __init__(self, anchor_full_path, python_version, sp_dir=None):
         # Don't call PythonDistribution directly. Use the init() static method.
         self.anchor_full_path = anchor_full_path
         self.python_version = python_version
+        # Prefix-relative (posix) site-packages directory containing this
+        # distribution, derived from the anchor file. This matches the python
+        # package's actual site-packages location, which may differ from the
+        # default short path (e.g. python_site_packages_path on Windows).
+        self.sp_dir = sp_dir
 
         if anchor_full_path and isfile(anchor_full_path):
             self._metadata_dir_full_path = dirname(anchor_full_path)
@@ -247,7 +261,9 @@ class PythonDistribution:
         manifest_full_path = self.manifest_full_path
         if manifest_full_path:
             python_version = self.python_version
-            sp_dir = get_python_site_packages_short_path(python_version) + "/"
+            sp_dir = (
+                self.sp_dir or get_python_site_packages_short_path(python_version)
+            ) + "/"
             prepend_metadata_dirname = (
                 basename(manifest_full_path) == "installed-files.txt"
             )
@@ -425,7 +441,9 @@ class PythonInstalledDistribution(PythonDistribution):
 
     def __init__(self, prefix_path, anchor_file, python_version):
         anchor_full_path = join(prefix_path, win_path_ok(dirname(anchor_file)))
-        super().__init__(anchor_full_path, python_version)
+        super().__init__(
+            anchor_full_path, python_version, sp_dir=dirname(dirname(anchor_file))
+        )
         self.sp_reference = basename(dirname(anchor_file))
 
 
@@ -443,8 +461,8 @@ class PythonEggInfoDistribution(PythonDistribution):
     MANDATORY_FILES = ()
     ENTRY_POINTS_FILES = ("entry_points.txt",)
 
-    def __init__(self, anchor_full_path, python_version, sp_reference):
-        super().__init__(anchor_full_path, python_version)
+    def __init__(self, anchor_full_path, python_version, sp_reference, sp_dir=None):
+        super().__init__(anchor_full_path, python_version, sp_dir=sp_dir)
         self.sp_reference = sp_reference
 
     @property
