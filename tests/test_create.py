@@ -126,6 +126,21 @@ pytestmark = [
 ]
 
 
+def get_python_record_sp_dir(prefix: Path, version: str | None = None) -> Path | None:
+    python_record = PrefixData(prefix).get("python")
+    if python_record:
+        py_ver = get_major_minor_version(python_record.version)
+        return (
+            python_record.python_site_packages_path
+            or get_python_site_packages_short_path(py_ver)
+        )
+    elif version:
+        py_ver = get_major_minor_version(version)
+        return get_python_site_packages_short_path(py_ver)
+
+    return None
+
+
 def test_install_python_and_search(
     path_factory: PathFactoryFixture,
     mocker: MockerFixture,
@@ -675,7 +690,10 @@ def test_noarch_python_package_reinstall_on_pyver_change(
     with tmp_env("itsdangerous", PYTHON_SPEC_OLD) as prefix:
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC_OLD))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = (
+            pkg.python_site_packages_path
+            or get_python_site_packages_short_path(py_ver)
+        )
         py_file = sp_dir + "/itsdangerous/__init__.py"
         old_pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
@@ -685,7 +703,10 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         assert not (prefix / old_pyc_file).is_file()
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = (
+            pkg.python_site_packages_path
+            or get_python_site_packages_short_path(py_ver)
+        )
         py_file = sp_dir + "/itsdangerous/__init__.py"
         new_pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
@@ -960,7 +981,10 @@ def test_list_with_pip_no_binary(
         assert (prefix, True) in PrefixData._cache_
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = (
+            pkg.python_site_packages_path
+            or get_python_site_packages_short_path(py_ver)
+        )
         _rm_rf(prefix / sp_dir)
         assert prefix not in PrefixData._cache_
 
@@ -1455,7 +1479,10 @@ def test_compile_pyc(use_sys_python: bool, tmp_env: TmpEnvFixture):
             python_binary = prefix / PYTHON_BINARY
         assert python_binary.exists()
 
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        if use_sys_python:
+            sp_dir = get_python_site_packages_short_path(py_ver)
+        else:
+            sp_dir = get_python_record_sp_dir(prefix, py_ver)
         py_file = prefix / sp_dir / "test_compile.py"
         pyc_file = prefix / pyc_path(str(py_file), py_ver)
 
@@ -1921,8 +1948,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
         stdout, _, _ = pip_cli("list", "--format=freeze", prefix=prefix)
         assert any(pkg.strip() == "six==1.9.0" for pkg in stdout.splitlines())
 
-        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = get_python_record_sp_dir(prefix)
 
         PrefixData._cache_.clear()
         stdout, stderr, code = pip_cli(
