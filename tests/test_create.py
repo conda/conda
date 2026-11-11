@@ -690,9 +690,8 @@ def test_noarch_python_package_reinstall_on_pyver_change(
     with tmp_env("itsdangerous", PYTHON_SPEC_OLD) as prefix:
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC_OLD))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = (
-            pkg.python_site_packages_path
-            or get_python_site_packages_short_path(py_ver)
+        sp_dir = pkg.python_site_packages_path or get_python_site_packages_short_path(
+            py_ver
         )
         py_file = sp_dir + "/itsdangerous/__init__.py"
         old_pyc_file = pyc_path(py_file, py_ver)
@@ -703,9 +702,8 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         assert not (prefix / old_pyc_file).is_file()
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = (
-            pkg.python_site_packages_path
-            or get_python_site_packages_short_path(py_ver)
+        sp_dir = pkg.python_site_packages_path or get_python_site_packages_short_path(
+            py_ver
         )
         py_file = sp_dir + "/itsdangerous/__init__.py"
         new_pyc_file = pyc_path(py_file, py_ver)
@@ -981,9 +979,8 @@ def test_list_with_pip_no_binary(
         assert (prefix, True) in PrefixData._cache_
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = (
-            pkg.python_site_packages_path
-            or get_python_site_packages_short_path(py_ver)
+        sp_dir = pkg.python_site_packages_path or get_python_site_packages_short_path(
+            py_ver
         )
         _rm_rf(prefix / sp_dir)
         assert prefix not in PrefixData._cache_
