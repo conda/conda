@@ -92,9 +92,36 @@ def get_python_short_path(python_version=None):
 
 
 def get_python_site_packages_short_path(python_version):
+    """Get the default site-packages path for a given Python version.
+
+    For unix systems, this is usually ``lib/pythonX.Y/site-packages``.
+    For Windows, this is usually ``Lib/site-packages``, except for Python 3.15
+    and later, which uses ``lib/python/site-packages`` (ref cfep-27).
+
+    Note, cep-17 proposes that python packages may declare their own
+    site-packages path. This function does not account for that, and only returns
+    the default path. In order to ensure that the correct site-packages path is used,
+    the python package should be queried for its site-packages path. For example
+    (including a fallback to the default path):
+
+        ```
+        python_record = PrefixData(prefix).get("python")
+        if python_record:
+            py_ver = get_major_minor_version(python_record.version)
+            site_packages_path = (
+                python_record.python_site_packages_path
+                or get_python_site_packages_short_path(py_ver)
+            )
+        ```
+    """
     if python_version is None:
         return None
     elif on_win:
+        version = get_major_minor_version(python_version)
+        if version:
+            major, minor = version.split(".")
+            if (int(major), int(minor)) >= (3, 15):
+                return "lib/python/site-packages"
         return "Lib/site-packages"
     else:
         py_ver = get_major_minor_version(python_version)
