@@ -63,6 +63,231 @@ changelog = "https://github.com/conda/conda/blob/main/CHANGELOG.md"
 documentation = "https://docs.conda.io/projects/conda/en/stable/"
 repository = "https://github.com/conda/conda"
 
+[tool.conda.dependencies]
+archspec = ">=0.2.3"
+"backports.zstd" = ">=1.3.0"
+boltons = ">=23.0.0"
+charset-normalizer = "*"
+conda-libmamba-solver = ">=26.4.1"
+conda-package-handling = ">=2.2.0"
+conda-pycosat-solver = ">=26.10.0"
+conda-pypi = ">=0.10.1"
+conda-rattler-solver = ">=26.10.2"
+distro = ">=1.5.0"
+frozendict = ">=2.4.2"
+menuinst = ">=2"
+msgpack-python = ">=1.1.1"
+packaging = ">=26.3"
+platformdirs = ">=3.10.0"
+pluggy = ">=1.6.0"
+pycosat = ">=0.6.3"
+python = ">=3.11"
+requests = ">=2.28.0,<3"
+"ruamel.yaml" = ">=0.11.14,<0.20"
+setuptools = ">=60.0.0"
+setuptools_scm = "*"
+tqdm = ">=4"
+
+[tool.conda.environments]
+default = { features = ["test", "py314"] }
+docs = { features = ["docs"], no-default-feature = true }
+lint = { features = ["lint"], no-default-feature = true }
+py311 = { features = ["test", "s3", "py311"] }
+py312 = { features = ["test", "s3", "py312"] }
+py313 = { features = ["test", "s3", "py313"] }
+py314 = { features = ["test", "s3", "py314"] }
+s3 = { features = ["test", "s3", "py314"] }
+typing = { features = ["test", "typing", "py314"] }
+
+[tool.conda.feature.docs]
+# plantuml is not available on every platform
+platforms = ["linux-64", "osx-64-osx-11-0", "osx-arm64-osx-11-0", "win-64"]
+
+[tool.conda.feature.docs.dependencies]
+Pillow = "==13.0.0"
+Sphinx = "<10"
+boltons = ">=26.2.0"
+conda-libmamba-solver = ">=26.10.0"
+conda-rattler-solver = ">=26.10.2"
+conda-sphinx-theme = "==0.5.0"
+frozendict = ">=2.5.0"
+linkify-it-py = "==2.2.0"
+myst-parser = "==5.1.0"
+pip = ">25"
+plantuml = "==1.2026.9"
+pluggy = "==1.7.0"
+pylint = "==4.1.3"
+requests = ">=2.28.0,<3"
+"ruamel.yaml" = ">=0.11.14,<0.20"
+sphinx-argparse = "==0.6.1"
+sphinx-autoapi = "==3.9.0"
+sphinx-autobuild = "==2025.8.25"
+sphinx-copybutton = "==0.5.2"
+sphinx-design = "==0.7.0"
+sphinx-reredirects = "==1.1.0"
+sphinx-sitemap = "==2.9.0"
+sphinxcontrib-applehelp = "==2.0.0"
+sphinxcontrib-devhelp = "==2.0.0"
+sphinxcontrib-htmlhelp = "==2.1.0"
+sphinxcontrib-jsmath = "==2.0.0"
+sphinxcontrib-mermaid = "==2.1.1"
+# docs/environment.yml pins 0.31 from PyPI; conda-forge only has up to 0.30
+sphinxcontrib-plantuml = ">=0.30"
+sphinxcontrib-programoutput = "==0.20"
+sphinxcontrib-qthelp = "==2.0.0"
+sphinxcontrib-serializinghtml = "==2.0.0"
+tqdm = ">=4.70.1"
+
+[tool.conda.feature.lint]
+# identify (required by pre-commit) depends on ukkonen, which is not available
+# for win-arm64
+platforms = [
+  "linux-64",
+  "linux-aarch64",
+  "osx-64-osx-11-0",
+  "osx-arm64-osx-11-0",
+  "win-64",
+]
+
+[tool.conda.feature.lint.dependencies]
+doc8 = "*"
+# pre-commit only requires identify >=1.0.0 and the solver may otherwise pick an
+# ancient release that does not know the file types used by ruff's hooks
+identify = ">=2.6"
+pre-commit = "*"
+python = "3.14.*"
+rstcheck = "*"
+
+[tool.conda.feature.py311]
+# conda-forge has no Python < 3.14 builds for win-arm64
+platforms = [
+  "linux-64",
+  "linux-aarch64",
+  "osx-64-osx-11-0",
+  "osx-arm64-osx-11-0",
+  "win-64",
+]
+
+[tool.conda.feature.py311.dependencies]
+python = "3.11.*"
+
+[tool.conda.feature.py312]
+# conda-forge has no Python < 3.14 builds for win-arm64
+platforms = [
+  "linux-64",
+  "linux-aarch64",
+  "osx-64-osx-11-0",
+  "osx-arm64-osx-11-0",
+  "win-64",
+]
+
+[tool.conda.feature.py312.dependencies]
+python = "3.12.*"
+
+[tool.conda.feature.py313]
+# conda-forge has no Python < 3.14 builds for win-arm64
+platforms = [
+  "linux-64",
+  "linux-aarch64",
+  "osx-64-osx-11-0",
+  "osx-arm64-osx-11-0",
+  "win-64",
+]
+
+[tool.conda.feature.py313.dependencies]
+python = "3.13.*"
+
+[tool.conda.feature.py314.dependencies]
+python = "3.14.*"
+
+[tool.conda.feature.s3.dependencies]
+boto3 = "!=1.33.0"
+minio-server = "*"
+
+[tool.conda.feature.test.dependencies]
+conda = "*"
+coverage = "*"
+flask = ">=2.2"
+git = "*"
+importlib_resources = ">=5.10"
+pexpect = "*"
+pip = "*"
+pytest = "*"
+pytest-benchmark = "*"
+pytest-cov = "*"
+pytest-mock = "*"
+pytest-rerunfailures = "*"
+pytest-split = "*"
+pytest-timeout = "*"
+pytest-xprocess = "*"
+responses = "*"
+tomli = "*"
+truststore = ">=0.8.0"
+werkzeug = ">=2.2"
+
+[tool.conda.feature.test.target.linux-64.dependencies]
+patchelf = "*"
+xonsh = { version = "*", channel = "conda-forge" }
+
+[tool.conda.feature.test.target.linux-aarch64.dependencies]
+patchelf = "*"
+xonsh = { version = "*", channel = "conda-forge" }
+
+[tool.conda.feature.test.target.win-64.dependencies]
+conda-launchers = ">=24.7.1"
+pywin32 = "*"
+
+[tool.conda.feature.test.target.win-arm64.dependencies]
+conda-launchers = ">=24.7.1"
+pywin32 = "*"
+
+[tool.conda.feature.typing]
+# lxml is not available for win-arm64
+platforms = [
+  "linux-64",
+  "linux-aarch64",
+  "osx-64-osx-11-0",
+  "osx-arm64-osx-11-0",
+  "win-64",
+]
+
+[tool.conda.feature.typing.dependencies]
+lxml = "*"
+mypy = "*"
+
+[tool.conda.pypi-dependencies]
+conda = { path = ".", editable = true }
+
+[tool.conda.tasks]
+integration = { cmd = "pytest -m integration", description = "Run integration tests" }
+smoketest = { cmd = "pytest tests/test_create.py -k test_create_install_update_remove", description = "Run a quick create/install/update/remove test" }
+typing = { cmd = "mypy", default-environment = "typing", description = "Run mypy" }
+unit = { cmd = "pytest -m \"not integration\"", description = "Run unit tests" }
+
+[tool.conda.tasks.docs]
+cmd = "sphinx-build -b html docs/source docs/_build/html"
+default-environment = "docs"
+description = "Build the HTML documentation"
+
+[tool.conda.tasks.lint]
+cmd = "pre-commit run --all-files"
+default-environment = "lint"
+description = "Run pre-commit hooks on all files"
+
+[tool.conda.workspace]
+channel-priority = "strict"
+channels = ["conda-forge"]
+name = "conda"
+# rich platforms declare the virtual packages needed to solve cross-platform
+platforms = [
+  { platform = "linux-64", glibc = "2.28" },
+  { platform = "linux-aarch64", glibc = "2.28" },
+  { platform = "osx-64", macos = "11.0" },
+  { platform = "osx-arm64", macos = "11.0" },
+  "win-64",
+  "win-arm64",
+]
+
 [tool.coverage.report]
 exclude_lines = [
   "pragma: no cover",

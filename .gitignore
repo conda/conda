@@ -26,6 +26,8 @@ record.txt
 Vagrantfile
 dev-init.bat
 devenv/
+.conda/
+conda.lock
 Miniconda*.sh
 miniconda*.sh
 miniconda*.exe

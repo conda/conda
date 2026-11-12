@@ -40,297 +40,133 @@ $ git remote add upstream git@github.com:conda/conda
 
 ## Development Environment Setup
 
-Create a local development environment and activate it using the `dev/start` scripts:
+Development and test environments are managed with
+[conda-workspaces](https://conda-incubator.github.io/conda-workspaces/). The
+workspace manifest lives in `pyproject.toml` under the `[tool.conda.*]` tables.
 
-````{tab-set}
-
-```{tab-item} Bash (macOS, Linux, Windows)
-```bash
-$ source ./dev/start
-```
-
-```{tab-item} cmd.exe (Windows)
-```batch
-> .\dev\start.bat
-```
-
-````
-
-This command will create a project-specific base environment (see `devenv` in your repo directory after running this command). If the base environment already exists this command will simply activate the already-created `devenv` environment.
-
-To be sure that the conda code being interpreted is the code in the project directory, look at the value of `conda location:` in the output of `conda info --all`.
-
-### Choosing Your Installer
-
-The `dev/start` script supports two different conda installers:
-
-- **miniconda** (default): Uses the Anaconda defaults channel and official Miniconda installer
-- **miniforge**: Uses the conda-forge channel and community-maintained Miniforge installer
-
-#### Configuration Options
-
-You can specify the installer type in several ways, in order of precedence:
-
-1. **Command line flag** (highest priority)
-2. **Configuration file** (`~/.condarc`)
-3. **Interactive prompt** (lowest priority)
-
-To avoid being prompted every time, you can set your preferred installer in your `~/.condarc` file:
-
-```yaml
-# ~/.condarc
-installer_type: miniforge  # or miniconda
-```
-
-When you run the script for the first time without specifying an installer and no configuration file setting, you'll be prompted to choose:
-
-```text
-Choose conda installer:
-  1) miniconda (default - Anaconda defaults channel)
-  2) miniforge (conda-forge channel)
-Enter choice [1]:
-```
-
-You can also specify the installer directly using the `-i` or `--installer` flag:
-
-````{tab-set}
-
-```{tab-item} Bash (macOS, Linux, Windows)
-```bash
-# Use miniconda (default behavior)
-$ source ./dev/start -i miniconda
-
-# Use miniforge
-$ source ./dev/start -i miniforge
-```
-
-```{tab-item} cmd.exe (Windows)
-```batch
-:: Use miniconda (default behavior)
-> .\dev\start.bat -i miniconda
-
-:: Use miniforge
-> .\dev\start.bat -i miniforge
-```
-
-````
-
-### Additional Options
-
-The `dev/start` script supports several other options for customizing your development environment:
+Install conda-workspaces once into your `base` environment (this requires an
+existing conda installation, e.g. Miniconda or Miniforge):
 
 ```bash
-# See all available options
-$ source ./dev/start --help
-
-# Use a specific Python version
-$ source ./dev/start -p 3.11
-
-# Force update packages
-$ source ./dev/start -u
-
-# Preview what would be done without making changes
-$ source ./dev/start -n
+$ conda install -n base conda-forge::conda-workspaces
 ```
 
-### Switching Between Installers
+Then, from the repository root, create the default development environment:
 
-You can maintain separate development environments for different installers and switch between them:
-
-````{tab-set}
-
-```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
-# Set up and activate miniconda-based environment
-$ source ./dev/start -i miniconda
-
-# Later, set up and activate miniforge-based environment
-$ source ./dev/start -i miniforge
+$ conda workspace install
 ```
 
-```{tab-item} cmd.exe (Windows)
-```batch
-:: Set up and activate miniconda-based environment
-> .\dev\start.bat -i miniconda
+This solves and installs the environment into `.conda/envs/default` inside your
+repository and installs conda from your checkout in editable mode. Changes to the
+source code are picked up immediately without reinstalling.
 
-:: Later, set up and activate miniforge-based environment
-> .\dev\start.bat -i miniforge
+Run a command inside the environment, or open a shell with it activated:
+
+```bash
+# run a single command
+$ conda workspace run -- python -m pytest tests/test_exports.py
+
+# spawn a shell with the environment activated
+$ conda workspace shell
 ```
 
-````
+To be sure that the conda code being interpreted is the code in the project
+directory, look at the value of `conda location:` in the output of
+`conda workspace run -- conda info --all`.
 
-Each installer creates its own isolated environment, so you can test conda behavior with both the defaults and conda-forge channels.
+```{note}
+The editable install builds conda from the git history (`hatch-vcs`), so make
+sure your clone has its tags (`git fetch --tags upstream`) and is not a shallow
+clone.
+```
 
-## Manual Setup
+### Available Environments
 
-If you prefer to set up your development environment manually instead of using the automated scripts, follow these steps:
+List the environments defined by the workspace with `conda workspace envs`. Select
+one with `-e <name>`:
 
-### Prerequisites
+| Environment | Purpose |
+|---|---|
+| `default` | Test dependencies on Python 3.14 |
+| `py311`, `py312`, `py313`, `py314` | Test and S3 dependencies on a specific Python version |
+| `s3` | Test and S3 dependencies (for tests that need `minio-server`) |
+| `typing` | Test dependencies plus `mypy` |
+| `docs` | Documentation build dependencies |
+| `lint` | `pre-commit`, `doc8`, and `rstcheck` |
 
-- Conda is already installed and initialized on your system
-- (Optional) If using Option B in step 4, install conda-pypi canary version: `conda install -n base conda-canary/label/dev::conda-pypi`
+For example:
 
-1. Create the development directory:
+```bash
+$ conda workspace install -e py312
+$ conda workspace run -e py312 -- python -m pytest -m "not integration"
+```
 
-   ```bash
-   $ mkdir -p ./devenv
-   ```
+```{note}
+Not every environment is available on every platform. Python 3.11 through 3.13
+are not available for `win-arm64`, and the `docs`, `typing`, and `lint`
+environments are not available on every platform because some of their
+dependencies are not built for it (for example, `plantuml` on `linux-aarch64` and
+`lxml` and `ukkonen` on `win-arm64`). `conda workspace install` reports an error
+when you select an environment that is not defined for your platform.
+```
 
-2. Download and install miniforge:
+### Channels
 
-   ````{tab-set}
+The workspace solves against the `conda-forge` channel, which provides every
+dependency on every supported platform. The `defaults` channel is still exercised
+by continuous integration, but it is not used by the workspace environments.
 
-   ```{tab-item} macOS
-   ```bash
-   $ curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-$(uname -m).sh" -o ./devenv/miniforge.sh
-   $ bash ./devenv/miniforge.sh -bfp ./devenv
-   $ rm ./devenv/miniforge.sh
-   ```
+### Tasks
 
-   ```{tab-item} Linux
-   ```bash
-   $ curl -L "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-$(uname -m).sh" -o ./devenv/miniforge.sh
-   $ bash ./devenv/miniforge.sh -bfp ./devenv
-   $ rm ./devenv/miniforge.sh
-   ```
+Common development commands are defined as tasks in the same manifest. List them
+with `conda task list` and run one with `conda task run <name>`:
 
-   ```{tab-item} Windows (PowerShell)
-   ```powershell
-   > (New-Object System.Net.WebClient).DownloadFile("https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-x86_64.exe", "$env:TEMP\miniforge.exe")
-   > Start-Process $env:TEMP\miniforge.exe -ArgumentList "/InstallationType=JustMe","/RegisterPython=0","/AddToPath=0","/NoRegistry=1","/NoShortcuts=1","/S","/D=$PWD\devenv" -Wait -NoNewWindow
-   > rm $env:TEMP\miniforge.exe
-   ```
+```bash
+# run the unit tests (pytest -m "not integration")
+$ conda task run unit
 
-   ````
+# run the integration tests
+$ conda task run integration
 
-3. Create and configure environment:
+# run a quick create/install/update/remove smoke test
+$ conda task run smoketest
 
-   ````{tab-set}
+# type check with mypy (runs in the `typing` environment)
+$ conda task run typing
 
-   ```{tab-item} Bash (macOS, Linux)
-   ```bash
-   # Install dependencies
-   $ ./devenv/bin/conda install -y -p ./devenv --override-channels -c conda-forge --file ./tests/requirements.txt --file ./tests/requirements-ci.txt python=3.14
-   ```
+# run pre-commit on all files (runs in the `lint` environment)
+$ conda task run lint
 
+# build the HTML documentation (runs in the `docs` environment)
+$ conda task run docs
+```
 
-   ```{tab-item} PowerShell (Windows)
-   ```powershell
-   # Install dependencies
-   > .\devenv\Scripts\conda.exe install -y -p .\devenv --override-channels -c conda-forge --file .\tests\requirements.txt --file .\tests\requirements-ci.txt python=3.14
-   ```
+Tasks run in the `default` environment when it is installed. Use `-e <name>` to
+select a different, already installed, environment.
 
-   ````
+### Lock File
 
-4. Make conda source code available and activate environment:
+`conda workspace install` also writes a `conda.lock` file at the repository root.
+It is not committed (it is listed in `.gitignore`) so that new environments always
+solve against the latest packages. Use `conda workspace install --locked` to
+re-create an environment from your existing lock file without solving again.
 
-   Choose one of the following options:
+### Deprecated: `dev/start`
 
-   **Option A: Set PYTHONPATH**
-
-   Set PYTHONPATH to make the conda source code available, then activate the environment
-   (`dev/start` does this automatically):
-
-   ````{tab-set}
-
-   ```{tab-item} Bash (macOS, Linux)
-   ```bash
-   # Set PYTHONPATH
-   $ export PYTHONPATH=$(pwd):$PYTHONPATH
-
-   # Activate environment
-   $ conda activate ./devenv
-   ```
-   ```{tab-item} Fish (macOS, Linux)
-   ```fish
-   # Set PYTHONPATH
-   $ set -gx PYTHONPATH (pwd) $PYTHONPATH
-
-   # Activate environment
-   $ conda activate ./devenv
-   ```
-   ```{tab-item} PowerShell (Windows)
-   ```powershell
-   # Set PYTHONPATH
-   > $env:PYTHONPATH="$PWD;$env:PYTHONPATH"
-
-   # Activate environment
-   > conda activate .\devenv
-   ```
-   ````
-
-   **Option B: Install conda in editable mode**
-
-   Activate the environment first, then install conda in editable mode using conda-pypi:
-
-   ````{tab-set}
-
-   ```{tab-item} Bash (macOS, Linux)
-   ```bash
-   # Activate environment
-   $ conda activate ./devenv
-
-   # Install conda in editable mode
-   $ conda pypi install -e .
-   ```
-   ```{tab-item} PowerShell (Windows)
-   ```powershell
-   # Activate environment
-   > conda activate .\devenv
-
-   # Install conda in editable mode
-   > conda pypi install -e .
-   ```
-   ````
-
-   This installs conda as an editable package in the environment, which can be more convenient for development.
+The `dev/start` (macOS, Linux) and `dev\start.bat` (Windows) scripts are pending
+deprecation and are scheduled for removal in conda 27.9. They continue to work, but
+print a deprecation notice. The `devenv` and `installer_type` settings in
+`~/.condarc` are only used by these scripts.
 
 ## Docker Alternative
 
-Alternatively, for Linux development only, you can use the same Docker image the CI pipelines use. Note that you can run this from all three operating systems! We are using `docker compose`, which provides three actions for you:
-
-- `unit-tests`: Run all unit tests.
-- `integration-tests`: Run all integration tests.
-- `interactive`: You are dropped in a pre-initialized Bash session, where you can run all your `pytest` commands as required.
-
-Use them with `docker compose run <action>`. For example:
-
-```bash
-$ docker compose run unit-tests
-```
-
-This builds the same Docker image as used in continuous integration from the [Github Container Registry](https://github.com/conda/conda/pkgs/container/conda-ci) and starts `bash` with the conda development mode already enabled.
-
-By default, it will use Miniconda-based, Python 3.9 installation configured for the `defaults` channel. You can customize this with two environment variables:
-
-- `CONDA_DOCKER_PYTHON`: `major.minor` value; e.g. `3.11`.
-- `CONDA_DOCKER_DEFAULT_CHANNEL`: either `defaults` or `conda-forge`
-
-For example, if you need a conda-forge based 3.12 image:
-
-````{tab-set}
-
-```{tab-item} Bash (macOS, Linux, Windows)
-```bash
-$ CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache
-# --- in some systems you might also need to re-supply the same values as CLI flags:
-# CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose build --no-cache --build-arg python_version=3.12 --build-arg default_channel=conda-forge
-$ CONDA_DOCKER_PYTHON=3.12 CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge docker compose run interactive
-```
-
-```{tab-item} cmd.exe (Windows)
-```batch
-> set CONDA_DOCKER_PYTHON=3.12
-> set CONDA_DOCKER_DEFAULT_CHANNEL=conda-forge
-> docker compose build --no-cache
-> docker compose run interactive
-> set "CONDA_DOCKER_PYTHON="
-> set "CONDA_DOCKER_DEFAULT_CHANNEL="
-```
-
-````
-
-> The `conda` repository will be mounted to `/opt/conda-src`, so all changes done in your editor will be reflected live while the Docker container is running.
+For Linux development, the repository includes a
+[Dev Container](https://containers.dev/) configuration in `.devcontainer/`. Open
+the repository with a Dev Containers-aware editor (for example, VS Code) to get a
+reproducible environment that is not affected by your host's conda configuration.
+The container installs conda-workspaces and creates the `default`, `s3`, and `lint`
+environments when it is created.
 
 ## Static Code Analysis
 
@@ -351,18 +187,19 @@ what you need to get started below:
 
 ```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
-# reuse the development environment created above
-$ source ./dev/start
-# or start the Docker image in interactive mode
-# $ docker compose run interactive
+# create the `lint` environment, which provides pre-commit
+$ cd "$CONDA_PROJECT_ROOT"
+$ conda workspace install -e lint
 
 # install pre-commit hooks for conda
-$ cd "$CONDA_PROJECT_ROOT"
-$ pre-commit install
+$ conda workspace run -e lint -- pre-commit install
 
 # manually running pre-commit on current changes
 # note: by default pre-commit only runs on staged files
-$ pre-commit run
+$ conda workspace run -e lint -- pre-commit run
+
+# or run it on all files using the `lint` task
+$ conda task run lint
 
 # automatically running pre-commit during commit
 $ git commit
@@ -370,18 +207,19 @@ $ git commit
 
 ```{tab-item} cmd.exe (Windows)
 ```batch
-:: reuse the development environment created above
-> .\dev\start.bat
-:: or start the Docker image in interactive mode
-:: > docker compose run interactive
+:: create the `lint` environment, which provides pre-commit
+> cd "%CONDA_PROJECT_ROOT%"
+> conda workspace install -e lint
 
 :: install pre-commit hooks for conda
-> cd "%CONDA_PROJECT_ROOT%"
-> pre-commit install
+> conda workspace run -e lint -- pre-commit install
 
 :: manually running pre-commit on current changes
 :: note: by default pre-commit only runs on staged files
-> pre-commit run
+> conda workspace run -e lint -- pre-commit run
+
+:: or run it on all files using the `lint` task
+> conda task run lint
 
 :: automatically running pre-commit during commit
 > git commit
@@ -412,36 +250,27 @@ but generally speaking all you need is the following:
 
 ```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
-# reuse the development environment created above
-$ source ./dev/start
-# or start the Docker image in interactive mode
-# $ docker compose run interactive
+# run conda's unit tests using the workspace task
+$ conda task run unit
 
-# run conda's unit tests using GNU make
-$ make unit
-
-# or alternately with pytest
-$ pytest --cov -m "not integration" conda tests
+# or alternately with pytest in the default environment
+$ conda workspace run -- pytest --cov -m "not integration" conda tests
 
 # or you can use pytest to focus on one specific test
-$ pytest --cov tests/test_create.py -k create_install_update_remove_smoketest
+$ conda workspace run -- pytest --cov tests/test_create.py -k test_create_install_update_remove
 ```
 
 ````
 
 If you are not measuring code coverage, `pytest` can be run without the `--cov`
-option. The `docker compose` tests pass `--cov`.
+option.
 
 See {doc}`writing-tests/benchmarks` for running and adding performance benchmarks,
 exporting measurements, and reviewing Bencher results.
 
-Note: Some integration tests require you build a package with conda-build beforehand.
-This is taking care of if you run `docker compose run integration-tests`, but you need
-to do it manually in other modes:
+Note: Some integration tests require you build a package with conda-build beforehand:
 
 ```bash
 $ conda install conda-build
 $ conda-build tests/data/recipes/activate_deactivate_package tests/data/recipes/pre_link_messages_package
 ```
-
-Check `dev/linux/integration.sh` and `dev\windows\integration.bat` for more details.
