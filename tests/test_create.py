@@ -1887,6 +1887,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     pip_cli: PipCLIFixture,
+    temp_package_cache: Path,
 ):
     if "conda-forge" in context.channels:
         pytest.skip("This test is too slow with conda-forge as default channel.")
