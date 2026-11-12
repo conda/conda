@@ -34,6 +34,7 @@ from ..base.constants import APP_NAME, DEFAULT_CONSOLE_REPORTER_BACKEND
 from ..base.context import context
 from ..common.io import dashlist
 from ..common.iterators import groupby_to_dict
+from ..deprecations import deprecated
 from ..exceptions import (
     AmbiguousEnvironmentSpecPlugin,
     CondaValueError,
@@ -123,6 +124,18 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 BUILTIN_PLUGIN_PREFIX = "conda.plugins."
+
+_DEPRECATED_COMMAND_HOOK_TARGETS = frozenset(
+    {
+        "run",
+        "activate",
+        "deactivate",
+        "reactivate",
+        "hook",
+        "mock_activate",
+        "mock_deactivate",
+    }
+)
 
 
 @dataclass
@@ -610,6 +623,24 @@ class CondaPluginManager(pluggy.PluginManager):
                 f"Multiple conda plugins are registered via the `{specname}` hook. "
                 f"Please make sure that you don't have any incompatible plugins installed."
             )
+
+        if name in {"pre_commands", "post_commands"}:
+            for plugin in plugins:
+                # Older anaconda-anon-usage releases only implement __contains__.
+                if commands := {
+                    command
+                    for command in _DEPRECATED_COMMAND_HOOK_TARGETS
+                    if command in plugin.run_for
+                }:
+                    deprecated.topic(
+                        "27.3",
+                        "27.9",
+                        topic=(
+                            f"Support for `{specname}` hook {plugin.name!r} on built-in "
+                            f"or shell commands {', '.join(sorted(commands))} in `run_for`"
+                        ),
+                        addendum="Hooks for plugin subcommands with these names remain supported.",
+                    )
 
         return sorted(plugins, key=lambda plugin: plugin.name)
 
