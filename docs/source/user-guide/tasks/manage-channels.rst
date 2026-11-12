@@ -161,3 +161,28 @@ we recommend the following approach:
       channels that supply packages not available as conda packages.
 
 .. _`default channel`: https://repo.anaconda.com/pkgs/
+
+Channel relations
+-----------------
+
+A channel can declare a higher-priority ``base`` channel and a lower-priority
+``overrides`` channel in its repodata, as specified by
+`CEP 42 <https://conda.org/learn/ceps/cep-0042>`_. The classic solver and channel
+searches follow these relative references recursively and combines declarations from the requested platform
+subdirectories and ``noarch``. Explicit channel ordering takes precedence when
+both channels are listed by the user. Cycles in the resulting priority order
+produce an error.
+
+Related channels use the normal channel authentication, cache, and offline
+settings, and must satisfy ``allowlist_channels`` and ``denylist_channels``.
+Conda does not copy a declaring channel's path token to a related channel.
+Configure authentication for each channel through the usual channel settings.
+
+``channel_relations_max_depth`` limits discovery to 10 levels by default.
+Set it to 0 to disable discovery::
+
+    conda config --set channel_relations_max_depth 0
+
+Keep the explicitly configured channels when exporting an environment or
+creating a lockfile. The resolved channels can change as their metadata changes.
+Installing locked packages continues to use each package's recorded channel.
