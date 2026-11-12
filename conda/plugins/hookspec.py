@@ -31,6 +31,7 @@ if TYPE_CHECKING:
         CondaPostCommand,
         CondaPostSolve,
         CondaPostTransactionAction,
+        CondaPreChannelFetch,
         CondaPreCommand,
         CondaPrefixDataLoader,
         CondaPreSolve,
@@ -141,6 +142,41 @@ class CondaSpecs:
 
         Returns:
             An iterable of virtual package entries.
+        """
+        yield from ()
+
+    @_hookspec
+    def conda_pre_channel_fetches(self) -> Iterable[CondaPreChannelFetch]:
+        """Register checks before shared channel metadata acquisition.
+
+        The shared channel relation resolver invokes each action after native
+        channel policy validation and before reading JSON or shard metadata.
+        This includes explicit heads, discovered channels, and cached metadata.
+        An action may raise to stop acquisition. It must not change channel
+        selection or fetch the channel's repodata itself.
+
+        **Example:**
+
+        .. code-block:: python
+
+            from conda.plugins import hookimpl
+            from conda.plugins.types import CondaPreChannelFetch
+
+
+            def check_repository(channel):
+                repository_policy.require_access(channel.base_url)
+
+
+            @hookimpl
+            def conda_pre_channel_fetches():
+                yield CondaPreChannelFetch(
+                    name="repository-policy",
+                    action=check_repository,
+                )
+
+        This hook does not replace metadata transport or run for direct package
+        downloads. Providers retain control of their own authentication and
+        consent policies, including offline behavior.
         """
         yield from ()
 
