@@ -1,9 +1,8 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
 """
-Record locking to manage potential repodata / repodata metadata file contention
-between conda processes. Try to acquire a lock on a single byte in the metadat
-file; modify both files; then release the lock.
+Record locking for files shared between conda processes. Lock a single byte in a
+persistent file while modifying related files.
 """
 
 import time
@@ -83,8 +82,11 @@ except ImportError:
                     raise LockError("Failed to release lock.")
 
 
-def lock(fd, *, lock_attempts=LOCK_ATTEMPTS):
-    if not context.no_lock:
+def lock(fd, *, lock_attempts=LOCK_ATTEMPTS, required=False):
+    """Acquire a record lock, bypassing the index-cache opt-out when required."""
+    if required and not locking_supported():
+        raise LockError("File locking is not available.")
+    if required or not context.no_lock:
         # locking now default for all repodata operations
         return _lock_impl(fd, lock_attempts)
     return _lock_noop(fd, lock_attempts)
