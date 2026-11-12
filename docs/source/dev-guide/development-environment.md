@@ -91,7 +91,7 @@ Choose conda installer:
 Enter choice [1]:
 ```
 
-You can also specify the installer directly using the `-i` or `--installer` flag:
+You can also specify the installer directly. Bash accepts `-i` or `--installer`. `dev\start.bat` accepts `/I`.
 
 ````{tab-set}
 
@@ -107,18 +107,21 @@ $ source ./dev/start -i miniforge
 ```{tab-item} cmd.exe (Windows)
 ```batch
 :: Use miniconda (default behavior)
-> .\dev\start.bat -i miniconda
+> .\dev\start.bat /I miniconda
 
 :: Use miniforge
-> .\dev\start.bat -i miniforge
+> .\dev\start.bat /I miniforge
 ```
 
 ````
 
 ### Additional Options
 
-The `dev/start` script supports several other options for customizing your development environment:
+`dev/start` and `dev\start.bat` use different flags. Bash accepts `-` options, including `-h` and `--help`. The Windows script accepts `/` options only. Its help flag is `/?`. `-h`, `/h`, and `--help` are unknown options there.
 
+````{tab-set}
+
+```{tab-item} Bash (macOS, Linux, Windows)
 ```bash
 # See all available options
 $ source ./dev/start --help
@@ -132,6 +135,23 @@ $ source ./dev/start -u
 # Preview what would be done without making changes
 $ source ./dev/start -n
 ```
+
+```{tab-item} cmd.exe (Windows)
+```batch
+:: See all available options
+> .\dev\start.bat /?
+
+:: Use a specific Python version
+> .\dev\start.bat /P 3.11
+
+:: Force update packages
+> .\dev\start.bat /U
+
+:: Preview what would be done without making changes
+> .\dev\start.bat /N
+```
+
+````
 
 ### Switching Between Installers
 
@@ -151,10 +171,10 @@ $ source ./dev/start -i miniforge
 ```{tab-item} cmd.exe (Windows)
 ```batch
 :: Set up and activate miniconda-based environment
-> .\dev\start.bat -i miniconda
+> .\dev\start.bat /I miniconda
 
 :: Later, set up and activate miniforge-based environment
-> .\dev\start.bat -i miniforge
+> .\dev\start.bat /I miniforge
 ```
 
 ````
