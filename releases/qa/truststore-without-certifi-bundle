@@ -1,0 +1,26 @@
+### Title
+Native trust without a certifi CA bundle
+
+### Why
+Conda should use system trust when configured with `ssl_verify: truststore`, even when the certifi CA bundle is absent. Explicit CA settings must replace native roots for the request.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+A disposable conda environment with Requests 2.32.5 or newer and a working system CA store. A local HTTPS server with a private CA, an unrelated CA bundle, and an HTTPS proxy with a trusted certificate for proxy checks.
+
+### Steps
+1. Set `CONDA_SSL_VERIFY=truststore`, temporarily move the certifi CA bundle aside in the disposable environment, and fetch HTTPS channel metadata.
+2. Repeat through the HTTPS proxy.
+3. Use the private CA through `CONDA_SSL_VERIFY`, `REQUESTS_CA_BUNDLE`, and `CURL_CA_BUNDLE` in separate runs against the private HTTPS server.
+4. Repeat with the unrelated CA bundle, including after a successful request in the same session.
+5. Restore the bundle and confirm ordinary `ssl_verify: true` still uses certifi.
+
+### Pass criteria
+System-trusted HTTPS succeeds without certifi when truststore is selected. The private server succeeds only with its trusted CA. An explicit unrelated CA fails certificate verification, including for an origin trusted by the operating system. Direct and proxied requests retain these behaviors.
+
+### Out of scope / notes
+Standalone's choice of native trust by default is a separate change. Automated adapter tests cover missing bundles, custom CA files and directories, environment overrides, connection-pool separation, and client-certificate file validation.
