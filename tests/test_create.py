@@ -1562,7 +1562,13 @@ def test_update_all_updates_pip_pkg(
         }
 
         # updating all updates itsdangerous from a conda channel
-        conda_cli("update", f"--prefix={prefix}", "--all", "--yes")
+        conda_cli(
+            "update",
+            f"--prefix={prefix}",
+            "--all",
+            "--repodata-fn=repodata.json",
+            "--yes",
+        )
         assert (prec := package_is_installed(prefix, "itsdangerous>=2"))
         assert prec.subdir != "pypi"
         assert package_is_installed(prefix, "pytz>=2023")
@@ -2099,6 +2105,7 @@ def test_conda_pip_interop_conda_editable_package(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     pip_cli: PipCLIFixture,
+    temp_package_cache: Path,
 ):
     request.applymarker(
         pytest.mark.xfail(
