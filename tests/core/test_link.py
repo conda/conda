@@ -1,8 +1,13 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
+from argparse import Namespace
+from typing import TYPE_CHECKING
 
 import pytest
 
+from conda.auxlib.ish import dals
 from conda.base.context import context, reset_context
 from conda.common.compat import on_win
 from conda.common.path import BIN_DIRECTORY
@@ -11,7 +16,15 @@ from conda.core.link import PrefixSetup, UnlinkLinkTransaction
 from conda.core.path_actions import RemoveLinkedPackageRecordAction
 from conda.core.prefix_data import PrefixData
 from conda.exceptions import LinkError, LinkScriptError, RemoveError
+from conda.models.enums import LinkType
 from conda.models.records import PackageRecord, PrefixRecord
+
+from ..test_package_cache_policies import load_condarc
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
 
 def test_make_unlink_actions_uses_prefix_record_json_filename_for_conda_meta():
@@ -419,3 +432,259 @@ def test_unlinking_conda_dependency_is_still_blocked(tmp_path, monkeypatch):
 
     assert len(errors) == 1
     assert "missing-dep" in str(errors[0])
+
+
+@pytest.mark.parametrize(
+    "always_copy,always_softlink,allow_softlinks,hardlink_ok,softlink_ok,expected",
+    [
+        # always_copy and always_softlink win without testing the filesystem
+        pytest.param(True, False, True, True, True, LinkType.copy, id="always-copy"),
+        pytest.param(
+            False, True, False, False, False, LinkType.softlink, id="always-softlink"
+        ),
+        # otherwise hardlinks are preferred, then softlinks if allowed, then copies
+        pytest.param(False, False, False, True, True, LinkType.hardlink, id="hardlink"),
+        pytest.param(
+            False, False, True, False, True, LinkType.softlink, id="allowed-softlink"
+        ),
+        pytest.param(
+            False, False, False, False, True, LinkType.copy, id="softlink-not-allowed"
+        ),
+        pytest.param(
+            False, False, True, False, False, LinkType.copy, id="softlink-unsupported"
+        ),
+    ],
+)
+def test_determine_link_type(
+    monkeypatch: pytest.MonkeyPatch,
+    mocker: MockerFixture,
+    tmp_path: Path,
+    always_copy: bool,
+    always_softlink: bool,
+    allow_softlinks: bool,
+    hardlink_ok: bool,
+    softlink_ok: bool,
+    expected: LinkType,
+):
+    """The link type comes from the global context, whichever cache the package is in."""
+    monkeypatch.setenv("CONDA_ALWAYS_COPY", str(always_copy))
+    monkeypatch.setenv("CONDA_ALWAYS_SOFTLINK", str(always_softlink))
+    monkeypatch.setenv("CONDA_ALLOW_SOFTLINKS", str(allow_softlinks))
+    reset_context()
+    mocker.patch.object(link, "hardlink_supported", return_value=hardlink_ok)
+    mocker.patch.object(link, "softlink_supported", return_value=softlink_ok)
+    extracted_package_dir = tmp_path / "pkgs" / "pkg-1.0-0"
+    target_prefix = tmp_path / "prefix"
+
+    link_type = link.determine_link_type(str(extracted_package_dir), str(target_prefix))
+
+    assert link_type == expected
+
+
+@pytest.mark.parametrize(
+    "allow_softlinks,always_softlink,always_copy,hardlinks_supported,settings,expected",
+    [
+        pytest.param(
+            "true", "true", "false", True, "", LinkType.softlink, id="cache-always"
+        ),
+        pytest.param(
+            "true",
+            "none",
+            "none",
+            False,
+            "",
+            LinkType.softlink,
+            id="cache-allow-hardlink-fails",
+        ),
+        pytest.param(
+            "true",
+            "false",
+            "false",
+            True,
+            "",
+            LinkType.hardlink,
+            id="cache-allow-hardlink-works",
+        ),
+        pytest.param(
+            "false", "false", "false", False, "", LinkType.copy, id="none-copies"
+        ),
+        # always_copy wins over hardlinks and allowed softlinks
+        pytest.param(
+            "false",
+            "false",
+            "true",
+            True,
+            "",
+            LinkType.copy,
+            id="cache-always-copy-hardlink-works",
+        ),
+        pytest.param(
+            "true",
+            "false",
+            "true",
+            False,
+            "",
+            LinkType.copy,
+            id="cache-always-copy-softlink-allowed",
+        ),
+        # more specific policy (defined on the pkgs_dir) overrides the global default
+        pytest.param(
+            "false",
+            "false",
+            "false",
+            False,
+            "allow_softlinks: true",
+            LinkType.copy,
+            id="global-allow-softlink-overriden-by-cache",
+        ),
+        pytest.param(
+            "true",
+            "true",
+            "false",
+            True,
+            "always_copy: true",
+            LinkType.softlink,
+            id="cache-always-softlink-over-global-always",
+        ),
+        pytest.param(
+            "false",
+            "false",
+            "true",
+            True,
+            "always_softlink: true",
+            LinkType.copy,
+            id="cache-always-copy-over-global-always",
+        ),
+        pytest.param(
+            "false",
+            "",
+            "",
+            True,
+            "always_softlink: true",
+            LinkType.hardlink,
+            id="cache-dont-allow-softlink-global-always-softlink",
+        ),
+    ],
+)
+@pytest.mark.usefixtures("reset_conda_context")
+def test_determine_link_type_uses_cache_policy(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    allow_softlinks: str,
+    always_softlink: str,
+    always_copy: str,
+    hardlinks_supported: bool,
+    settings: str,
+    expected: LinkType,
+):
+    """The link type follows the policy of the cache the package is extracted in."""
+    mocker.patch.object(link, "hardlink_supported", return_value=hardlinks_supported)
+    mocker.patch.object(link, "softlink_supported", return_value=True)
+    cache = tmp_path / "pkgs"
+    load_condarc(
+        mocker,
+        dals(
+            f"""
+            pkgs_dirs:
+              - path: {cache}
+                allow_softlinks: {allow_softlinks}
+                always_softlink: {always_softlink}
+                always_copy: {always_copy}
+            """
+        )
+        + settings,
+    )
+
+    link_type = link.determine_link_type(
+        str(cache / "pkg-1.0-0"), str(tmp_path / "prefix")
+    )
+
+    assert link_type == expected
+
+
+@pytest.mark.parametrize(
+    "settings,expected",
+    [
+        pytest.param(
+            "",
+            LinkType.hardlink,
+            id="default",
+        ),
+        pytest.param(
+            "allow_softlinks: true",
+            LinkType.hardlink,
+            id="global-allow-softlink",
+        ),
+        pytest.param(
+            "always_softlink: true",
+            LinkType.softlink,
+            id="global-always-softlink",
+        ),
+        pytest.param(
+            "always_copy: true",
+            LinkType.copy,
+            id="global-always-copy",
+        ),
+        pytest.param(
+            "always_copy: true\nallow_softlink: true",
+            LinkType.copy,
+            id="global-always-copy-allow-softlink",
+        ),
+    ],
+)
+@pytest.mark.usefixtures("reset_conda_context")
+def test_determine_link_type_default_cache_policy(
+    mocker: MockerFixture,
+    tmp_path: Path,
+    settings: str,
+    expected: LinkType,
+):
+    """The link type follows the policy of the cache the package is extracted in."""
+    mocker.patch.object(link, "hardlink_supported", return_value=True)
+    mocker.patch.object(link, "softlink_supported", return_value=True)
+    cache = tmp_path / "pkgs"
+    load_condarc(
+        mocker,
+        dals(
+            f"""
+            pkgs_dirs:
+              - path: {cache}
+            """
+        )
+        + settings,
+    )
+
+    link_type = link.determine_link_type(
+        str(cache / "pkg-1.0-0"), str(tmp_path / "prefix")
+    )
+
+    assert link_type == expected
+
+
+@pytest.mark.usefixtures("reset_conda_context")
+def test_determine_link_type_cli_copy_overrides_cache_policy(
+    mocker: MockerFixture,
+    tmp_path: Path,
+):
+    """An explicit --copy wins over a cache that sets always_copy: false."""
+    mocker.patch.object(link, "hardlink_supported", return_value=True)
+    mocker.patch.object(link, "softlink_supported", return_value=True)
+    cache = tmp_path / "pkgs"
+    load_condarc(
+        mocker,
+        dals(
+            f"""
+            pkgs_dirs:
+              - path: {cache}
+                always_copy: false
+                allow_softlinks: true
+            """
+        ),
+    )
+    context._set_argparse_args(Namespace(copy=True))
+
+    link_type = link.determine_link_type(
+        str(cache / "pkg-1.0-0"), str(tmp_path / "prefix")
+    )
+
+    assert link_type == LinkType.copy
