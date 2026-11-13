@@ -83,7 +83,7 @@ When to use ``conda self``
 --------------------------
 
 ``conda self`` manages the conda installation in your ``base`` environment:
-conda itself, its plugins, and (with ``--all``) the other packages in ``base``.
+conda itself and (with ``--all``) the other packages in ``base``.
 It always operates on ``base``, no matter which environment is active, and it
 also works when ``base`` is protected (see :ref:`frozen-env`).
 
