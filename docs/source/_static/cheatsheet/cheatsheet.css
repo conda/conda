@@ -1,0 +1,194 @@
+/* Print stylesheet for the cheatsheet PDF (rendered with WeasyPrint). */
+
+:root {
+  --green: #43b02a;
+  --text: #2b2b2b;
+  --tip: #4a4a4f;
+  --band: #f5f6f8;
+  --rule: #c9cacd;
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-weight: 400;
+  src: url("fonts/Poppins-Regular.ttf");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-weight: 600;
+  src: url("fonts/Poppins-SemiBold.ttf");
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-weight: 700;
+  src: url("fonts/Poppins-Bold.ttf");
+}
+
+@page {
+  size: Letter;
+  margin: 0.62in 0 0.55in 0;
+
+  @top-center {
+    content: element(header);
+    width: 100%;
+  }
+}
+
+@page last {
+
+  @bottom-center {
+    content: element(footer);
+    width: 100%;
+  }
+}
+
+html {
+  font-family: "Poppins", sans-serif;
+  font-size: 8.3pt;
+  color: var(--text);
+}
+
+body {
+  margin: 0;
+}
+
+.band {
+  position: running(header);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  height: 0.62in;
+  padding: 0 0.6in 0 0.6in;
+  background: var(--band);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  color: var(--green);
+}
+
+.logo {
+  height: 0.34in;
+  width: auto;
+  display: block;
+}
+
+.wordmark {
+  margin-left: 0.06in;
+  font-size: 21pt;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: 19pt;
+  font-weight: 600;
+  text-align: right;
+}
+
+.title small {
+  display: block;
+  font-size: 7pt;
+  font-weight: 400;
+  color: var(--tip);
+}
+
+main {
+  padding: 0.1in 0.6in 0 0.6in;
+}
+
+.last {
+  page: last;
+}
+
+.footer {
+  position: running(footer);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 0.55in;
+  padding: 0 0.6in;
+  background: #000;
+  color: #fff;
+  font-size: 7.5pt;
+}
+
+section {
+  break-inside: avoid;
+  margin-bottom: 0.14in;
+}
+
+.last {
+  break-before: page;
+}
+
+h2 {
+  margin: 0.08in 0 0.04in;
+  font-size: 15pt;
+  font-weight: 600;
+  text-align: center;
+}
+
+.tip {
+  margin: 0 0 0.14in;
+  font-size: 8.6pt;
+  font-weight: 600;
+  text-align: center;
+  color: var(--tip);
+}
+
+.tip.spacer {
+  height: 0.14in;
+}
+
+.bulb svg {
+  width: 0.13in;
+  height: 0.13in;
+  margin-right: 0.07in;
+  vertical-align: -0.02in;
+  fill: #4a4a4f;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1.2pt solid var(--rule);
+}
+
+tr {
+  break-inside: avoid;
+  border-bottom: 1.2pt solid var(--rule);
+}
+
+tr:nth-child(even) {
+  background: var(--band);
+}
+
+td {
+  padding: 0.06in 0.12in;
+  vertical-align: middle;
+}
+
+td.desc {
+  width: 42%;
+}
+
+td.cmd {
+  width: 58%;
+}
+
+td.cmd div + div {
+  margin-top: 0.05in;
+}
+
+.ph {
+  color: var(--green);
+}

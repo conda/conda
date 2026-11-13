@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>conda {{ title }}</title>
+</head>
+<body>
+  <header class="band">
+    <div class="brand">
+      {% if logo_uri %}<img class="logo" src="{{ logo_uri }}" alt="">{% endif %}
+      <span class="wordmark">conda</span>
+    </div>
+    <div class="title">{{ title }}<small>conda {{ version }}</small></div>
+  </header>
+  <main>
+  {% for section in sections %}
+    {% if section.page_break_before %}</div><div class="last">{% elif loop.first %}<div class="first">{% endif %}
+    <section>
+      <h2>{{ section.title }}</h2>
+      {% if section.tip %}
+      <p class="tip"><span class="bulb">{{ bulb_svg }}</span>Tip: {{ section.tip }}</p>
+      {% else %}
+      <p class="tip spacer"></p>
+      {% endif %}
+      <table>
+      {% for row in section.rows %}
+        <tr>
+          <td class="desc">{{ row.description }}</td>
+          <td class="cmd">{% for command in row.commands %}<div>{{ command }}</div>{% endfor %}</td>
+        </tr>
+      {% endfor %}
+      </table>
+    </section>
+  {% endfor %}
+    </div>
+  </main>
+  <footer class="footer">
+    {% for link in footer %}
+    <span><b>{{ link.label }}:</b> {{ link.text }}</span>
+    {% endfor %}
+  </footer>
+</body>
+</html>
