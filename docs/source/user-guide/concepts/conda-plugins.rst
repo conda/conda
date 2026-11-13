@@ -24,8 +24,8 @@ the running conda installation. See :doc:`the command reference
 
 .. tip::
 
-   For plugins in the ``base`` environment, ``conda self install``,
-   ``conda self update``, and ``conda self remove`` are the safer path: they
+   For plugins in the ``base`` environment, ``conda plugins install``,
+   ``conda plugins update``, and ``conda plugins remove`` are the safer path: they
    always target ``base`` and also work when ``base`` is protected
    (see :ref:`frozen-env`). See the
    `conda-self documentation <https://conda.github.io/conda-self/>`_
