@@ -143,15 +143,26 @@ No matter which environment you run this command in, conda displays its current 
    your terminal window and verify that you are logged
    into the same user account that you used to install conda.
 
-First, change your current environment back to the default one::
+Update conda to the latest version::
 
-   conda activate
+   conda self update
 
-Then update conda to the latest version::
+``conda self`` always updates the conda installation in your ``base`` environment,
+no matter which environment is active. Conda compares your version to the latest
+available version and then displays what is available to install.
 
-   conda update conda
+.. note::
+   If ``conda self`` is not available (for example, on an older conda installation),
+   first change your current environment back to the default one::
 
-Conda compares your version to the latest available version and then displays what is available to install.
+      conda activate
+
+   Then update conda to the latest version::
+
+      conda update conda
+
+For more details, see :doc:`tasks/manage-conda` and the
+`conda-self documentation <https://conda.github.io/conda-self/>`_.
 
 .. tip::
    We recommend that you always keep conda updated to the latest version.

@@ -300,6 +300,16 @@ this is really not recommended and should only be done by advanced users
 who are aware of the risks and would have the knowledge to fix potential
 complications derived from that operation.
 
+.. tip::
+
+   The supported way to modify a protected ``base`` environment is
+   ``conda self`` (for example, ``conda self update`` or
+   ``conda self install``), which passes ``--override-frozen`` to conda
+   for you. Base protection is managed with
+   ``conda doctor -n base base-protection``. See the
+   `conda-self documentation <https://conda.github.io/conda-self/>`_
+   for details.
+
 
 Cloning an environment
 ======================
@@ -350,7 +360,7 @@ Multi-platform lockfiles
 
   .. code::
 
-     conda install --name base "conda>=26.5"
+     conda self update
 
 A lockfile contains the exact packages, versions, builds, and
 channels required to recreate an environment exactly. Because

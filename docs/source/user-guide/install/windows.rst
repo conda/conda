@@ -74,7 +74,9 @@ Updating conda
 
 #. Open Command Prompt or PowerShell from the start menu.
 
-#. Run ``conda update conda``.
+#. Run ``conda self update``.
+
+   If ``conda self`` is not available, run ``conda update conda`` instead.
 
 
 Uninstalling conda
