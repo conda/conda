@@ -78,7 +78,7 @@ jobs:
           TEMPLATES_SUMMARY: ${{ steps.templates.outputs.summary }}
           GITHUB_TRIGGERING_ACTOR: ${{ github.triggering_actor }}
 
-      - uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1  # zizmor: ignore[superfluous-actions] Handles fork push and PR creation.
+      - uses: peter-evans/create-pull-request@15733dbdfeedb4f7fdb73d13c6f5ac83b710fab8 # v8.1.1  # zizmor: ignore[superfluous-actions] Handles fork push and PR creation.
         with:
           push-to-fork: ${{ env.FORK }}
           token: ${{ secrets.SYNC_TOKEN }}  # zizmor: ignore[secrets-outside-env] Cross-repo sync token; environment policy unchanged.
