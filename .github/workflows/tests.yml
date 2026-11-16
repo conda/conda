@@ -327,13 +327,18 @@ jobs:
           apt_install_shells() {
             sudo timeout --kill-after=30 300 apt-get update -o Acquire::Retries=3 &&
               sudo timeout --kill-after=30 300 apt-get install -y \
-                --no-install-recommends -o Acquire::Retries=3 ash csh fish tcsh zsh
+                --no-install-recommends -o Acquire::Retries=3 csh fish tcsh zsh
           }
           apt_install_shells || {
             sudo sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' \
               /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
             apt_install_shells
           }
+          # The `ash` package (a compatibility wrapper for dash) was dropped in
+          # Ubuntu 26.04. dash is essential, so provide /usr/bin/ash ourselves.
+          if ! command -v ash > /dev/null; then
+            sudo ln -s dash /usr/bin/ash
+          fi
           # xonsh is installed with conda in step above
           # Initialize all shells
           python -m conda init --all
