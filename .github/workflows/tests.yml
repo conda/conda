@@ -327,7 +327,7 @@ jobs:
           apt_install_shells() {
             sudo timeout --kill-after=30 300 apt-get update -o Acquire::Retries=3 &&
               sudo timeout --kill-after=30 300 apt-get install -y \
-                --no-install-recommends -o Acquire::Retries=3 ash csh fish tcsh zsh
+                --no-install-recommends -o Acquire::Retries=3 csh fish tcsh zsh
           }
           apt_install_shells || {
             sudo sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' \
