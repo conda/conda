@@ -123,10 +123,7 @@ def test_highlight(cheatsheet, data, command, expected):
 def test_render_pdf_has_two_pages(cheatsheet, tmp_path):
     pytest.importorskip("weasyprint")
     target = tmp_path / "cheatsheet.pdf"
-    try:
-        pages = cheatsheet.render_pdf(target, "0.0.0")
-    except OSError as exc:
-        pytest.skip(f"WeasyPrint native libraries unavailable: {exc}")
+    pages = cheatsheet.render_pdf(target, "0.0.0")
     assert target.read_bytes().startswith(b"%PDF")
     assert pages == 2
 

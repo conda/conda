@@ -18,8 +18,12 @@ The ``:cheatsheet-pdf:`` role links the generated PDF using the same markup
 as ``:download:`` (including the theme's download icon), but without
 requiring the file to exist when the page is read.
 
-If WeasyPrint (or its native libraries) is unavailable, a warning is emitted
-and the rest of the build continues.
+WeasyPrint (and its native libraries) is a docs build dependency; if it is
+unavailable or rendering fails, the docs build fails.
+
+The PDF-only assets (template, stylesheet, fonts, logo) live in
+``docs/build-assets/cheatsheet`` rather than under ``_static`` so they are not
+published alongside the site.
 """
 
 from __future__ import annotations
@@ -77,11 +81,11 @@ _HERE = Path(__file__).resolve().parent
 SOURCE_DIR = _HERE.parent
 DATA_DIR = SOURCE_DIR / "user-guide" / "cheatsheets"
 DATA_FILE = DATA_DIR / "cheatsheet.yml"
-ASSETS_DIR = SOURCE_DIR / "_static" / "cheatsheet"
+ASSETS_DIR = SOURCE_DIR.parent / "build-assets" / "cheatsheet"
 # WeasyPrint ignores the SVG masks used by ``_static/img/conda_logo.svg``, so
 # the PDF embeds a PNG render of it instead. To regenerate it (needs resvg-py)::
 #
-#     resvg_py.svg_to_bytes(svg_path="_static/img/conda_logo.svg", width=360)
+#     resvg_py.svg_to_bytes(svg_path="source/_static/img/conda_logo.svg", width=360)
 LOGO_FILE = ASSETS_DIR / "conda_logo.png"
 
 BULB_SVG = (
@@ -151,10 +155,8 @@ def build_context(data: dict[str, Any], version: str) -> dict[str, Any]:
             for description, commands in read_rows(DATA_DIR / section["csv"])
         ]
         sections.append({**section, "rows": rows})
-    logo_uri = ""
-    if LOGO_FILE.exists():
-        encoded = base64.b64encode(LOGO_FILE.read_bytes()).decode("ascii")
-        logo_uri = f"data:image/png;base64,{encoded}"
+    encoded = base64.b64encode(LOGO_FILE.read_bytes()).decode("ascii")
+    logo_uri = f"data:image/png;base64,{encoded}"
     return {
         "title": data["title"],
         "version": version,
@@ -262,22 +264,7 @@ def generate_pdf(app: Sphinx, exception: Exception | None) -> None:
     outdir = Path(app.outdir)
     copy_archived_pdfs(outdir)
     target = outdir / PDF_STATIC_PATH
-    try:
-        render_pdf(target, str(app.config.release))
-    except (ImportError, OSError) as exc:
-        log.warning(
-            "Skipping cheatsheet PDF, WeasyPrint is unavailable: %s",
-            exc,
-            type="conda_cheatsheet",
-        )
-        return
-    except Exception as exc:
-        log.warning(
-            "Could not generate the cheatsheet PDF: %s",
-            exc,
-            type="conda_cheatsheet",
-        )
-        return
+    render_pdf(target, str(app.config.release))
     legacy = outdir / LEGACY_PDF_PATH
     legacy.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(target, legacy)
