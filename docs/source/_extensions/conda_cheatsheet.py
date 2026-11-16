@@ -43,6 +43,8 @@ from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup
 from ruamel.yaml import YAML
 from sphinx.util import logging
+from weasyprint import CSS, HTML
+from weasyprint.text.fonts import FontConfiguration
 
 if TYPE_CHECKING:
     from typing import Any
@@ -180,9 +182,6 @@ def render_pdf(target: Path, version: str, data_file: Path = DATA_FILE) -> int:
     Raises:
         ImportError, OSError: If WeasyPrint or its native libraries are missing.
     """
-    from weasyprint import CSS, HTML
-    from weasyprint.text.fonts import FontConfiguration
-
     html = render_html(load_data(data_file), version)
     font_config = FontConfiguration()
     document = HTML(string=html, base_url=str(ASSETS_DIR) + "/").render(
