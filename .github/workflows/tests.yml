@@ -334,11 +334,6 @@ jobs:
               /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
             apt_install_shells
           }
-          # The `ash` package (a compatibility wrapper for dash) was dropped in
-          # Ubuntu 26.04. dash is essential, so provide /usr/bin/ash ourselves.
-          if ! command -v ash > /dev/null; then
-            sudo ln -s dash /usr/bin/ash
-          fi
           # xonsh is installed with conda in step above
           # Initialize all shells
           python -m conda init --all
