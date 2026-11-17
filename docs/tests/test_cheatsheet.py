@@ -166,6 +166,50 @@ def test_copy_archived_pdfs(cheatsheet, tmp_path):
         assert published.read_bytes() == (cheatsheet.DATA_DIR / name).read_bytes()
 
 
+def fake_app(mocker, outdir, builder="html"):
+    app = mocker.Mock()
+    app.builder.name = builder
+    app.outdir = str(outdir)
+    app.config.release = "0.0.0"
+    return app
+
+
+def test_generate_pdf_publishes_latest_and_legacy_copies(cheatsheet, tmp_path, mocker):
+    mocker.patch.object(
+        cheatsheet,
+        "render_pdf",
+        side_effect=lambda target, version: (
+            target.parent.mkdir(parents=True, exist_ok=True),
+            target.write_bytes(b"%PDF-fake"),
+        ),
+    )
+    cheatsheet.generate_pdf(fake_app(mocker, tmp_path), None)
+
+    static = tmp_path / cheatsheet.PDF_STATIC_PATH
+    latest = tmp_path / "user-guide" / "conda-cheatsheet.pdf"
+    legacy = tmp_path / cheatsheet.LEGACY_PDF_PATH
+    assert static.read_bytes() == b"%PDF-fake"
+    assert latest.read_bytes() == static.read_bytes()
+    assert legacy.read_bytes() == static.read_bytes()
+
+
+@pytest.mark.parametrize(
+    "builder,exception", [("linkcheck", None), ("html", OSError())]
+)
+def test_generate_pdf_skips_other_builds(
+    cheatsheet, tmp_path, mocker, builder, exception
+):
+    render = mocker.patch.object(cheatsheet, "render_pdf")
+    cheatsheet.generate_pdf(fake_app(mocker, tmp_path, builder), exception)
+    render.assert_not_called()
+    assert not any(tmp_path.iterdir())
+
+
+def test_latest_pdf_is_not_a_committed_symlink():
+    assert not (DOCS_SOURCE / "user-guide" / "conda-cheatsheet.pdf").exists()
+    assert not (DOCS_SOURCE / "user-guide" / "conda-cheatsheet.pdf").is_symlink()
+
+
 def test_pdf_role_matches_download_markup(cheatsheet, tmp_path):
     from sphinx.application import Sphinx
 

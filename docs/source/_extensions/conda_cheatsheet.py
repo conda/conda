@@ -5,7 +5,8 @@
 The PDF is rendered with WeasyPrint from the same CSV files that feed the
 tables on ``user-guide/cheatsheet.rst``, plus ``cheatsheets/cheatsheet.yml``
 for section order, tips and footer links.  It is written to
-``<outdir>/_static/conda-cheatsheet.pdf`` after the HTML build.
+``<outdir>/_static/conda-cheatsheet.pdf`` after the HTML build, and copied to
+``<outdir>/user-guide/conda-cheatsheet.pdf`` as a stable "latest" URL.
 
 The PDF used to be a committed file linked with ``:download:`` from
 ``user-guide/cheatsheet.rst``, which Sphinx publishes at
@@ -77,7 +78,9 @@ def legacy_download_path(source_path: str) -> Path:
 
 
 # The current cheatsheet used to be the symlink ``user-guide/conda-cheatsheet.pdf``.
-LEGACY_PDF_PATH = legacy_download_path(f"user-guide/{PDF_NAME}")
+# That path is now a build-time copy of the generated PDF (always the newest one).
+LATEST_PDF_PATH = Path("user-guide") / PDF_NAME
+LEGACY_PDF_PATH = legacy_download_path(LATEST_PDF_PATH.as_posix())
 
 _HERE = Path(__file__).resolve().parent
 SOURCE_DIR = _HERE.parent
@@ -256,6 +259,14 @@ def copy_archived_pdfs(outdir: Path) -> None:
         shutil.copyfile(source, target)
 
 
+def publish_copies(target: Path, outdir: Path) -> None:
+    """Copy the generated PDF to its stable "latest" and legacy URLs."""
+    for relative in (LATEST_PDF_PATH, LEGACY_PDF_PATH):
+        copy = outdir / relative
+        copy.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(target, copy)
+
+
 def generate_pdf(app: Sphinx, exception: Exception | None) -> None:
     """``build-finished`` hook: write the PDF for the ``html`` builder only."""
     if exception is not None or app.builder.name != "html":
@@ -264,9 +275,7 @@ def generate_pdf(app: Sphinx, exception: Exception | None) -> None:
     copy_archived_pdfs(outdir)
     target = outdir / PDF_STATIC_PATH
     render_pdf(target, str(app.config.release))
-    legacy = outdir / LEGACY_PDF_PATH
-    legacy.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(target, legacy)
+    publish_copies(target, outdir)
     log.info("Generated cheatsheet PDF: %s", target)
 
 
