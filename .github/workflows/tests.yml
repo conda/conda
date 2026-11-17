@@ -568,17 +568,16 @@ jobs:
         with:
           condarc-file: .github/condarc-conda-forge
           miniforge-version: latest
+          # docs/environment.yml holds both the docs build and docs test
+          # dependencies so everything lives in a single (activated) environment
+          activate-environment: docs
+          environment-file: docs/environment.yml
           run-post: false  # skip post cleanup
-        timeout-minutes: 10
-
-      - name: Conda Install
-        # docs/environment.yml holds both the docs build and docs test
-        # dependencies so everything lives in a single environment
-        run: conda env update --name base --file docs/environment.yml
         timeout-minutes: 15
 
       - name: Conda Info
-        run: python -m conda info --verbose
+        # view docs env info (not base)
+        run: conda info --verbose
 
       - name: Conda Config
         run: conda config --show-sources
