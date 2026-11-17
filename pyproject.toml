@@ -194,7 +194,7 @@ norecursedirs = [
   "tests/data/*",
   "tests/integration/*",
   "tests/plugins/data/*",
-  "docs/source",
+  "docs",
   ".git",
 ]
 pythonpath = [
@@ -258,6 +258,9 @@ select = [
 "docs/*" = [
   "ANN",  # flake8-annotations
   "D1",  # pydocstyle
+]
+"docs/tests/*" = [
+  "S101",  # forbid assert
 ]
 "tests/*" = [
   "ANN",  # flake8-annotations

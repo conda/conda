@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-DOCS_SOURCE = Path(__file__).resolve().parents[2] / "docs" / "source"
+DOCS_SOURCE = Path(__file__).resolve().parents[1] / "source"
 EXTENSIONS_DIR = DOCS_SOURCE / "_extensions"
 RST_FILE = DOCS_SOURCE / "user-guide" / "cheatsheet.rst"
 
