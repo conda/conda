@@ -1270,20 +1270,19 @@ def test_clone_env_missing_channel_metadata(
             assert package_is_installed(clone, "small-executable")
 
 
-def test_install_prune_flag(
+def test_remove_includes_dependencies(
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env("small-executable", "dependent") as prefix:
-        assert package_is_installed(prefix, "dependent")
-        assert package_is_installed(prefix, "dependency")
-        assert package_is_installed(prefix, "small-executable")
+    with tmp_env("small-executable", "dependent", "another_dependent") as prefix:
+        assert package_is_installed(prefix, "another_dependent")
         conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
-        assert not package_is_installed(prefix, "dependent")
-        # this should get pruned when dependent is removed
-        assert not package_is_installed(prefix, "dependency")
         assert package_is_installed(prefix, "small-executable")
+        assert not package_is_installed(prefix, "dependent")
+        # make sure all dependencies of "dependent" were removed
+        assert not package_is_installed(prefix, "dependency")
+        assert not package_is_installed(prefix, "another_dependent")
 
 
 def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
