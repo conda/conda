@@ -157,19 +157,26 @@ def temp_package_cache(tmp_path_factory, monkeypatch: MonkeyPatch) -> Iterator[P
     pkgs_dir = tmp_path_factory.mktemp("pkgs")
     monkeypatch.setenv("CONDA_PKGS_DIRS", str(pkgs_dir))
     reset_context()
+    # Cached package- and repodata-level objects still point at the old cache;
+    # clear them so callers cannot observe records from the previous cache.
+    PackageCacheData.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
     yield pkgs_dir
+    # Do not leave cache objects pointing at this test's temporary cache.
+    PackageCacheData.clear()
+    SubdirData.clear_cached_local_channel_data(exclude_file=False)
 
 
 @pytest.fixture(
     # allow CI to set the solver backends via the CONDA_TEST_SOLVERS env var
-    params=os.environ.get("CONDA_TEST_SOLVERS", "libmamba,classic").split(",")
+    params=os.environ.get("CONDA_TEST_SOLVERS", "rattler,libmamba,classic").split(",")
 )
 def parametrized_solver_fixture(
     request: FixtureRequest,
-) -> Iterable[Literal["libmamba", "classic"]]:
+) -> Iterable[Literal["rattler", "libmamba", "classic"]]:
     """
-    A parameterized fixture that sets the solver backend to (1) libmamba
-    and (2) classic for each test. Not autouse: activate it with
+    A parameterized fixture that runs each test with rattler, libmamba,
+    and classic. Not autouse: activate it with
     `pytestmark = pytest.mark.usefixtures("parametrized_solver_fixture")` in
     modules that need it (or CI can narrow the backends via `CONDA_TEST_SOLVERS`).
 

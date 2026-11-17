@@ -12,6 +12,77 @@ This page contains recent additions to `conda` worth your attention, including f
 
 :::
 ---
+## Manage conda plugins
+
+:::::::{card}
+:class-card: sd-rounded-3 conda-feature-card conda-feature-stable
+
+{bdg-light}`Available in conda 26.11.0 or later` &nbsp; {bdg-success}`Stable`
+
+Use `conda plugins list` to see installed plugins and `conda plugins info NAME`
+to inspect their metadata and registered hooks. Conda 26.11.0 adds
+`conda plugins install`, `conda plugins update`, and `conda plugins remove`
+to manage their packages. Conda checks requested packages
+for conda entry points before confirming installation or updates. This identifies
+plugin packages, but does not verify that their code is safe.
+
+::::::{dropdown} How to manage a plugin
+:animate: fade-in-slide-down
+
+Choose the example for your distribution. Do not install conda-forge packages
+into an Anaconda Distribution or Miniconda `base` environment using `defaults`.
+
+:::::{tab-set}
+
+::::{tab-item} Anaconda Distribution / Miniconda
+:sync: anaconda
+
+Keep `base` unchanged and create a separate conda-forge environment for `conda-tree`:
+
+```console
+conda create --name conda-forge-plugins --override-channels --channel conda-forge conda
+conda plugins install --name conda-forge-plugins --override-channels --channel conda-forge conda-tree
+conda run --name conda-forge-plugins python -m conda plugins list
+conda run --name conda-forge-plugins python -m conda plugins info conda-tree
+conda plugins update --name conda-forge-plugins --override-channels --channel conda-forge conda-tree
+conda plugins remove --name conda-forge-plugins --override-channels --channel conda-forge conda-tree
+```
+
+::::
+
+::::{tab-item} Miniforge
+:sync: conda-forge
+
+For a Miniforge `base` environment containing compatible conda-forge packages:
+
+```console
+conda plugins install --name base --override-channels --channel conda-forge conda-tree
+conda plugins list
+conda plugins info conda-tree
+conda plugins update --name base --override-channels --channel conda-forge conda-tree
+conda plugins remove --name base --override-channels --channel conda-forge conda-tree
+```
+
+::::
+
+:::::
+
+Replace the package name in the update command with `--all` to update all conda
+plugin packages in the same environment, keeping the target and channel options.
+This disables automatic conda upgrades, but dependency changes may still update
+conda or other packages. Review the package plan before confirming.
+
+Plugins must be installed in the environment running conda. Choose channels
+compatible with that environment's existing packages; the guide below explains
+how to use a separate environment when needed.
+
+::::::
+
+See **{doc}`Managing plugin packages </user-guide/concepts/conda-plugins>`** for
+more examples, or **{doc}`the command reference </commands/plugins>`** for all options.
+
+:::::::
+
 ## Faster solves: conda-rattler-solver is now conda's default solver
 
 ::::{card}

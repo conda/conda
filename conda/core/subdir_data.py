@@ -9,6 +9,7 @@ from collections import UserList, defaultdict
 from functools import partial
 from itertools import chain
 from logging import getLogger
+from operator import attrgetter
 from os.path import exists, getmtime, isfile, join, splitext
 from pathlib import Path
 from time import time
@@ -839,7 +840,7 @@ def _search_package_via_shards(
             rec = PackageRecord(channel=channel, **record_data)
             if spec.match(rec):
                 records.append(rec)
-    return records
+    return sorted(records, key=attrgetter("_sort_key"))
 
 
 def _search_package(
@@ -849,11 +850,10 @@ def _search_package(
     repodata_fn: str = REPODATA_FN,
 ) -> tuple[PackageRecord, ...]:
     from ..core.subdir_data import SubdirData
-    from ..models.version import VersionOrder
 
     return sorted(
         SubdirData.query_all(spec, channel_urls, subdirs, repodata_fn),
-        key=lambda rec: (rec.name, VersionOrder(rec.version), rec.build),
+        key=attrgetter("_sort_key"),
     )
 
 

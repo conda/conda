@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from pytest import CaptureFixture, MonkeyPatch
+    from pytest_mock import MockerFixture
 
     from conda.testing.fixtures import CondaCLIFixture
 
@@ -554,3 +555,125 @@ def test_search_no_channels_configured(mocker, conda_cli: CondaCLIFixture):
     error_message = str(exc.value)
     assert "No channels are configured" in error_message
     assert "numpy" in error_message
+
+
+def test_search_version_ordering_display(
+    conda_cli: CondaCLIFixture, monkeypatch: MonkeyPatch, mocker: MockerFixture
+):
+    """Ensure conda search displays packages ordered by VersionOrder instead of lexicographical order."""
+    versions = ["1.11.5", "1.14.0", "1.3.0", "1.9.4"]
+    fake_shard = mocker.MagicMock()
+    fake_shard.package_names = ["maturin", "otherpkg"]
+    fake_shard.base_url = "https://example.com"
+    fake_shard.iter_records_v3.return_value = [
+        (
+            (f"maturin-{v}-0.conda", "packages.conda"),
+            {"name": "maturin", "version": v, "build": "py312_0", "build_number": 0},
+        )
+        for v in versions
+        if v != "1.3.0"
+    ] + [
+        (
+            ("maturin-1.3.0-py312_10.conda", "packages.conda"),
+            {
+                "name": "maturin",
+                "version": "1.3.0",
+                "build": "py312_10",
+                "build_number": 10,
+            },
+        ),
+        (
+            ("maturin-1.3.0-py312_2.conda", "packages.conda"),
+            {
+                "name": "maturin",
+                "version": "1.3.0",
+                "build": "py312_2",
+                "build_number": 2,
+            },
+        ),
+        (
+            ("otherpkg-2.0.0-0.conda", "packages.conda"),
+            {"name": "otherpkg", "version": "2.0.0", "build": "0", "build_number": 0},
+        ),
+    ]
+
+    monkeypatch.setenv("CONDA_REPODATA_USE_SHARDS", "true")
+    reset_context()
+
+    monkeypatch.setattr(
+        "conda._private.shards.shards.fetch_channels",
+        lambda *args, **kwargs: {"https://example.com/noarch": fake_shard},
+    )
+    monkeypatch.setattr(
+        "conda._private.shards.subset.RepodataSubset.reachable",
+        lambda *args, **kwargs: None,
+    )
+
+    stdout, stderr, code = conda_cli(
+        "search",
+        "maturin",
+        "--override-channels",
+        "-c",
+        "https://example.com/noarch",
+    )
+    assert code == 0, stderr
+    lines = [
+        line.split()
+        for line in stdout.strip().splitlines()
+        if line and not line.startswith("#")
+    ]
+    found_versions = [parts[1] for parts in lines if parts[0] == "maturin"]
+    assert found_versions == ["1.3.0", "1.3.0", "1.9.4", "1.11.5", "1.14.0"]
+    # Verify numeric build order for multiple builds (2 before 10)
+    builds_1_3 = [
+        parts[2] for parts in lines if parts[0] == "maturin" and parts[1] == "1.3.0"
+    ]
+    assert builds_1_3 == ["py312_2", "py312_10"]
+
+    stdout_json, stderr_json, code_json = conda_cli(
+        "search",
+        "maturin",
+        "--json",
+        "--override-channels",
+        "-c",
+        "https://example.com/noarch",
+    )
+    assert code_json == 0, stderr_json
+    parsed = json.loads(stdout_json)
+    assert [r["version"] for r in parsed["maturin"]] == [
+        "1.3.0",
+        "1.3.0",
+        "1.9.4",
+        "1.11.5",
+        "1.14.0",
+    ]
+
+    stdout_info, stderr_info, code_info = conda_cli(
+        "search",
+        "maturin",
+        "--info",
+        "--override-channels",
+        "-c",
+        "https://example.com/noarch",
+    )
+    assert code_info == 0, stderr_info
+    info_versions = re.findall(r"^version\s*:\s*(.+)$", stdout_info, re.MULTILINE)
+    assert info_versions == ["1.3.0", "1.3.0", "1.9.4", "1.11.5", "1.14.0"]
+
+    stdout_wild, stderr_wild, code_wild = conda_cli(
+        "search",
+        "*turin*",
+        "--json",
+        "--override-channels",
+        "-c",
+        "https://example.com/noarch",
+    )
+    assert code_wild == 0, stderr_wild
+    parsed_wild = json.loads(stdout_wild)
+    assert [r["version"] for r in parsed_wild["maturin"]] == [
+        "1.3.0",
+        "1.3.0",
+        "1.9.4",
+        "1.11.5",
+        "1.14.0",
+    ]

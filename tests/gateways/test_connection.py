@@ -87,24 +87,27 @@ def test_add_binstar_token_notices_json():
 
 
 @pytest.mark.parametrize(
-    "filename",
-    ("repodata_shards.msgpack.zst", f"{'a' * 64}.msgpack.zst"),
-    ids=("index", "shard"),
+    "subpath",
+    (
+        "conda-forge/linux-64/repodata_shards.msgpack.zst",
+        f"conda-forge/linux-64/{'a' * 64}.msgpack.zst",
+        f"conda-pypi/noarch/shards/{'a' * 64}.msgpack.zst",
+    ),
+    ids=("index", "shard", "nested-shard"),
 )
 def test_add_binstar_token_preserves_shard_filenames(
-    filename: str,
+    subpath: str,
     mocker: MockerFixture,
     monkeypatch: MonkeyPatch,
     reset_conda_context,
 ) -> None:
-    """Preserve shard paths when inserting a stored token (#16637)."""
+    """Preserve shard paths when inserting a stored token (#16637, #16946)."""
     monkeypatch.setenv("CONDA_ADD_ANACONDA_TOKEN", "true")
     reset_context()
     mocker.patch(
         "conda.gateways.connection.session.read_binstar_tokens",
         return_value={"https://conda.anaconda.test": "example-token"},
     )
-    subpath = f"conda-forge/linux-64/{filename}"
     url = f"https://conda.anaconda.test/{subpath}"
 
     assert CondaHttpAuth.add_binstar_token(url) == (

@@ -85,7 +85,7 @@ jobs:
           labels-to-remove-when-unstale: stale,stale::closed
 
           # Max number of operations per run
-          operations-per-run: ${{ secrets.STALE_OPERATIONS_PER_RUN || 100 }}
+          operations-per-run: ${{ secrets.STALE_OPERATIONS_PER_RUN || 100 }}  # zizmor: ignore[secrets-outside-env] Repo secret for stale bot automation; environment policy unchanged.
           # Dry-run
           debug-only: ${{ github.event.inputs.dryrun || false }}
           # Order to get issues/PRs
@@ -103,4 +103,4 @@ jobs:
           exempt-assignees: mingwandroid
 
       - name: Print outputs
-        run: echo ${{ join(steps.stale.outputs.*, ',') }}
+        run: echo ${{ join(steps.stale.outputs.*, ',') }}  # zizmor: ignore[template-injection] Outputs come from the stale action, not attacker-controlled input.

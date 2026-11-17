@@ -15,6 +15,7 @@ from requests.cookies import extract_cookies_to_jar  # noqa: F401, TID253
 from requests.exceptions import (  # noqa: F401, TID253
     ChunkedEncodingError,
     InvalidSchema,
+    ReadTimeout,
     SSLError,
 )
 from requests.exceptions import ProxyError as RequestsProxyError  # noqa: F401, TID253

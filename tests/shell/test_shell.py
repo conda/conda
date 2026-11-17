@@ -34,13 +34,6 @@ pytestmark = pytest.mark.integration
                 pytest.mark.skipif(on_mac, reason="unavailable on macOS"),
             ],
         ),
-        pytest.param(
-            "ash",
-            marks=[
-                pytest.mark.skipif(on_mac, reason="unavailable on macOS"),
-                pytest.mark.skipif(on_win, reason="unavailable on Windows"),
-            ],
-        ),
         "bash",
         pytest.param(
             "dash",

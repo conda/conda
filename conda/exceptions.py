@@ -74,7 +74,20 @@ class ResolvePackageNotFound(CondaError):
         super().__init__(message)
 
 
-NoPackagesFound = NoPackagesFoundError = ResolvePackageNotFound
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "NoPackagesFound",
+    ResolvePackageNotFound,
+    addendum="Use `conda.exceptions.ResolvePackageNotFound` instead.",
+)
+deprecated.constant(
+    "27.3",
+    "27.9",
+    "NoPackagesFoundError",
+    ResolvePackageNotFound,
+    addendum="Use `conda.exceptions.ResolvePackageNotFound` instead.",
+)
 
 
 class LockError(CondaError, OSError):

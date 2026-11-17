@@ -21,10 +21,8 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
 
-import menuinst
 import pytest
 
-from conda import CondaError, CondaExitZero, CondaMultiError
 from conda.auxlib.ish import dals
 from conda.base.constants import (
     CONDA_TEMP_EXTENSION,
@@ -53,6 +51,9 @@ from conda.core.prefix_data import PrefixData
 from conda.exceptions import (
     ArgumentError,
     ClobberError,
+    CondaError,
+    CondaExitZero,
+    CondaMultiError,
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DisallowedPackageError,
@@ -78,8 +79,12 @@ from conda.history import History
 from conda.models.channel import Channel
 from conda.models.match_spec import MatchSpec
 from conda.models.version import VersionOrder
-from conda.resolve import Resolve
-from conda.testing.helpers import CHANNEL_DIR_V2, forward_to_subprocess, in_subprocess
+from conda.testing.helpers import (
+    CHANNEL_DIR_V2,
+    deprecated_import,
+    forward_to_subprocess,
+    in_subprocess,
+)
 from conda.testing.integration import (
     PYTHON_BINARY,
     TEST_LOG_LEVEL,
@@ -121,6 +126,21 @@ pytestmark = [
 ]
 
 
+def get_python_record_sp_dir(prefix: Path, version: str | None = None) -> Path | None:
+    python_record = PrefixData(prefix).get("python")
+    if python_record:
+        py_ver = get_major_minor_version(python_record.version)
+        return (
+            python_record.python_site_packages_path
+            or get_python_site_packages_short_path(py_ver)
+        )
+    elif version:
+        py_ver = get_major_minor_version(version)
+        return get_python_site_packages_short_path(py_ver)
+
+    return None
+
+
 def test_install_python_and_search(
     path_factory: PathFactoryFixture,
     mocker: MockerFixture,
@@ -144,7 +164,7 @@ def test_install_python_and_search(
         "conda-forge",
     )
     monkeypatch.setenv("CONDA_CHANNELS", ",".join(channels))
-    reset_context()
+    reset_context("")
     assert context.register_envs
     assert context.allow_non_channel_urls
     assert context.channels == channels
@@ -670,7 +690,9 @@ def test_noarch_python_package_reinstall_on_pyver_change(
     with tmp_env("itsdangerous", PYTHON_SPEC_OLD) as prefix:
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC_OLD))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = pkg.python_site_packages_path or get_python_site_packages_short_path(
+            py_ver
+        )
         py_file = sp_dir + "/itsdangerous/__init__.py"
         old_pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
@@ -680,7 +702,9 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         assert not (prefix / old_pyc_file).is_file()
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = pkg.python_site_packages_path or get_python_site_packages_short_path(
+            py_ver
+        )
         py_file = sp_dir + "/itsdangerous/__init__.py"
         new_pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
@@ -887,6 +911,9 @@ def test_strict_channel_priority(
 
 
 def test_strict_resolve_get_reduced_index(monkeypatch: MonkeyPatch):
+    with deprecated_import("conda.resolve"):
+        from conda.resolve import Resolve
+
     channels = (Channel("defaults"),)
     specs = (MatchSpec("anaconda"),)
     # The historical anaconda package is not available for win-arm64.
@@ -952,7 +979,9 @@ def test_list_with_pip_no_binary(
         assert (prefix, True) in PrefixData._cache_
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = pkg.python_site_packages_path or get_python_site_packages_short_path(
+            py_ver
+        )
         _rm_rf(prefix / sp_dir)
         assert prefix not in PrefixData._cache_
 
@@ -1255,14 +1284,13 @@ def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
         assert package_is_installed(prefix, "python=3")
 
 
-@pytest.mark.skipif(on_win, reason="readline is only a python dependency on unix")
 def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env(PYTHON_SPEC) as prefix:
-        assert package_is_installed(prefix, "readline")
+        assert package_is_installed(prefix, "bzip2")
         assert package_is_installed(prefix, PYTHON_SPEC)
 
-        conda_cli("remove", f"--prefix={prefix}", "readline", "--force-remove", "--yes")
-        assert not package_is_installed(prefix, "readline")
+        conda_cli("remove", f"--prefix={prefix}", "bzip2", "--force-remove", "--yes")
+        assert not package_is_installed(prefix, "bzip2")
         assert package_is_installed(prefix, PYTHON_SPEC)
 
 
@@ -1448,7 +1476,10 @@ def test_compile_pyc(use_sys_python: bool, tmp_env: TmpEnvFixture):
             python_binary = prefix / PYTHON_BINARY
         assert python_binary.exists()
 
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        if use_sys_python:
+            sp_dir = get_python_site_packages_short_path(py_ver)
+        else:
+            sp_dir = get_python_record_sp_dir(prefix, py_ver)
         py_file = prefix / sp_dir / "test_compile.py"
         pyc_file = prefix / pyc_path(str(py_file), py_ver)
 
@@ -1531,7 +1562,13 @@ def test_update_all_updates_pip_pkg(
         }
 
         # updating all updates itsdangerous from a conda channel
-        conda_cli("update", f"--prefix={prefix}", "--all", "--yes")
+        conda_cli(
+            "update",
+            f"--prefix={prefix}",
+            "--all",
+            "--repodata-fn=repodata.json",
+            "--yes",
+        )
         assert (prec := package_is_installed(prefix, "itsdangerous>=2"))
         assert prec.subdir != "pypi"
         assert package_is_installed(prefix, "pytz>=2023")
@@ -1710,6 +1747,8 @@ def test_menuinst_v2(
     conda_cli: CondaCLIFixture,
     request: FixtureRequest,
 ):
+    import menuinst
+
     install = mocker.spy(menuinst, "install")
 
     (tmp_path / ".nonadmin").touch()
@@ -1878,6 +1917,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     pip_cli: PipCLIFixture,
+    temp_package_cache: Path,
 ):
     if "conda-forge" in context.channels:
         pytest.skip("This test is too slow with conda-forge as default channel.")
@@ -1911,8 +1951,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
         stdout, _, _ = pip_cli("list", "--format=freeze", prefix=prefix)
         assert any(pkg.strip() == "six==1.9.0" for pkg in stdout.splitlines())
 
-        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = get_python_record_sp_dir(prefix)
 
         PrefixData._cache_.clear()
         stdout, stderr, code = pip_cli(
@@ -2066,6 +2105,7 @@ def test_conda_pip_interop_conda_editable_package(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     pip_cli: PipCLIFixture,
+    temp_package_cache: Path,
 ):
     request.applymarker(
         pytest.mark.xfail(
@@ -2201,6 +2241,7 @@ def test_conda_pip_interop_compatible_release_operator(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     pip_cli: PipCLIFixture,
+    temp_package_cache: Path,
 ):
     if "conda-forge" in context.channels:
         pytest.skip("This test is too slow with conda-forge as default channel.")
@@ -2702,6 +2743,7 @@ def test_entry_point_failure_rolls_back(
     mocker: MockerFixture,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    temp_package_cache: Path,
 ):
     with tmp_env("conda-forge::pygments[subdir=noarch]") as prefix:
         record = package_is_installed(prefix, "pygments")

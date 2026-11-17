@@ -53,7 +53,7 @@
     @ECHO   /D  PATH       Path to base env install, can also be defined in ~\.condarc.
     @ECHO                  Path is appended with Windows. ^(default: devenv^)
     @ECHO   /N             Display env to activate. ^(default: false^)
-    @ECHO   /?             Display this.
+    @ECHO(  /?             Display this.
     @EXIT /B 0
 )
 @ECHO Error: unknown option %~1 1>&2
@@ -166,10 +166,10 @@
 @ECHO Downloading %_INSTALLER_TYPE%...
 @powershell.exe -NoProfile -Command "$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '%_DOWNLOAD_URL%' -OutFile '%_INSTALLER_FILE%' | Out-Null"
 @FOR %%F IN ("%_INSTALLER_FILE%") DO @IF NOT EXIST "%%F" (
-    @ECHO Error: failed to download %_INSTALLER_TYPE% (file missing) 1>&2
+    @ECHO Error: failed to download %_INSTALLER_TYPE% ^(file missing^) 1>&2
     @EXIT /B 1
 ) ELSE IF %%~zF EQU 0 (
-    @ECHO Error: failed to download %_INSTALLER_TYPE% (file empty) 1>&2
+    @ECHO Error: failed to download %_INSTALLER_TYPE% ^(file empty^) 1>&2
     @EXIT /B 1
 )
 :DOWNLOADED

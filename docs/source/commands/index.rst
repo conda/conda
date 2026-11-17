@@ -32,6 +32,7 @@ The following commands are part of conda:
    list
    notices
    package
+   plugins
    repoquery/index
    remove
    rename

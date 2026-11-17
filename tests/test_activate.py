@@ -469,6 +469,18 @@ def test_build_activate_dont_use_PATH(
         ENV_TWO=ENV_TWO,
     )
 
+    export_vars["__CONDA_ENV_VARS_0"] = (
+        json.dumps(
+            {
+                "ENV_ONE": None,
+                "ENV_TWO": None,
+            },
+            indent=2,
+        )
+        .encode()
+        .hex()
+    )
+
     # TODO: refactor unset_vars into a set and avoid sorting
     activate = activator.build_activate(prefix)
     activate["unset_vars"].sort()
@@ -532,6 +544,20 @@ def test_build_activate_dont_activate_unset_var(env_activate: tuple[str, str, st
         ENV_TWO=ENV_TWO,
     )
 
+    export_vars["__CONDA_ENV_VARS_0"] = (
+        json.dumps(
+            {
+                "PKG_A_ENV": None,
+                "PKG_B_ENV": None,
+                "ENV_ONE": None,
+                "ENV_TWO": None,
+            },
+            indent=2,
+        )
+        .encode()
+        .hex()
+    )
+
     # TODO: refactor unset_vars into a set and avoid sorting
     activate = activator.build_activate(prefix)
     activate["unset_vars"].sort()
@@ -574,6 +600,21 @@ def test_build_activate_shlvl_warn_clobber_vars(env_activate: tuple[str, str, st
         PKG_A_ENV=overwrite_a,
     )
 
+    export_vars["__CONDA_ENV_VARS_0"] = (
+        json.dumps(
+            {
+                "PKG_A_ENV": None,
+                "PKG_B_ENV": None,
+                "ENV_ONE": None,
+                "ENV_TWO": None,
+                "ENV_THREE": None,
+            },
+            indent=2,
+        )
+        .encode()
+        .hex()
+    )
+
     # TODO: refactor unset_vars into a set and avoid sorting
     activate = activator.build_activate(prefix)
     activate["unset_vars"].sort()
@@ -609,6 +650,22 @@ def test_build_activate_shlvl_0(env_activate: tuple[str, str, str]):
         ENV_TWO=ENV_TWO,
         ENV_THREE=ENV_THREE,
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
+    )
+
+    export_vars["__CONDA_ENV_VARS_0"] = (
+        json.dumps(
+            {
+                "PKG_A_ENV": None,
+                "PKG_B_ENV": None,
+                "ENV_ONE": None,
+                "ENV_TWO": None,
+                "ENV_THREE": None,
+                "ENV_WITH_SAME_VALUE": None,
+            },
+            indent=2,
+        )
+        .encode()
+        .hex()
     )
 
     # TODO: refactor unset_vars into a set and avoid sorting
@@ -664,6 +721,22 @@ def test_build_activate_shlvl_1(
         ENV_TWO=ENV_TWO,
         ENV_THREE=ENV_THREE,
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
+    )
+
+    export_vars["__CONDA_ENV_VARS_1"] = (
+        json.dumps(
+            {
+                "PKG_A_ENV": None,
+                "PKG_B_ENV": None,
+                "ENV_ONE": None,
+                "ENV_TWO": None,
+                "ENV_THREE": None,
+                "ENV_WITH_SAME_VALUE": None,
+            },
+            indent=2,
+        )
+        .encode()
+        .hex()
     )
 
     # TODO: refactor unset_vars into a set and avoid sorting
@@ -796,6 +869,22 @@ def test_build_stack_shlvl_1(
         ENV_TWO=ENV_TWO,
         ENV_THREE=ENV_THREE,
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
+    )
+
+    export_vars["__CONDA_ENV_VARS_1"] = (
+        json.dumps(
+            {
+                "PKG_A_ENV": None,
+                "PKG_B_ENV": None,
+                "ENV_ONE": None,
+                "ENV_TWO": None,
+                "ENV_THREE": None,
+                "ENV_WITH_SAME_VALUE": None,
+            },
+            indent=2,
+        )
+        .encode()
+        .hex()
     )
 
     # TODO: refactor unset_vars into a set and avoid sorting
@@ -1149,6 +1238,22 @@ def test_build_activate_restore_unset_env_vars(
         ENV_WITH_SAME_VALUE=ENV_WITH_SAME_VALUE,
     )
 
+    export_vars["__CONDA_ENV_VARS_1"] = (
+        json.dumps(
+            {
+                "PKG_A_ENV": None,
+                "PKG_B_ENV": None,
+                "ENV_ONE": "already_set_env_var",
+                "ENV_TWO": None,
+                "ENV_THREE": None,
+                "ENV_WITH_SAME_VALUE": ENV_WITH_SAME_VALUE,
+            },
+            indent=2,
+        )
+        .encode()
+        .hex()
+    )
+
     # TODO: refactor unset_vars into a set and avoid sorting
     activate = activator.build_activate(prefix)
     activate["unset_vars"].sort()
@@ -1206,6 +1311,111 @@ def test_build_activate_restore_unset_env_vars(
     }
 
 
+def apply_builder_result(monkeypatch: MonkeyPatch, result: dict) -> None:
+    for name in result["unset_vars"]:
+        monkeypatch.delenv(name, raising=False)
+    for name, value in {
+        **result["export_vars"],
+        **result.get("export_path", {}),
+    }.items():
+        monkeypatch.setenv(name, str(value))
+
+
+@pytest.mark.parametrize("original_value", [None, "", "user_value"])
+def test_build_activate_replaces_previous_env_vars(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+    original_value: str | None,
+):
+    """Env vars of a replaced (non-stacked) environment don't leak into the next one."""
+    # https://github.com/conda/conda/issues/11726
+    if original_value is None:
+        monkeypatch.delenv("FOO", raising=False)
+    else:
+        monkeypatch.setenv("FOO", original_value)
+    monkeypatch.delenv("SHARED", raising=False)
+
+    with tmp_env() as envvars, tmp_env() as noenvvars:
+        write_state_file(envvars, FOO="bar", SHARED="one")
+        write_state_file(noenvvars, SHARED="two")
+        activator = PosixActivator()
+
+        apply_builder_result(monkeypatch, activator.build_activate(str(envvars)))
+        assert os.environ["FOO"] == "bar"
+        assert os.environ["SHARED"] == "one"
+
+        apply_builder_result(monkeypatch, activator.build_activate(str(noenvvars)))
+        assert os.getenv("FOO") == original_value
+        assert os.environ["SHARED"] == "two"
+
+        # deactivating returns to the replaced environment and its env vars
+        apply_builder_result(monkeypatch, activator.build_deactivate())
+        assert os.environ["FOO"] == "bar"
+        assert os.environ["SHARED"] == "one"
+
+        apply_builder_result(monkeypatch, activator.build_deactivate())
+        assert os.getenv("FOO") == original_value
+        assert os.getenv("SHARED") is None
+
+
+def test_build_activate_restores_vars_after_three_envs(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+):
+    monkeypatch.setenv("FOO", "user_value")
+
+    with tmp_env() as first, tmp_env() as second, tmp_env() as third:
+        write_state_file(first, FOO="one")
+        write_state_file(second, FOO="two")
+        activator = PosixActivator()
+
+        for prefix in (first, second, third):
+            apply_builder_result(monkeypatch, activator.build_activate(str(prefix)))
+
+        assert os.environ["FOO"] == "user_value"
+
+
+def test_build_activate_keeps_vars_unset_by_replaced_env(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+):
+    """Env vars marked as unset in a replaced environment keep the user's value."""
+    monkeypatch.setenv("FOO", "user_value")
+
+    with tmp_env() as unsets_foo, tmp_env() as other:
+        write_state_file(unsets_foo, FOO=CONDA_ENV_VARS_UNSET_VAR)
+        write_state_file(other, BAR="baz")
+        activator = PosixActivator()
+
+        apply_builder_result(monkeypatch, activator.build_activate(str(unsets_foo)))
+        assert os.environ["FOO"] == "user_value"
+
+        apply_builder_result(monkeypatch, activator.build_activate(str(other)))
+        assert os.environ["FOO"] == "user_value"
+
+        apply_builder_result(monkeypatch, activator.build_deactivate())
+        assert os.environ["FOO"] == "user_value"
+
+        apply_builder_result(monkeypatch, activator.build_deactivate())
+        assert os.environ["FOO"] == "user_value"
+
+
+def test_build_deactivate_restores_vars_unset_while_active(
+    monkeypatch: MonkeyPatch,
+    tmp_env: TmpEnvFixture,
+):
+    monkeypatch.setenv("FOO", "user_value")
+
+    with tmp_env() as prefix:
+        write_state_file(prefix, FOO="env_value")
+        activator = PosixActivator()
+        apply_builder_result(monkeypatch, activator.build_activate(str(prefix)))
+        write_state_file(prefix, FOO=CONDA_ENV_VARS_UNSET_VAR)
+        apply_builder_result(monkeypatch, activator.build_deactivate())
+
+        assert os.environ["FOO"] == "user_value"
+
+
 def make_dot_d_files(prefix: str | os.PathLike, extension: str) -> None:
     (activated := Path(prefix, "etc", "conda", "activate.d")).mkdir(parents=True)
     (deactivated := Path(prefix, "etc", "conda", "deactivate.d")).mkdir(parents=True)
@@ -1251,6 +1461,7 @@ def test_posix_basic(
         f"export CONDA_DEFAULT_ENV='{empty_env}'\n"
         f"export CONDA_PROMPT_MODIFIER='{get_prompt_modifier(empty_env)}'\n"
         f"{conda_exe_export}\n"
+        "export __CONDA_ENV_VARS_0='7b7d'\n"
         + (f". \"`cygpath '{activate1}'`\"\n" if on_win else f'. "{activate1}"\n')
     )
 
@@ -1355,6 +1566,7 @@ def test_cmd_exe_basic(
         f"CONDA_DEFAULT_ENV={empty_env}\n"
         f"CONDA_PROMPT_MODIFIER={get_prompt_modifier(empty_env)}\n"
         f"{conda_exe_export}\n"
+        "__CONDA_ENV_VARS_0=7b7d\n"
         f"_CONDA_SCRIPT={activate1}\n"
     )
 
@@ -1466,6 +1678,7 @@ def test_csh_basic(
         f'setenv CONDA_DEFAULT_ENV "{empty_env}";\n'
         f'setenv CONDA_PROMPT_MODIFIER "{get_prompt_modifier(empty_env)}";\n'
         f"{conda_exe_export};\n"
+        'setenv __CONDA_ENV_VARS_0 "7b7d";\n'
         + (
             f"source \"`cygpath '{activate1}'`\";\n"
             if on_win
@@ -1597,6 +1810,7 @@ def test_xonsh_basic(
         f"$CONDA_DEFAULT_ENV = '{empty_env}'\n"
         f"$CONDA_PROMPT_MODIFIER = '{get_prompt_modifier(empty_env)}'\n"
         f"{conda_exe_export}\n"
+        "$__CONDA_ENV_VARS_0 = '7b7d'\n"
         f'{sourcer} "{activate1}"\n'
     )
 
@@ -1722,6 +1936,7 @@ def test_fish_basic(
         f'set -gx CONDA_DEFAULT_ENV "{empty_env}";\n'
         f'set -gx CONDA_PROMPT_MODIFIER "{get_prompt_modifier(empty_env)}";\n'
         f"{conda_exe_export};\n"
+        'set -gx __CONDA_ENV_VARS_0 "7b7d";\n'
         f'source "{activate1}";\n'
     )
 
@@ -1823,6 +2038,7 @@ def test_powershell_basic(
         f'$Env:CONDA_DEFAULT_ENV = "{empty_env}"\n'
         f'$Env:CONDA_PROMPT_MODIFIER = "{get_prompt_modifier(empty_env)}"\n'
         f"{conda_exe_export}\n"
+        '$Env:__CONDA_ENV_VARS_0 = "7b7d"\n'
         f'. "{activate1}"\n'
     )
 
@@ -1907,6 +2123,7 @@ def test_json_basic(
         CONDA_DEFAULT_ENV=str(empty_env),
         CONDA_PROMPT_MODIFIER=get_prompt_modifier(empty_env),
     )
+    export_vars["__CONDA_ENV_VARS_0"] = "7b7d"
     assert json.loads(activate_data) == {
         "path": {"PATH": list(new_path_parts)},
         "vars": {

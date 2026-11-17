@@ -34,11 +34,13 @@ from ...models.channel import Channel
 from ..disk.delete import rm_rf
 from ..disk.lock import lock
 from . import (
+    ChunkedEncodingError,
     ConnectionError,
     DirectDownloadAdapter,
     HTTPError,
     InsecureRequestWarning,
     InvalidSchema,
+    ReadTimeout,
     RequestsProxyError,
     SSLError,
 )
@@ -275,7 +277,7 @@ def download_partial_file(
 
 @contextmanager
 def download_http_errors(url: str):
-    """Exception translator used inside download()"""
+    """Translate request failures into conda exceptions."""
     # This complex exception translation strategy is reminiscent of def
     # conda_http_errors(url, repodata_fn): in gateways/repodata
 
@@ -330,7 +332,7 @@ def download_http_errors(url: str):
                 )
             )
 
-    except (ConnectionError, HTTPError) as e:
+    except (ConnectionError, HTTPError, ReadTimeout, ChunkedEncodingError) as e:
         status_code = getattr(e.response, "status_code", None)
 
         if status_code == 403:

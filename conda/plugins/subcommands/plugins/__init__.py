@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from ... import hookimpl
 from ...types import CondaSubcommand
-from . import info, list
+from . import info, install, list, remove, update
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
@@ -25,7 +25,10 @@ def configure_parser(parser: ArgumentParser) -> None:
     )
 
     info.configure_parser(subparsers.add_parser("info", help=info.HELP))
+    install.configure_parser(subparsers.add_parser("install", help=install.HELP))
     list.configure_parser(subparsers.add_parser("list", help=list.HELP))
+    remove.configure_parser(subparsers.add_parser("remove", help=remove.HELP))
+    update.configure_parser(subparsers.add_parser("update", help=update.HELP))
     parser.set_defaults(func=partial(parser.parse_args, ["--help"]))
 
 

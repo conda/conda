@@ -9,7 +9,7 @@ using conda in your own projects.
 Install  :octicon:`download;1em;sd-text-primary`
 ................................................
 
-We recommend the following conda distribtions to install conda:
+We recommend the following conda distributions to install conda:
 
 .. grid:: 2
 
@@ -24,6 +24,11 @@ We recommend the following conda distribtions to install conda:
             :color: primary
 
             :fab:`windows` Windows :bdg-light-line:`x86_64` :octicon:`download`
+
+        .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-arm64.exe
+            :color: primary
+
+            :fab:`windows` Windows :bdg-light-line:`arm64` :octicon:`download`
 
         .. button-link:: https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.pkg
             :color: primary
@@ -63,6 +68,11 @@ We recommend the following conda distribtions to install conda:
             :color: primary
 
             :fab:`windows` Windows :bdg-light-line:`x86_64` :octicon:`download`
+
+        .. button-link:: https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Windows-arm64.exe
+            :color: primary
+
+            :fab:`windows` Windows :bdg-light-line:`arm64` :octicon:`download`
 
         .. button-link:: https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
             :color: primary
@@ -121,7 +131,7 @@ If you are new to conda, we first recommend the following articles:
 .. seealso::
 
     Want to get even more in-depth training on how to use conda for free? Check out Anaconda's
-    `free course on conda basics <https://learning.anaconda.cloud/conda-basics>`_.
+    `free course on conda basics <https://learning.anaconda.com/courses/conda-basics>`_.
 
 Other useful resources :octicon:`light-bulb;1em;sd-text-primary`
 ......................................................................
@@ -147,11 +157,11 @@ Other useful resources :octicon:`light-bulb;1em;sd-text-primary`
 
         Learn about the various ways conda's behavior can be configured
 
-    .. grid-item-card:: Glossary :octicon:`book;1em;sd-text-primary`
-        :link: /glossary/
-        :link-type: doc
+    .. grid-item-card:: Conda Blog :octicon:`megaphone;1em;sd-text-primary`
+        :link: https://conda.org/blog/
+        :link-type: url
 
-        Important vocabulary to know when working with conda
+        Read the latest news, release announcements, and in-depth articles from the conda community
 
 
 Contributors welcome :octicon:`git-pull-request;1em;sd-text-primary`

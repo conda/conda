@@ -1184,8 +1184,7 @@ class Context(Configuration):
         builder.append("{}/{}".format(*self.os_distribution_name_version))
         if self.libc_family_version[0]:
             builder.append("{}/{}".format(*self.libc_family_version))
-        if self.solver != "classic":
-            builder.append(self.solver_user_agent())
+        builder.append(self.solver_user_agent())
         return " ".join(builder)
 
     @contextmanager
