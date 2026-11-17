@@ -194,7 +194,7 @@ norecursedirs = [
   "tests/data/*",
   "tests/integration/*",
   "tests/plugins/data/*",
-  "docs",
+  "docs/source",
   ".git",
 ]
 pythonpath = [

@@ -45,6 +45,7 @@ jobs:
       pull-requests: read
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      docs: ${{ steps.filter.outputs.docs }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -62,6 +63,14 @@ jobs:
               - 'tests/**'
               - 'recipe/**'
               - '.github/workflows/benchmarks.yml'
+              - '.github/workflows/tests.yml'
+            docs:
+              - 'docs/source/_extensions/**'
+              - 'docs/build-assets/**'
+              - 'docs/source/user-guide/cheatsheet.rst'
+              - 'docs/source/user-guide/cheatsheets/**'
+              - 'docs/environment.yml'
+              - 'tests/docs/**'
               - '.github/workflows/tests.yml'
 
   # windows test suite
@@ -519,6 +528,109 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # linux docs
+  linux-docs:
+    # only run docs tests if the Sphinx extensions (or the data/assets/tests
+    # they depend on) changed; kept separate from the main test matrix so
+    # weasyprint and its native libraries are only installed here
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: bash -el {0}  # bash exit immediately on error + login shell
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.13']
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Hash + Timestamp
+        run: |
+          STEM="${{ runner.os }}-${{ runner.arch }}-Py${{ matrix.python-version }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}-conda-forge-docs" >> $GITHUB_ENV
+          echo "HASH=${STEM}-docs" >> $GITHUB_ENV
+
+      - name: Cache Conda
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/conda_pkgs_dir/*.tar.bz2
+            ~/conda_pkgs_dir/*.conda
+          key: cache-${{ env.CACHE_KEY }}
+
+      - name: Setup Miniconda
+        # docs/environment.yml is resolved against conda-forge (as on Read the Docs)
+        uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
+        with:
+          condarc-file: .github/condarc-conda-forge
+          miniforge-version: latest
+          run-post: false  # skip post cleanup
+        timeout-minutes: 10
+
+      # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
+      # Remove once miniforge ships c-l-s >=26.4.1.
+      - name: Upgrade conda-libmamba-solver
+        run: conda install -n base --yes "conda-libmamba-solver>=26.4.1"
+        timeout-minutes: 10
+
+      - name: Conda Install
+        # test requirements first, then layer the docs environment (including
+        # its pip section) on top so both live in the same environment
+        run: |
+          conda install \
+            --yes \
+            --file tests/requirements.txt \
+            --file tests/requirements-${{ runner.os }}.txt \
+            --file tests/requirements-ci.txt \
+            python=${{ matrix.python-version }}
+          conda env update \
+            --name base \
+            --file docs/environment.yml
+        timeout-minutes: 15
+
+      - name: Conda Info
+        run: python -m conda info --verbose
+
+      - name: Conda Config
+        run: conda config --show-sources
+
+      - name: Conda List
+        run: conda list --show-channel-urls
+
+      - name: Run Docs Tests
+        run: >
+          python -m pytest
+          --cov=conda
+          tests/docs
+          ${{ env.PYTEST_EXTRA }}
+        timeout-minutes: 15
+
+      - name: Upload Coverage
+        if: '!cancelled()'
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},docs
+          token: ${{ secrets.CODECOV_TOKEN }}  # required
+
+      - name: Upload Test Results
+        if: '!cancelled()'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-${{ env.HASH }}
+          include-hidden-files: true
+          path: |
+            .coverage
+            test-report.xml
+          retention-days: 1  # temporary, combined in aggregate below
+
   # linux typing
   linux-typing:
     # only run test suite if there are code changes
@@ -880,12 +992,13 @@ jobs:
   # aggregate and upload
   aggregate:
     # only aggregate test suite if there are code changes
-    needs: [changes, windows, linux, linux-benchmarks, linux-qemu, macos]
+    needs: [changes, windows, linux, linux-docs, linux-benchmarks, linux-qemu, macos]
     if: >-
       !cancelled()
       && (
         (!github.event.repository.fork && github.event_name == 'schedule')
         || needs.changes.outputs.code == 'true'
+        || needs.changes.outputs.docs == 'true'
       )
 
     runs-on: ubuntu-slim
@@ -909,7 +1022,7 @@ jobs:
 
   # required check
   analyze:
-    needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
+    needs: [windows, linux, linux-docs, linux-qemu, linux-benchmarks, macos, aggregate]
     if: '!cancelled()'
 
     runs-on: ubuntu-slim
