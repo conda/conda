@@ -103,6 +103,8 @@ jobs:
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ (matrix.subdir == 'win-arm64' || github.event_name == 'pull_request') && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
       CONDA_TEST_SUBDIR: ${{ matrix.subdir }}
+      CONDA_REMOTE_MAX_RETRIES: 5
+      CONDA_REMOTE_BACKOFF_FACTOR: 2
 
     steps:
       - name: Checkout Source
@@ -255,6 +257,8 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.15' || matrix.default-channel == 'conda-forge' ) && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
+      CONDA_REMOTE_MAX_RETRIES: 5
+      CONDA_REMOTE_BACKOFF_FACTOR: 2
 
     steps:
       - name: Checkout Source
@@ -790,6 +794,8 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
+      CONDA_REMOTE_MAX_RETRIES: 5
+      CONDA_REMOTE_BACKOFF_FACTOR: 2
 
     steps:
       - name: Checkout Source
