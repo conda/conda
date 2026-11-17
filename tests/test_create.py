@@ -1099,27 +1099,12 @@ def test_tarball_install(
         assert not package_is_installed(prefix, "dependent")
 
 
-def test_tarball_install_and_bad_metadata(
+def test_install_bad_metadata(
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env("small-executable", "dependent", "another_dependent") as prefix:
-        assert package_is_installed(prefix, "another_dependent")
-        conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
-        assert package_is_installed(prefix, "small-executable")
-        assert not package_is_installed(prefix, "dependent")
-        # make sure all dependencies of "dependent" were removed
-        assert not package_is_installed(prefix, "dependency")
-        assert not package_is_installed(prefix, "another_dependent")
-
-        tar_path = test_recipes_channel / "noarch" / "dependent-1.0-0.conda"
-        with pytest.raises(DryRunExit):
-            conda_cli("install", f"--prefix={prefix}", tar_path, "--dry-run")
-
-        conda_cli("install", f"--prefix={prefix}", tar_path, "--yes")
-        assert package_is_installed(prefix, "dependent")
-
+    with tmp_env() as prefix:
         bad_metadata = prefix / "bad_metadata.yml"
         bad_metadata.write_text(
             dals(
