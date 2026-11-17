@@ -633,7 +633,7 @@ def test_noarch_python_package_with_entry_points(
         output = check_output([exe_path, "--help"], text=True)
         assert "usage: pygmentize" in output
 
-        conda_cli("remove", f"--prefix={prefix}", "pygments", "--yes")
+        conda_cli("remove", f"--prefix={prefix}", "pygments", "--force", "--yes")
 
         assert not (prefix / py_file).is_file()
         assert not (prefix / pyc_file).is_file()
