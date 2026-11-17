@@ -1270,15 +1270,20 @@ def test_clone_env_missing_channel_metadata(
             assert package_is_installed(clone, "small-executable")
 
 
-def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env(PYTHON_SPEC, "flask") as prefix:
-        assert package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
-        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask")
-        # this should get pruned when flask is removed
-        assert not package_is_installed(prefix, "itsdangerous")
-        assert package_is_installed(prefix, "python=3")
+def test_install_prune_flag(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+):
+    with tmp_env("small-executable", "dependent") as prefix:
+        assert package_is_installed(prefix, "dependent")
+        assert package_is_installed(prefix, "dependency")
+        assert package_is_installed(prefix, "small-executable")
+        conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
+        assert not package_is_installed(prefix, "dependent")
+        # this should get pruned when dependent is removed
+        assert not package_is_installed(prefix, "dependency")
+        assert package_is_installed(prefix, "small-executable")
 
 
 def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
