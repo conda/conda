@@ -1210,13 +1210,17 @@ def test_PackagesNotFoundInChannelsError_plugin_hint(
     if json_output:
         json_obj = json.loads(stdout)
         assert not stderr
-        assert json_obj["guidance"]["hints"] == [
-            {
-                "text": "Try installing from the recommended channel.",
-                "hint_code": "anaconda_channel_suggestion",
-            }
+        # Core guidance comes first, plugin hints are appended after it
+        assert json_obj["guidance"]["hint_codes"] == [
+            "check_channel_config",
+            "check_platform_subdir",
+            "clear_index_cache",
+            "anaconda_channel_suggestion",
         ]
-        assert json_obj["guidance"]["hint_codes"] == ["anaconda_channel_suggestion"]
+        assert json_obj["guidance"]["hints"][-1] == {
+            "text": "Try installing from the recommended channel.",
+            "hint_code": "anaconda_channel_suggestion",
+        }
     else:
         assert not stdout
         assert "PackagesNotFoundInChannelsError:" in stderr
@@ -1585,7 +1589,7 @@ def test_PackagesNotFoundError_guidance_for_bulk_missing(
     assert exc.guidance.hints[0].hint_code == "check_channel_config"
 
 
-def test_PackagesNotFoundError_no_guidance_for_few_packages(
+def test_PackagesNotFoundError_guidance_for_few_packages(
     monkeypatch: MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
@@ -1596,7 +1600,42 @@ def test_PackagesNotFoundError_no_guidance_for_few_packages(
         ["single-pkg"],
         channel_urls=["https://repo.anaconda.org/pkgs/main"],
     )
-    assert exc.guidance is None
+    assert exc.guidance is not None
+    # No summary: the message lists the packages and channels, keep it as headline
+    assert exc.guidance.summary is None
+    assert exc.guidance.cause == (
+        "The requested package was not found in the configured channels."
+    )
+    assert exc.dump_map()["guidance"]["hint_codes"] == (
+        "check_channel_config",
+        "check_platform_subdir",
+        "clear_index_cache",
+    )
+
+
+def test_PackagesNotFoundError_few_packages_printed_output(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
+    reset_context()
+
+    exc = PackagesNotFoundError(
+        ["single-pkg"],
+        channel_urls=["https://repo.anaconda.org/pkgs/main"],
+    )
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    # Headline is the original message, so packages and channels stay visible
+    assert "single-pkg" in stderr
+    assert "https://repo.anaconda.org/pkgs/main" in stderr
+    assert (
+        "Cause: The requested package was not found in the configured channels."
+        in stderr
+    )
+    assert "(check_channel_config)" in stderr
+    assert "Traceback" not in stderr
 
 
 def test_UnsatisfiableError_guidance() -> None:

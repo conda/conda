@@ -867,41 +867,47 @@ class PackagesNotFoundError(CondaError):
             channels_formatted = ""
 
         guidance = None
-        if channel_urls and len(self.packages) >= 5:
-            guidance = {
-                "summary": (
+        if channel_urls:
+            hints = [
+                {
+                    "text": (
+                        "Verify the expected channels are listed:\n"
+                        "      conda config --show channels"
+                    ),
+                    "hint_code": "check_channel_config",
+                },
+                {
+                    "text": (
+                        "Confirm the platform (subdir) matches your system:\n"
+                        "      conda info"
+                    ),
+                    "hint_code": "check_platform_subdir",
+                },
+                {
+                    "text": (
+                        "Clear the index cache, then retry:\n      conda clean -i"
+                    ),
+                    "hint_code": "clear_index_cache",
+                },
+            ]
+            if len(self.packages) == 1:
+                cause = (
+                    "The requested package was not found in the configured channels."
+                )
+            else:
+                cause = (
+                    f"{len(self.packages)} requested packages were not found in "
+                    "the configured channels."
+                )
+            guidance = {"cause": cause, "hints": hints}
+            if len(self.packages) >= 5:
+                guidance["summary"] = (
                     "Many packages are unavailable at once. The cause is often "
                     "channel configuration, an incomplete package index, or a "
                     "platform mismatch."
-                ),
-                "cause": (
-                    "All %(count)d requested packages were not found in the "
-                    "configured channels."
                 )
-                % {"count": len(self.packages)},
-                "hints": [
-                    {
-                        "text": (
-                            "Verify the expected channels are listed:\n"
-                            "      conda config --show channels"
-                        ),
-                        "hint_code": "check_channel_config",
-                    },
-                    {
-                        "text": (
-                            "Confirm the platform (subdir) matches your system:\n"
-                            "      conda info"
-                        ),
-                        "hint_code": "check_platform_subdir",
-                    },
-                    {
-                        "text": (
-                            "Clear the index cache, then retry:\n      conda clean -i"
-                        ),
-                        "hint_code": "clear_index_cache",
-                    },
-                ],
-            }
+            # Below 5 packages there is no summary: the message already lists
+            # the packages and channels, so keep it as the headline.
 
         super().__init__(
             message,
