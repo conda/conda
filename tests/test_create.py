@@ -1103,6 +1103,7 @@ def test_install_bad_metadata(
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    temp_package_cache: Path,
 ):
     with tmp_env() as prefix:
         bad_metadata = prefix / "bad_metadata.yml"
@@ -1259,6 +1260,7 @@ def test_remove_includes_dependencies(
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
+    temp_package_cache: Path,
 ):
     with tmp_env("small-executable", "dependent", "another_dependent") as prefix:
         assert package_is_installed(prefix, "another_dependent")
