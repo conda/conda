@@ -930,6 +930,17 @@ class PackagesNotFoundInChannelsError(PackagesNotFoundError):
         channel_urls: Iterable[str],
     ):
         super().__init__(packages, channel_urls=channel_urls)
+        if self.guidance is not None and len(self.packages) < 5:
+            # Channel-specific summary naming what was searched for; the
+            # bulk summary above 5 packages already covers this case.
+            from dataclasses import replace
+
+            names = ", ".join(str(package) for package in self.packages)
+            verb = "is" if len(self.packages) == 1 else "are"
+            self._guidance = replace(
+                self.guidance,
+                summary=f"{names} {verb} not available from the configured channels.",
+            )
 
 
 class PackageNotInstalledError(PackagesNotFoundError):

@@ -1638,6 +1638,28 @@ def test_PackagesNotFoundError_few_packages_printed_output(
     assert "Traceback" not in stderr
 
 
+@pytest.mark.parametrize(
+    "packages,expected_summary",
+    [
+        (["single-pkg"], "single-pkg is not available from the configured channels."),
+        (["pkg-a", "pkg-b"], "pkg-a, pkg-b are not available from the configured"),
+        ([f"pkg{i}" for i in range(5)], "Many packages are unavailable"),
+    ],
+)
+def test_PackagesNotFoundInChannelsError_guidance_summary(
+    packages: list[str],
+    expected_summary: str,
+) -> None:
+    exc = PackagesNotFoundInChannelsError(
+        packages,
+        ["https://repo.anaconda.org/pkgs/main"],
+    )
+    assert exc.guidance is not None
+    assert exc.guidance.summary is not None
+    assert exc.guidance.summary.startswith(expected_summary)
+    assert exc.dump_map()["guidance"]["summary"] == exc.guidance.summary
+
+
 def test_UnsatisfiableError_guidance() -> None:
     exc = UnsatisfiableError({})
     assert exc.guidance is not None
