@@ -36,7 +36,7 @@ dependencies:
   - weasyprint>=69.0
   - conda-libmamba-solver>=26.10.0
   - conda-rattler-solver>=26.10.2
-  - conda-pypi::fontpkg-poppins>=4.4
   - pip>25
   - pip:
       - sphinxcontrib-plantuml==0.31
+      - fontpkg-poppins>=4.4
