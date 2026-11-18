@@ -1,4 +1,4 @@
-create environment with Python version,``conda create --name ENVNAME python=3.10``
+create environment with Python version,``conda create --name ENVNAME python=3.12``
 clone environment,``conda create --clone ENVNAME --name NEWENV``
 rename environment,``conda rename --name ENVNAME NEWENVNAME``
 delete environment by name,``conda remove --name ENVNAME --all``

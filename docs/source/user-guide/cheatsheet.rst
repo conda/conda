@@ -4,25 +4,18 @@ Cheatsheet
 
 The conda cheatsheet contains the most important information about using conda, such as basic commands for creating and managing environments, installing packages, and importing and exporting environments.
 
-See the :download:`conda cheatsheet <conda-cheatsheet.pdf>` for a PDF version.
-
-**Versions**
+See the :cheatsheet-pdf:`conda cheatsheet` for a PDF version.
 
 ..
-    Maintainers! When updating the following list, please make sure to
-    update the filesystem symlink "conda-cheatsheet.pdf" to the latest
-    version as well, to keep the URL of the conda cheetsheet the same.
-    Thank you!
+    Maintainers! The cheatsheet PDF is generated from the tables below every
+    time the documentation is built (see the "conda_cheatsheet" extension),
+    so there is no list of versions or symlink to update.
 
-- :download:`conda 25.3.1 <cheatsheets/conda-25.3.1.pdf>` (latest)
-
-- :download:`conda 24.4.0 <cheatsheets/conda-24.4.0.pdf>`
-
-- :download:`conda 4.14.x <cheatsheets/conda-4.14.pdf>`
-
-- :download:`conda 4.12.x <cheatsheets/conda-4.12.pdf>`
-
-- :download:`conda 4.6.x <cheatsheets/conda-4.6.pdf>`
+    The PDFs in "cheatsheets/" (conda-25.3.1.pdf, conda-24.4.0.pdf,
+    conda-4.14.pdf, conda-4.12.pdf and conda-4.6.pdf) are intentionally no
+    longer listed on this page. They are only kept so that links to them,
+    which are published as "_downloads/<hash>/conda-*.pdf", keep working.
+    Do not delete them.
 
 Quickstart
 ==========

@@ -259,6 +259,9 @@ select = [
   "ANN",  # flake8-annotations
   "D1",  # pydocstyle
 ]
+"docs/tests/*" = [
+  "S101",  # forbid assert
+]
 "tests/*" = [
   "ANN",  # flake8-annotations
   "D1",  # pydocstyle

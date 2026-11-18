@@ -45,6 +45,7 @@ jobs:
       pull-requests: read
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      docs: ${{ steps.filter.outputs.docs }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -62,6 +63,15 @@ jobs:
               - 'tests/**'
               - 'recipe/**'
               - '.github/workflows/benchmarks.yml'
+              - '.github/workflows/tests.yml'
+            docs:
+              - 'docs/source/_extensions/**'
+              - 'docs/build-assets/**'
+              - 'docs/source/user-guide/cheatsheet.rst'
+              - 'docs/source/user-guide/cheatsheets/**'
+              - 'docs/environment.yml'
+              - 'docs/pytest.ini'
+              - 'docs/tests/**'
               - '.github/workflows/tests.yml'
 
   # windows test suite
@@ -519,6 +529,68 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # linux docs
+  linux-docs:
+    # only run docs tests if the Sphinx extensions (or the data/assets/tests
+    # they depend on) changed; kept separate from the main test matrix so
+    # weasyprint and its native libraries are only installed here
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: bash -el {0}  # bash exit immediately on error + login shell
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Hash + Timestamp
+        run: |
+          STEM="${{ runner.os }}-${{ runner.arch }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}-conda-forge-docs" >> $GITHUB_ENV
+
+      - name: Cache Conda
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/conda_pkgs_dir/*.tar.bz2
+            ~/conda_pkgs_dir/*.conda
+          key: cache-${{ env.CACHE_KEY }}
+
+      - name: Setup Miniconda
+        # docs/environment.yml is resolved against conda-forge (as on Read the Docs)
+        uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
+        with:
+          condarc-file: .github/condarc-conda-forge
+          miniforge-version: latest
+          # docs/environment.yml holds both the docs build and docs test
+          # dependencies so everything lives in a single (activated) environment
+          activate-environment: docs
+          environment-file: docs/environment.yml
+          run-post: false  # skip post cleanup
+        timeout-minutes: 15
+
+      - name: Conda Info
+        # view docs env info (not base)
+        run: conda info --verbose
+
+      - name: Conda Config
+        run: conda config --show-sources
+
+      - name: Conda List
+        run: conda list --show-channel-urls
+
+      - name: Run Docs Tests
+        # uses docs/pytest.ini, not the project pytest settings in pyproject.toml
+        run: python -m pytest
+        working-directory: docs
+        timeout-minutes: 15
+
   # linux typing
   linux-typing:
     # only run test suite if there are code changes
@@ -909,7 +981,7 @@ jobs:
 
   # required check
   analyze:
-    needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
+    needs: [windows, linux, linux-docs, linux-qemu, linux-benchmarks, macos, aggregate]
     if: '!cancelled()'
 
     runs-on: ubuntu-slim
