@@ -128,6 +128,34 @@ def test_render_pdf_has_two_pages(cheatsheet, tmp_path):
     assert pages == 2
 
 
+def test_render_pdf_embeds_poppins(cheatsheet, tmp_path):
+    pytest.importorskip("weasyprint")
+    pypdf = pytest.importorskip("pypdf")
+    target = tmp_path / "cheatsheet.pdf"
+    cheatsheet.render_pdf(target, "0.0.0")
+    base_fonts = {
+        str(font.get_object()["/BaseFont"])
+        for page in pypdf.PdfReader(target).pages
+        for font in page["/Resources"]["/Font"].values()
+    }
+    assert base_fonts
+    assert all("Poppins" in name for name in base_fonts)
+
+
+@pytest.mark.parametrize("weight", [400, 600, 700])
+def test_font_face_css_points_to_existing_font_files(cheatsheet, weight):
+    pytest.importorskip("fontpkg_poppins")
+    css = cheatsheet.font_face_css()
+    assert f"font-weight: {weight};" in css
+    path = cheatsheet.fontpkg.path("Poppins", weight)
+    assert path.is_file()
+    assert path.as_uri() in css
+
+
+def test_fonts_are_not_vendored():
+    assert not (DOCS_SOURCE.parent / "build-assets" / "cheatsheet" / "fonts").exists()
+
+
 @pytest.mark.parametrize(
     "source_path,expected",
     [

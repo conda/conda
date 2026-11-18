@@ -22,7 +22,8 @@ requiring the file to exist when the page is read.
 WeasyPrint (and its native libraries) is a docs build dependency; if it is
 unavailable or rendering fails, the docs build fails.
 
-The PDF-only assets (template, stylesheet, fonts, logo) live in
+The Poppins font is provided by the ``fontpkg-poppins`` package rather than
+vendored. The PDF-only assets (template, stylesheet, logo) live in
 ``docs/build-assets/cheatsheet`` rather than under ``_static`` so they are not
 published alongside the site.
 """
@@ -39,6 +40,7 @@ from html import escape
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import fontpkg
 from docutils import nodes
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup
@@ -57,6 +59,11 @@ log = logging.getLogger(__name__)
 
 PDF_NAME = "conda-cheatsheet.pdf"
 PDF_STATIC_PATH = Path("_static") / PDF_NAME
+
+# Poppins comes from the ``fontpkg-poppins`` package (OFL-1.1) instead of being
+# vendored; the weights are the ones used by ``cheatsheet.css``.
+FONT_FAMILY = "Poppins"
+FONT_WEIGHTS = (400, 600, 700)
 
 # Sphinx publishes ``:download:`` files at ``_downloads/<md5 of the source path
 # relative to the docs source dir>/<file name>``. These paths are public, so
@@ -179,6 +186,15 @@ def render_html(data: dict[str, Any], version: str) -> str:
     return template.render(**build_context(data, version))
 
 
+def font_face_css() -> str:
+    """Return ``@font-face`` rules for the Poppins files from ``fontpkg-poppins``."""
+    return "\n".join(
+        f'@font-face {{ font-family: "{FONT_FAMILY}"; font-weight: {weight}; '
+        f'src: url("{fontpkg.path(FONT_FAMILY, weight).as_uri()}"); }}'
+        for weight in FONT_WEIGHTS
+    )
+
+
 def render_pdf(target: Path, version: str, data_file: Path = DATA_FILE) -> int:
     """Render the cheatsheet to ``target`` and return its page count.
 
@@ -189,7 +205,8 @@ def render_pdf(target: Path, version: str, data_file: Path = DATA_FILE) -> int:
     font_config = FontConfiguration()
     document = HTML(string=html, base_url=str(ASSETS_DIR) + "/").render(
         stylesheets=[
-            CSS(filename=str(ASSETS_DIR / "cheatsheet.css"), font_config=font_config)
+            CSS(string=font_face_css(), font_config=font_config),
+            CSS(filename=str(ASSETS_DIR / "cheatsheet.css"), font_config=font_config),
         ],
         font_config=font_config,
     )

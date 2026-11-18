@@ -8,24 +8,6 @@
   --rule: #c9cacd;
 }
 
-@font-face {
-  font-family: "Poppins";
-  font-weight: 400;
-  src: url("fonts/Poppins-Regular.ttf");
-}
-
-@font-face {
-  font-family: "Poppins";
-  font-weight: 600;
-  src: url("fonts/Poppins-SemiBold.ttf");
-}
-
-@font-face {
-  font-family: "Poppins";
-  font-weight: 700;
-  src: url("fonts/Poppins-Bold.ttf");
-}
-
 @page {
   size: Letter;
   margin: 0.62in 0 0.55in 0;
