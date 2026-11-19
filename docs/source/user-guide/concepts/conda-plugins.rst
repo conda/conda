@@ -114,8 +114,12 @@ Answering yes applies only to the freeze. If conda prompts you to confirm
 the package transaction, it does so separately. The ``conda-meta/frozen`` file
 stays in place.
 
-For a script, use ``--override-frozen`` to authorize the override explicitly.
-``--yes`` alone does not override a freeze.
+Use ``--dry-run`` to preview the transaction or ``--dry-run --json`` to read the
+plan in a script. Use ``--download-only`` to populate the package cache. These
+operations leave the installed packages in place and need no freeze override.
+
+For a script that installs packages, use ``--override-frozen`` to authorize the
+override explicitly. ``--yes`` alone does not override a freeze.
 
 
 Inspecting plugins

@@ -264,6 +264,13 @@ def validate_install_command(
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
 
     if command in ("install", "update", "remove"):
+        if frozen_override_prompt is not None and (
+            context.dry_run or context.download_only
+        ):
+            # A plugin preview or cache download does not modify the target environment.
+            prefix_data.assert_environment()
+            return
+
         try:
             prefix_data.assert_writable()
         except DirectoryNotACondaEnvironmentError as exc:
@@ -279,7 +286,6 @@ def validate_install_command(
                 if (
                     frozen_override_prompt is None
                     or context.always_yes
-                    or context.dry_run
                     or context.console == DEFAULT_JSON_REPORTER_BACKEND
                     or not is_interactive_tty()
                 ):

@@ -67,6 +67,32 @@ def frozen_base(
 
 
 @pytest.fixture
+def plugin_channel(tmp_repodata_channel: TmpRepodataChannelFixture) -> tuple[str, Path]:
+    import tarfile
+    from io import BytesIO
+
+    name = "example-plugin"
+    entry_points = "example_plugin-1.0.dist-info/entry_points.txt"
+    index = dict(name=name, version="1.0", build="0", build_number=0, subdir="noarch")
+    buffer = BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w:bz2") as tar:
+        for path, content in {
+            "info/index.json": json.dumps(index),
+            "info/files": f"{entry_points}\nexample_plugin.py\n",
+            "example_plugin.py": "",
+            entry_points: "[conda]\nexample = example_plugin\n",
+        }.items():
+            member = tarfile.TarInfo(path)
+            data = content.encode()
+            member.size = len(data)
+            tar.addfile(member, BytesIO(data))
+    channel, url = tmp_repodata_channel([{**index, "size": buffer.tell()}])
+    archive = channel / "noarch" / f"{name}-1.0-0.tar.bz2"
+    archive.write_bytes(buffer.getvalue())
+    return url, archive
+
+
+@pytest.fixture
 def plugin_manager_with_test_plugin(
     plugin_manager_with_plugins_command: CondaPluginManager,
 ) -> CondaPluginManager:
@@ -254,48 +280,16 @@ def test_plugins_install_delegates_to_conda_install(
 def test_plugins_install_confirms_frozen_base_once(
     conda_cli: CondaCLIFixture,
     frozen_base: Path,
-    tmp_repodata_channel: TmpRepodataChannelFixture,
+    plugin_channel: tuple[str, Path],
     tmp_pkgs_dir: Path,
     monkeypatch: MonkeyPatch,
 ):
-    import tarfile
-    from io import BytesIO
-
     from conda.core.prefix_data import PrefixData
 
     name = "example-plugin"
-    channel, url = tmp_repodata_channel([{"name": name}])
-    archive = channel / "noarch" / f"{name}-1.0-0.tar.bz2"
-    entry_points = "example_plugin-1.0.dist-info/entry_points.txt"
-    index = dict(name=name, version="1.0", build="0", build_number=0, subdir="noarch")
-    with tarfile.open(archive, "w:bz2") as tar:
-        for path, content in {
-            "info/index.json": json.dumps(index),
-            "info/files": f"{entry_points}\nexample_plugin.py\n",
-            "example_plugin.py": "",
-            entry_points: "[conda]\nexample = example_plugin\n",
-        }.items():
-            member = tarfile.TarInfo(path)
-            data = content.encode()
-            member.size = len(data)
-            tar.addfile(member, BytesIO(data))
-
+    url, _ = plugin_channel
     marker = frozen_base / "conda-meta" / "frozen"
     contents = marker.read_bytes()
-    monkeypatch.setattr("sys.stdin", StringIO("yes\n"))
-    conda_cli(
-        "plugins",
-        "install",
-        "-n",
-        "base",
-        "--download-only",
-        archive,
-        raises=CondaExitZero,
-    )
-    assert not (frozen_base / entry_points).exists()
-    assert PrefixData(frozen_base).get(name, None) is None
-    assert marker.read_bytes() == contents
-
     args = (
         "plugins",
         "install",
@@ -323,6 +317,100 @@ def test_plugins_install_confirms_frozen_base_once(
     monkeypatch.setattr("sys.stdin", StringIO("\n"))
     stdout, _, _ = conda_cli(*args, raises=EnvironmentIsFrozenError)
     assert "(y/[n])?" in stdout
+
+
+@pytest.mark.parametrize("json_output", (False, True), ids=("console", "json"))
+def test_plugins_install_dry_run_in_frozen_base(
+    conda_cli: CondaCLIFixture,
+    frozen_base: Path,
+    plugin_channel: tuple[str, Path],
+    tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
+    json_output: bool,
+):
+    from conda.core.prefix_data import PrefixData
+    from conda.exceptions import DryRunExit
+
+    url, archive = plugin_channel
+    marker = frozen_base / "conda-meta" / "frozen"
+    history = frozen_base / "conda-meta" / "history"
+    original_marker, original_history = marker.read_bytes(), history.read_bytes()
+    mocker.patch("conda.cli.install.is_interactive_tty", return_value=not json_output)
+    check_writable = mocker.patch(
+        "conda.core.prefix_data.file_path_is_writable", return_value=False
+    )
+    stdout, stderr, _ = conda_cli(
+        "plugins",
+        "install",
+        "-n",
+        "base",
+        "--dry-run",
+        "--solver=classic",
+        "--override-channels",
+        "-c",
+        url,
+        *(("--json",) if json_output else ()),
+        "example-plugin",
+        raises=DryRunExit,
+    )
+
+    check_writable.assert_not_called()
+    if json_output:
+        plan = json.loads(stdout)
+        assert plan["dry_run"]
+        assert [record["name"] for record in plan["actions"]["LINK"]] == [
+            "example-plugin"
+        ]
+    else:
+        assert "Package Plan" in stdout
+        assert "example-plugin" in stdout
+    assert "Override the freeze" not in stdout + stderr
+    assert PrefixData(frozen_base).get("example-plugin", None) is None
+    assert marker.read_bytes() == original_marker
+    assert history.read_bytes() == original_history
+    assert not (tmp_pkgs_dir / archive.name).exists()
+    assert not (tmp_pkgs_dir / "example-plugin-1.0-0").exists()
+
+
+@pytest.mark.parametrize("explicit", (False, True), ids=("solver", "archive"))
+def test_plugins_install_download_only_in_frozen_base(
+    conda_cli: CondaCLIFixture,
+    frozen_base: Path,
+    plugin_channel: tuple[str, Path],
+    tmp_pkgs_dir: Path,
+    mocker: MockerFixture,
+    explicit: bool,
+):
+    from conda.core.prefix_data import PrefixData
+
+    url, archive = plugin_channel
+    marker = frozen_base / "conda-meta" / "frozen"
+    history = frozen_base / "conda-meta" / "history"
+    original_marker, original_history = marker.read_bytes(), history.read_bytes()
+    mocker.patch("conda.cli.install.is_interactive_tty", return_value=False)
+    args = (
+        "plugins",
+        "install",
+        "-n",
+        "base",
+        "--yes",
+        "--solver=classic",
+        "--override-channels",
+        "-c",
+        url,
+        archive if explicit else "example-plugin",
+    )
+    stdout, stderr, _ = conda_cli(*args, "--download-only", raises=CondaExitZero)
+
+    assert "Override the freeze" not in stdout + stderr
+    assert (tmp_pkgs_dir / "example-plugin-1.0-0" / "example_plugin.py").is_file()
+    assert not (frozen_base / "example_plugin.py").exists()
+    assert PrefixData(frozen_base).get("example-plugin", None) is None
+    assert marker.read_bytes() == original_marker
+    assert history.read_bytes() == original_history
+
+    _, _, exc = conda_cli(*args, raises=EnvironmentIsFrozenError)
+    assert "Frozen by admin" in str(exc.value)
 
 
 @pytest.mark.parametrize(
@@ -383,10 +471,9 @@ def test_plugins_install_requires_yes_from_reporter(
         (False, (), False),
         (True, ("--json",), False),
         (True, ("--yes",), False),
-        (True, ("--dry-run",), False),
         (True, (), True),
     ),
-    ids=("non-tty", "json", "yes", "dry-run", "always-yes"),
+    ids=("non-tty", "json", "yes", "always-yes"),
 )
 def test_plugins_install_rejects_implicit_frozen_override(
     conda_cli: CondaCLIFixture,
