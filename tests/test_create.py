@@ -1099,14 +1099,14 @@ def test_tarball_install(
         assert not package_is_installed(prefix, "dependent")
 
 
-def test_install_bad_metadata(
+def test_install_package_in_env_file_does_not_exist(
     test_recipes_channel: Path,
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     temp_package_cache: Path,
 ):
     with tmp_env() as prefix:
-        bad_metadata = prefix / "bad_metadata.yml"
+        bad_metadata = prefix / "environment.yml"
         bad_metadata.write_text(
             dals(
                 """
@@ -1116,9 +1116,13 @@ def test_install_bad_metadata(
                 """
             )
         )
-        with pytest.raises((InvalidMatchSpec, PackagesNotFoundError)):
-            conda_cli("install", f"--prefix={prefix}", bad_metadata, "--yes")
-            assert not package_is_installed(prefix, "something-made-up")
+
+        with pytest.raises(
+            (InvalidMatchSpec, PackagesNotFoundError), match="something-made-up"
+        ):
+            conda_cli("install", f"--prefix={prefix}", "--file", bad_metadata, "--yes")
+
+        assert not package_is_installed(prefix, "something-made-up")
 
 
 def test_update_with_pinned_packages(
