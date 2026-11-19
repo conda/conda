@@ -17,6 +17,34 @@ modifying, and writing conda configuration files (`.condarc`). It handles:
 - Atomic file operations via context manager
 - Support for sequence, map, and primitive parameters
 
+## Concurrent edits
+
+`ConfigurationFile` records the resolved target, contents, file identity, and file
+metadata when reading. If these change before a write, including a replacement
+with identical contents, writing raises `CondaError`. Read the file again and
+reapply the intended changes before retrying. A failed conflict check leaves the
+competing file intact. Writing to another path starts tracking that destination
+when `write()` begins. Supplying `content=` without reading does the same.
+
+Writers using this API coordinate through a persistent `<target>.lock` file next
+to the resolved target. The lock covers the final conflict check and replacement.
+It also serializes writers in the same process. The lock file must be writable by
+the cooperating editors and must not be removed between writes. The `no_lock`
+setting affects the index cache and does not disable configuration locking.
+An unchanged write does not create a lock file or require a writable directory.
+
+The containing directory and its parent directories must be controlled by trusted
+users. conda checks observed changes to the destination, lock file, and staged
+file, but these checks and replacement are separate operations. An editor that
+does not take the same lock can still modify or replace a file after a check.
+File timestamps also depend on the operating system and filesystem. In particular,
+Python 3.10 reports creation time as `st_ctime` on Windows, so checking it does not
+detect every Windows access-control change. These checks do not provide
+conditional replacement against arbitrary writers or hostile directory changes.
+
+After replacement, the instance retains the contents and identity it committed.
+It does not adopt another writer's replacement as the baseline for its next edit.
+
 ## Basic Usage
 
 ### Reading Configuration
