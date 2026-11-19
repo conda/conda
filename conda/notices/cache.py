@@ -27,6 +27,7 @@ from ..base.constants import (
 )
 from ..common.serialize import json
 from ..exceptions import CondaError
+from ..gateways.disk.write import write_file
 from .types import ChannelNoticeResponse
 
 if TYPE_CHECKING:
@@ -139,8 +140,8 @@ def write_notice_response_to_cache(
         channel_notice_response.url, cache_dir
     )
 
-    with open(cache_key, "w") as fp:
-        json.dump(channel_notice_response.json_data, fp)
+    text = json.dumps(channel_notice_response.json_data)
+    write_file(cache_key, text.replace("\n", os.linesep).encode("utf-8"))
 
 
 def mark_channel_notices_as_viewed(
@@ -188,12 +189,14 @@ def clear_cache() -> None:
     Per-channel cached response files are still removed when possible, but
     any ``OSError`` raised while unlinking them is ignored for the same
     reason.
+    Persistent lock files are retained so concurrent writers keep using the
+    same lock.
     """
     cache_dir = get_notices_cache_dir()
     notices_cache = cache_dir / NOTICES_CACHE_FN
 
     for cache_file in cache_dir.iterdir():
-        if not cache_file.is_file():
+        if cache_file.suffix == ".lock" or not cache_file.is_file():
             continue
         if cache_file == notices_cache:
             try:

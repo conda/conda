@@ -1465,7 +1465,7 @@ def test_config_write_serializes_threads(tmp_path: Path, mocker: MockerFixture) 
     from concurrent.futures import ThreadPoolExecutor
     from threading import Event
 
-    from conda.cli import condarc
+    from conda.gateways.disk import write as disk_write
 
     path = tmp_path / ".condarc"
     path.write_text("changeps1: true\n")
@@ -1475,7 +1475,7 @@ def test_config_write_serializes_threads(tmp_path: Path, mocker: MockerFixture) 
     second.set_key("always_yes", True)
     replacing = Event()
     second_waiting = Event()
-    write_lock = condarc._write_lock
+    write_lock = disk_write._write_lock
     replace = os.replace
 
     class ObservedLock:
@@ -1492,7 +1492,7 @@ def test_config_write_serializes_threads(tmp_path: Path, mocker: MockerFixture) 
         assert second_waiting.wait(10)
         replace(source, destination)
 
-    mocker.patch.object(condarc, "_write_lock", ObservedLock())
+    mocker.patch.object(disk_write, "_write_lock", ObservedLock())
     mocker.patch("os.replace", side_effect=wait_for_second_writer)
     with ThreadPoolExecutor(max_workers=2) as executor:
         first_write = executor.submit(first.write)
@@ -1575,14 +1575,14 @@ def test_config_write_after_fork_with_lock_held_by_thread(tmp_path: Path) -> Non
     from multiprocessing import get_context
     from threading import Event, Thread
 
-    from conda.cli import condarc
+    from conda.gateways.disk import write as disk_write
 
     path = tmp_path / ".condarc"
     held = Event()
     release = Event()
 
     def hold_lock() -> None:
-        with condarc._write_lock:
+        with disk_write._write_lock:
             held.set()
             release.wait(20)
 
@@ -1626,7 +1626,7 @@ def test_config_write_accepts_windows_timestamps_finalized_on_close(
 ) -> None:
     from types import SimpleNamespace
 
-    from conda.cli import condarc
+    from conda.gateways.disk import write as disk_write
 
     path = tmp_path / ".condarc"
     path.write_text("changeps1: true\n")
@@ -1660,8 +1660,8 @@ def test_config_write_accepts_windows_timestamps_finalized_on_close(
         pending.st_ctime_ns -= 1
         return pending
 
-    mocker.patch.object(condarc, "on_win", True)
-    mocker.patch.object(condarc, "on_mac", False)
+    mocker.patch.object(disk_write, "on_win", True)
+    mocker.patch.object(disk_write, "on_mac", False)
     mocker.patch("os.fsync", side_effect=sync_with_pending_timestamps)
     mocker.patch("os.fstat", side_effect=stat_with_pending_timestamps)
     config.write()
@@ -1730,14 +1730,14 @@ def test_config_read_rejects_descriptor_metadata_change(
 def test_config_write_rejects_staged_file_change(
     tmp_path: Path, mocker: MockerFixture, mutation: str
 ) -> None:
-    from conda.cli import condarc
+    from conda.gateways.disk import write as disk_write
 
     path = tmp_path / ".condarc"
     original = "changeps1: true\n"
     path.write_text(original)
     config = ConfigurationFile(path)
     config.set_key("changeps1", False)
-    read_file = condarc._read_file
+    read_file = disk_write._read_file
     staged = None
 
     def change_after_staged_read(candidate: Path):
@@ -1756,7 +1756,7 @@ def test_config_write_rejects_staged_file_change(
                 )
         return result
 
-    mocker.patch.object(condarc, "_read_file", side_effect=change_after_staged_read)
+    mocker.patch.object(disk_write, "_read_file", side_effect=change_after_staged_read)
     with pytest.raises(conda.exceptions.CondaError, match="file changed while writing"):
         config.write()
 
