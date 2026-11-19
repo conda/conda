@@ -603,26 +603,21 @@ def test_conda_update_package_is_not_name_only_spec(
 def test_noarch_python_package_with_entry_points(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
-    """
-    Makes sure that entry point file is installed.
-
-    This test uses "pygments" as a Python package because it has no other dependencies and has an
-    entry point script, "pygmentize".
-    """
-    with tmp_env("pygments", PYTHON_SPEC) as prefix:
+    with tmp_env(
+        f"{TEST_RECIPES_CHANNEL.as_uri()}::small-python-package",
+        PYTHON_SPEC,
+    ) as prefix:
         python_record = PrefixData(prefix).get("python")
         py_ver = get_major_minor_version(python_record.version)
         sp_dir = (
             python_record.python_site_packages_path
             or get_python_site_packages_short_path(py_ver)
         )
-        py_file = sp_dir + "/pygments/__init__.py"
+        py_file = sp_dir + "/small_python_package/__init__.py"
         pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
         assert (prefix / pyc_file).is_file()
-        exe_path = (
-            prefix / BIN_DIRECTORY / ("pygmentize.exe" if on_win else "pygmentize")
-        )
+        exe_path = prefix / BIN_DIRECTORY / ("spp.exe" if on_win else "spp")
         assert exe_path.is_file()
         if context.subdir == "win-arm64":
             assert PrefixData(prefix).get("python").subdir == "win-arm64"
@@ -631,9 +626,11 @@ def test_noarch_python_package_with_entry_points(
             )
             assert compute_sum(exe_path, "sha256") == compute_sum(launcher, "sha256")
         output = check_output([exe_path, "--help"], text=True)
-        assert "usage: pygmentize" in output
+        assert "usage: spp" in output
 
-        conda_cli("remove", f"--prefix={prefix}", "pygments", "--yes")
+        conda_cli(
+            "remove", f"--prefix={prefix}", "small-python-package", "--force", "--yes"
+        )
 
         assert not (prefix / py_file).is_file()
         assert not (prefix / pyc_file).is_file()

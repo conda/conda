@@ -41,7 +41,8 @@ conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/conda
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/python
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/run_constrained
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/sample_noarch_python
-# non-conda recipe $RECIPES_DIR/small_python_package
+# non-conda recipe $RECIPES_DIR/small_python_package (source for small-python-package)
+conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/small-python-package
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/small-executable
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/track_feature
 conda build --output-folder $TEST_RECIPES_DIR $RECIPES_DIR/unsatisfiable --no-test
