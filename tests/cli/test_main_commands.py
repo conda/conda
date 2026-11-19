@@ -15,10 +15,10 @@ def test_commands(conda_cli: CondaCLIFixture) -> None:
     stdout, stderr, rc = conda_cli("commands")
 
     assert rc == 0, f"conda commands failed ({rc}): {stderr}"
-    assert stdout.splitlines() == sorted(
-        {
-            *BUILTIN_COMMANDS,
-            *context.plugin_manager.get_subcommands(),
-        }
-    )
+    plugin_commands = {
+        name
+        for subcommand in context.plugin_manager.get_subcommands().values()
+        for name in (subcommand.name, *subcommand.aliases)
+    }
+    assert stdout.splitlines() == sorted(BUILTIN_COMMANDS | plugin_commands)
     assert not stderr
