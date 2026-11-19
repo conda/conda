@@ -956,6 +956,7 @@ class PackageNotInstalledError(PackagesNotFoundError):
         from .common.io import dashlist
 
         if isinstance(package_name, str):
+            names = (package_name,)
             message = dals(
                 """
                 Package is not installed in prefix.
@@ -965,6 +966,7 @@ class PackageNotInstalledError(PackagesNotFoundError):
             )
         else:
             package_name = tuple(package_name)
+            names = package_name
             message = dals(
                 """
                 The following packages are missing from the target environment:
@@ -972,6 +974,17 @@ class PackageNotInstalledError(PackagesNotFoundError):
                 %(packages_formatted)s
                 """
             )
+
+        if len(names) == 1:
+            summary = f"{names[0]} is not installed in {prefix}."
+            cause = "The target environment does not contain this package."
+        elif len(names) < 5:
+            joined = ", ".join(str(name) for name in names)
+            summary = f"{joined} are not installed in {prefix}."
+            cause = "The target environment does not contain these packages."
+        else:
+            summary = f"{len(names)} packages are not installed in {prefix}."
+            cause = "The target environment does not contain these packages."
 
         # We call CondaError directly here because PackagesNotFoundError decides
         # the behaviour based on channel_urls, but this is a case of the package(s)
@@ -984,6 +997,30 @@ class PackageNotInstalledError(PackagesNotFoundError):
             packages_formatted=dashlist(package_name)
             if not isinstance(package_name, str)
             else "",
+            guidance={
+                "summary": summary,
+                "cause": cause,
+                "hints": [
+                    {
+                        "text": (
+                            "List the packages installed there:\n"
+                            f"      conda list -p {prefix}"
+                        ),
+                        "hint_code": "check_prefix_contents",
+                    },
+                    {
+                        "text": (
+                            "Confirm this is the environment you meant to target:\n"
+                            "      conda info --envs"
+                        ),
+                        "hint_code": "check_target_prefix",
+                    },
+                    {
+                        "text": "Check that the package name is spelled correctly.",
+                        "hint_code": "check_package_name",
+                    },
+                ],
+            },
         )
 
 

@@ -30,8 +30,10 @@ from conda.exceptions import (
     LinkError,
     LinkScriptError,
     LinkSourceNotFoundError,
+    PackageNotInstalledError,
     PackagesNotFoundError,
     PackagesNotFoundInChannelsError,
+    PackagesNotFoundInPrefixError,
     PathNotFoundError,
     PlatformMismatchError,
     ProxyError,
@@ -1658,6 +1660,26 @@ def test_PackagesNotFoundInChannelsError_guidance_summary(
     assert exc.guidance.summary is not None
     assert exc.guidance.summary.startswith(expected_summary)
     assert exc.dump_map()["guidance"]["summary"] == exc.guidance.summary
+
+
+def test_PackageNotInstalledError_guidance() -> None:
+    exc = PackageNotInstalledError("/tmp/env", "numpy")
+    assert exc.guidance is not None
+    assert exc.guidance.summary == "numpy is not installed in /tmp/env."
+    assert exc.dump_map()["guidance"]["hint_codes"] == (
+        "check_prefix_contents",
+        "check_target_prefix",
+        "check_package_name",
+    )
+
+
+def test_PackagesNotFoundInPrefixError_inherits_guidance() -> None:
+    # Alias of PackageNotInstalledError: same guidance, no duplicate copy
+    exc = PackagesNotFoundInPrefixError(["numpy", "scipy"], prefix="/tmp/env")
+    parent = PackageNotInstalledError("/tmp/env", ["numpy", "scipy"])
+    assert exc.guidance is not None and parent.guidance is not None
+    assert exc.guidance.summary == "numpy, scipy are not installed in /tmp/env."
+    assert exc.guidance.hint_codes == parent.guidance.hint_codes
 
 
 def test_UnsatisfiableError_guidance() -> None:
