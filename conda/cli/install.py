@@ -17,12 +17,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ..base.constants import (
+    DEFAULT_JSON_REPORTER_BACKEND,
     REPODATA_FN,
     UpdateModifier,
 )
 from ..base.context import context
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..common.constants import NULL
+from ..common.terminal import is_interactive_tty
 from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
@@ -58,13 +60,12 @@ from ..models.channel import all_channel_urls
 from ..models.environment import Environment
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
-from ..reporters import confirm_yn, get_spinner
+from ..reporters import confirm_yn, get_spinner, prompt
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from typing import Any
 
 log = getLogger(__name__)
@@ -238,7 +239,7 @@ def validate_install_command(
     prefix: str,
     command: str = "install",
     *,
-    confirm_frozen: Callable[[EnvironmentIsFrozenError], bool] | None = None,
+    frozen_override_prompt: str | None = None,
 ):
     """Executes a set of validations that are required before any installation
     command is executed. This includes:
@@ -249,7 +250,7 @@ def validate_install_command(
     Args:
         prefix: The prefix where the environment will be created
         command: Type of operation being performed
-        confirm_frozen: Optional prompt for a one-time override of the target freeze.
+        frozen_override_prompt: Question to ask before overriding a freeze for this operation.
 
     Raises:
         error if the configuration for the install is bad
@@ -275,7 +276,23 @@ def validate_install_command(
             try:
                 prefix_data.assert_not_frozen()
             except EnvironmentIsFrozenError as exc:
-                if confirm_frozen is None or not confirm_frozen(exc):
+                if (
+                    frozen_override_prompt is None
+                    or context.always_yes
+                    or context.dry_run
+                    or context.console == DEFAULT_JSON_REPORTER_BACKEND
+                    or not is_interactive_tty()
+                ):
+                    raise
+                try:
+                    choice = prompt(
+                        f"{exc}\n\n{frozen_override_prompt}",
+                        choices=("yes", "no"),
+                        default="no",
+                    )
+                except KeyboardInterrupt:
+                    choice = None
+                if choice != "yes":
                     raise
 
 
@@ -312,7 +329,7 @@ def install(args, parser, command="install"):
     validate_install_command(
         prefix=prefix,
         command=command,
-        confirm_frozen=getattr(args, "_confirm_frozen", None),
+        frozen_override_prompt=getattr(args, "_frozen_override_prompt", None),
     )
 
     if context.use_only_tar_bz2:

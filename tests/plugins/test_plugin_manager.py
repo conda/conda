@@ -56,7 +56,7 @@ def frozen_base(
     mocker: MockerFixture,
 ) -> Iterator[Path]:
     mocker.patch(
-        "conda.plugins.subcommands.plugins.install.is_interactive_tty",
+        "conda.cli.install.is_interactive_tty",
         return_value=True,
     )
     with tmp_env() as prefix:
@@ -363,9 +363,7 @@ def test_plugins_install_requires_yes_from_reporter(
     frozen_base: Path,
     mocker: MockerFixture,
 ):
-    prompt = mocker.patch(
-        "conda.plugins.subcommands.plugins.install.prompt", return_value=None
-    )
+    prompt = mocker.patch("conda.cli.install.prompt", return_value=None)
     _, _, exc = conda_cli(
         "plugins",
         "install",
@@ -400,7 +398,7 @@ def test_plugins_install_rejects_implicit_frozen_override(
     always_yes: bool,
 ):
     mocker.patch(
-        "conda.plugins.subcommands.plugins.install.is_interactive_tty",
+        "conda.cli.install.is_interactive_tty",
         return_value=interactive,
     )
     monkeypatch.setenv("CONDA_ALWAYS_YES", str(always_yes))

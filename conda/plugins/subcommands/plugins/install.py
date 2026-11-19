@@ -7,7 +7,6 @@ from __future__ import annotations
 from functools import partial
 from typing import TYPE_CHECKING
 
-from ....base.constants import DEFAULT_JSON_REPORTER_BACKEND
 from ....base.context import context
 from ....cli import main_install
 from ....cli.helpers import (
@@ -18,9 +17,7 @@ from ....cli.helpers import (
     add_parser_update_modifiers,
 )
 from ....common.constants import NULL
-from ....common.terminal import is_interactive_tty
 from ....core.prefix_data import PrefixData
-from ....reporters import prompt
 from .package_validation import (
     require_conda_packages_only,
     require_explicit_plugin_packages,
@@ -29,8 +26,6 @@ from .package_validation import (
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser, Namespace
-
-    from ....exceptions import EnvironmentIsFrozenError
 
 
 HELP = "Install conda plugin packages into an environment."
@@ -55,25 +50,6 @@ def configure_parser(parser: ArgumentParser) -> None:
     parser.set_defaults(func=execute, _plugin_parser=parser, revision=None)
 
 
-def _confirm_frozen(error: EnvironmentIsFrozenError) -> bool:
-    if (
-        context.always_yes
-        or context.dry_run
-        or context.console == DEFAULT_JSON_REPORTER_BACKEND
-        or not is_interactive_tty()
-    ):
-        return False
-    try:
-        choice = prompt(
-            f"{error}\n\nOverride the freeze for this plugin installation",
-            choices=("yes", "no"),
-            default="no",
-        )
-    except KeyboardInterrupt:
-        return False
-    return choice == "yes"
-
-
 def execute(args: Namespace) -> int:
     args._validate_explicit_packages = require_explicit_plugin_packages
     args._validate_transaction = partial(
@@ -87,7 +63,9 @@ def execute(args: Namespace) -> int:
         and prefix_data.is_base()
         and prefix_data.is_frozen()
     ):
-        args._confirm_frozen = _confirm_frozen
+        args._frozen_override_prompt = (
+            "Override the freeze for this plugin installation"
+        )
         args._validate_environment = partial(
             require_conda_packages_only, command="install"
         )
