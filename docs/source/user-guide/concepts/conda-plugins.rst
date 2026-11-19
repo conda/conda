@@ -104,18 +104,18 @@ The environment must also contain conda, as in the example above:
    conda run --name conda-forge-plugins python -m conda plugins info conda-tree
 
 
-Installing plugins in a protected base environment
---------------------------------------------------
+Installing into a frozen environment
+------------------------------------
 
-With the protected-base Miniconda or Anaconda Distribution installers, use
-``conda plugins install -n base PACKAGE`` to install a plugin into base.
-Conda checks the installer name in ``.installer.info`` and the original
-installer message in ``conda-meta/frozen``. Ordinary installs, updates, and
-removals still require ``--override-frozen``.
+When you run ``conda plugins install -n base PACKAGE`` in a terminal and base
+is :ref:`frozen <frozen-env>`, conda shows the freeze reason and asks whether
+to override it for this installation. Press Enter to leave base untouched.
+Answering yes applies only to the freeze. If conda prompts you to confirm
+the package transaction, it does so separately. The ``conda-meta/frozen`` file
+stays in place.
 
-To freeze plugin installation too, replace the contents of ``conda-meta/frozen``
-with an empty file or your own :ref:`freeze message <frozen-env>`.
-Restoring the original installer message enables plugin installation again.
+For a script, use ``--override-frozen`` to authorize the override explicitly.
+``--yes`` alone does not override a freeze.
 
 
 Inspecting plugins

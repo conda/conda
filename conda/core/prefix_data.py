@@ -69,13 +69,6 @@ if TYPE_CHECKING:
 
 log = getLogger(__name__)
 
-# The installer message includes the final newline.
-_PROTECTED_BASE_FREEZE_MESSAGE = (
-    "Your base environment is protected from direct modifications.\n\n"
-    "To manage conda and its plugins, use conda self:\n"
-    "  conda self --help\n"
-)
-
 
 class PrefixDataType(type):
     """Basic caching of PrefixData instance objects."""
@@ -318,12 +311,10 @@ class PrefixData(metaclass=PrefixDataType):
         if not file_path_is_writable(self._magic_file):
             raise EnvironmentNotWritableError(self.prefix_path)
 
-    def assert_not_frozen(self, *, allow_protected_base: bool = False) -> None:
-        """Raise if a CEP 22 freeze blocks the requested operation.
-
-        Args:
-            allow_protected_base: Allow the original installer freeze for plugin
-                installation in the configured base environment.
+    def assert_not_frozen(self) -> None:
+        """
+        Check whether the environment path is a valid conda environment and is not marked
+        as frozen (as per CEP 22).
 
         Raises:
             EnvironmentIsFrozenError: If the environment is marked as frozen.
@@ -331,25 +322,11 @@ class PrefixData(metaclass=PrefixDataType):
         self.assert_environment()
         if not self.is_frozen():
             return
+        message = ""
         contents = self._frozen_file.read_text()
-        frozen = json.loads(contents) if contents else {}
-        if (
-            allow_protected_base
-            and self.is_base()
-            and frozen == {"message": _PROTECTED_BASE_FREEZE_MESSAGE}
-        ):
-            try:
-                installer = json.loads(
-                    (self.prefix_path / ".installer.info").read_text(encoding="utf-8")
-                )
-            except (OSError, ValueError):
-                installer = None
-            if isinstance(installer, dict) and installer.get("name") in (
-                "Miniconda3-PBE",
-                "Anaconda3-PBE",
-            ):
-                return
-        raise EnvironmentIsFrozenError(self.prefix_path, frozen.get("message", ""))
+        if contents:
+            message = json.loads(contents).get("message", "")
+        raise EnvironmentIsFrozenError(self.prefix_path, message)
 
     def validate_path(self, expand_path: bool = False) -> None:
         """

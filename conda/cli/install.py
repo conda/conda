@@ -37,6 +37,7 @@ from ..exceptions import (
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DryRunExit,
+    EnvironmentIsFrozenError,
     NoBaseEnvironmentError,
     PackageNotInstalledError,
     PackagesNotFoundError,
@@ -63,6 +64,7 @@ from .common import check_non_admin
 from .main_config import set_keys
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from typing import Any
 
 log = getLogger(__name__)
@@ -233,7 +235,10 @@ class Repodatas:
 
 
 def validate_install_command(
-    prefix: str, command: str = "install", *, allow_protected_base: bool = False
+    prefix: str,
+    command: str = "install",
+    *,
+    confirm_frozen: Callable[[EnvironmentIsFrozenError], bool] | None = None,
 ):
     """Executes a set of validations that are required before any installation
     command is executed. This includes:
@@ -244,7 +249,7 @@ def validate_install_command(
     Args:
         prefix: The prefix where the environment will be created
         command: Type of operation being performed
-        allow_protected_base: Allow installation into an installer-protected base.
+        confirm_frozen: Optional prompt for a one-time override of the target freeze.
 
     Raises:
         error if the configuration for the install is bad
@@ -267,7 +272,11 @@ def validate_install_command(
             if not path_is_clean(prefix):
                 raise
         if context.protect_frozen_envs:
-            prefix_data.assert_not_frozen(allow_protected_base=allow_protected_base)
+            try:
+                prefix_data.assert_not_frozen()
+            except EnvironmentIsFrozenError as exc:
+                if confirm_frozen is None or not confirm_frozen(exc):
+                    raise
 
 
 def ensure_update_specs_exist(prefix: str, specs: list[str]):
@@ -303,7 +312,7 @@ def install(args, parser, command="install"):
     validate_install_command(
         prefix=prefix,
         command=command,
-        allow_protected_base=getattr(args, "_allow_protected_base", False),
+        confirm_frozen=getattr(args, "_confirm_frozen", None),
     )
 
     if context.use_only_tar_bz2:

@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import json
 from importlib import import_module
+from io import StringIO
 from typing import TYPE_CHECKING
 
 import pytest
 
-from conda.exceptions import CondaExitZero, CondaValueError, EnvironmentIsFrozenError
+from conda.exceptions import (
+    CondaExitZero,
+    CondaSystemExit,
+    CondaValueError,
+    EnvironmentIsFrozenError,
+)
 from conda.plugins import package_extractors
 
 from .. import TEST_RECIPES_CHANNEL
@@ -17,7 +23,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
 
-    from pytest import FixtureRequest, MonkeyPatch
+    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
     from conda.plugins.manager import CondaPluginManager
@@ -26,27 +32,6 @@ if TYPE_CHECKING:
         TmpEnvFixture,
         TmpRepodataChannelFixture,
     )
-
-
-# Contents shipped in the Miniconda and Anaconda Distribution protected-base installers.
-INSTALLER_FREEZE_MESSAGE = (
-    "Your base environment is protected from direct modifications.\n\n"
-    "To manage conda and its plugins, use conda self:\n  conda self --help\n"
-)
-
-
-@pytest.fixture
-def installer_protected_base(
-    tmp_env: TmpEnvFixture, monkeypatch: MonkeyPatch, request: FixtureRequest
-) -> Iterator[Path]:
-    installer_name = getattr(request, "param", "Miniconda3-PBE")
-    with tmp_env() as prefix:
-        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
-        (prefix / ".installer.info").write_text(json.dumps({"name": installer_name}))
-        (prefix / "conda-meta/frozen").write_text(
-            json.dumps({"message": INSTALLER_FREEZE_MESSAGE})
-        )
-        yield prefix
 
 
 @pytest.fixture
@@ -61,6 +46,24 @@ def plugin_manager_with_plugins_command(
         import_module("conda.plugins.subcommands.plugins"),
     )
     return plugin_manager_with_reporter_backends
+
+
+@pytest.fixture
+def frozen_base(
+    plugin_manager_with_plugins_command: CondaPluginManager,
+    tmp_env: TmpEnvFixture,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+) -> Iterator[Path]:
+    mocker.patch(
+        "conda.plugins.subcommands.plugins.install.is_interactive_tty",
+        return_value=True,
+    )
+    with tmp_env() as prefix:
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(prefix))
+        monkeypatch.setenv("CONDA_ALWAYS_YES", "false")
+        (prefix / "conda-meta" / "frozen").write_text('{"message": "Frozen by admin"}')
+        yield prefix
 
 
 @pytest.fixture
@@ -248,15 +251,12 @@ def test_plugins_install_delegates_to_conda_install(
     assert not err
 
 
-@pytest.mark.parametrize(
-    "installer_protected_base", ("Miniconda3-PBE", "Anaconda3-PBE"), indirect=True
-)
-def test_plugins_install_protected_base(
-    plugin_manager_with_plugins_command: CondaPluginManager,
+def test_plugins_install_confirms_frozen_base_once(
     conda_cli: CondaCLIFixture,
-    installer_protected_base: Path,
+    frozen_base: Path,
     tmp_repodata_channel: TmpRepodataChannelFixture,
     tmp_pkgs_dir: Path,
+    monkeypatch: MonkeyPatch,
 ):
     import tarfile
     from io import BytesIO
@@ -280,7 +280,9 @@ def test_plugins_install_protected_base(
             member.size = len(data)
             tar.addfile(member, BytesIO(data))
 
-    prefix = installer_protected_base
+    marker = frozen_base / "conda-meta" / "frozen"
+    contents = marker.read_bytes()
+    monkeypatch.setattr("sys.stdin", StringIO("yes\n"))
     conda_cli(
         "plugins",
         "install",
@@ -290,10 +292,11 @@ def test_plugins_install_protected_base(
         archive,
         raises=CondaExitZero,
     )
-    assert not (prefix / entry_points).exists()
-    assert PrefixData(prefix).get(name, None) is None
+    assert not (frozen_base / entry_points).exists()
+    assert PrefixData(frozen_base).get(name, None) is None
+    assert marker.read_bytes() == contents
 
-    _, _, code = conda_cli(
+    args = (
         "plugins",
         "install",
         "-n",
@@ -302,78 +305,43 @@ def test_plugins_install_protected_base(
         "--override-channels",
         "-c",
         url,
-        "--yes",
         name,
     )
-    assert code == 0
-    assert (prefix / entry_points).is_file()
-    assert PrefixData(prefix).is_frozen()
+    monkeypatch.setattr("sys.stdin", StringIO("y\nn\n"))
+    conda_cli(*args, raises=CondaSystemExit)
+    assert PrefixData(frozen_base).get(name, None) is None
 
-    for command in (
-        ("install",),
-        ("update",),
-        ("remove",),
-        ("plugins", "update"),
-        ("plugins", "remove"),
-    ):
-        conda_cli(*command, "-n", "base", name, raises=EnvironmentIsFrozenError)
+    monkeypatch.setattr("sys.stdin", StringIO("y\ny\n"))
+    stdout, stderr, code = conda_cli(*args)
 
-    non_plugin = TEST_RECIPES_CHANNEL / "noarch" / "dependency-1.0-0.conda"
-    _, _, exc = conda_cli(
-        "plugins", "install", "-p", prefix, non_plugin, raises=CondaValueError
-    )
-    assert "Not conda plugin packages: dependency" in str(exc.value)
-    assert PrefixData(prefix).get("dependency", None) is None
+    assert code == 0, stderr
+    assert "Frozen by admin" in stdout + stderr
+    assert stdout.index("(y/[n])?") < stdout.index("Proceed ([y]/n)?")
+    assert PrefixData(frozen_base).get(name).name == name
+    assert marker.read_bytes() == contents
 
-    _, _, code = conda_cli("install", "-p", prefix, "--override-frozen", non_plugin)
-    assert code == 0
-    assert PrefixData(prefix).get("dependency").version == "1.0"
-    freeze = prefix / "conda-meta/frozen"
-    assert json.loads(freeze.read_text()) == {"message": INSTALLER_FREEZE_MESSAGE}
-
-    freeze.write_text('{"message": "Frozen by the administrator"}')
-    _, _, exc = conda_cli(
-        "plugins", "install", "-n", "base", name, raises=EnvironmentIsFrozenError
-    )
-    assert "Frozen by the administrator" in str(exc.value)
+    monkeypatch.setattr("sys.stdin", StringIO("\n"))
+    stdout, _, _ = conda_cli(*args, raises=EnvironmentIsFrozenError)
+    assert "(y/[n])?" in stdout
 
 
 @pytest.mark.parametrize(
-    ("filename", "contents"),
-    (
-        pytest.param("conda-meta/frozen", "", id="empty-freeze"),
-        pytest.param(
-            "conda-meta/frozen",
-            json.dumps({"message": INSTALLER_FREEZE_MESSAGE.rstrip()}),
-            id="edited-message",
-        ),
-        pytest.param(
-            "conda-meta/frozen",
-            json.dumps({"message": INSTALLER_FREEZE_MESSAGE, "other": True}),
-            id="extra-freeze-field",
-        ),
-        pytest.param(".installer.info", None, id="missing-installer"),
-        pytest.param(".installer.info", "{", id="malformed-installer"),
-        pytest.param(".installer.info", "[]", id="non-object-installer"),
-        pytest.param(
-            ".installer.info", '{"name": "Miniconda3"}', id="ordinary-installer"
-        ),
-    ),
+    "answer", ("n\n", "\n", KeyboardInterrupt), ids=("no", "default", "interrupt")
 )
-def test_plugins_install_respects_frozen_prefix(
-    plugin_manager_with_plugins_command: CondaPluginManager,
+def test_plugins_install_declines_frozen_base(
     conda_cli: CondaCLIFixture,
-    installer_protected_base: Path,
-    filename: str,
-    contents: str | None,
+    frozen_base: Path,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    answer: str | type[KeyboardInterrupt],
 ):
-    path = installer_protected_base / filename
-    if contents is None:
-        path.unlink()
+    if isinstance(answer, str):
+        monkeypatch.setattr("sys.stdin", StringIO(answer))
     else:
-        path.write_text(contents)
-
-    conda_cli(
+        mocker.patch("sys.stdin.readline", side_effect=answer)
+    marker = frozen_base / "conda-meta" / "frozen"
+    contents = marker.read_bytes()
+    stdout, stderr, exc = conda_cli(
         "plugins",
         "install",
         "-n",
@@ -382,23 +350,123 @@ def test_plugins_install_respects_frozen_prefix(
         raises=EnvironmentIsFrozenError,
     )
 
+    assert exc.value.return_code != 0
+    assert "Frozen by admin" in str(exc.value)
+    assert "Frozen by admin" in stdout + stderr
+    assert "(y/[n])?" in stdout
+    assert "Package Plan" not in stdout
+    assert marker.read_bytes() == contents
 
-def test_plugins_install_respects_freeze_outside_base(
-    plugin_manager_with_plugins_command: CondaPluginManager,
+
+def test_plugins_install_requires_yes_from_reporter(
     conda_cli: CondaCLIFixture,
-    installer_protected_base: Path,
-    tmp_path: Path,
-    monkeypatch: MonkeyPatch,
+    frozen_base: Path,
+    mocker: MockerFixture,
 ):
-    monkeypatch.setenv("CONDA_ROOT_PREFIX", str(tmp_path / "other-base"))
-    conda_cli(
+    prompt = mocker.patch(
+        "conda.plugins.subcommands.plugins.install.prompt", return_value=None
+    )
+    _, _, exc = conda_cli(
         "plugins",
         "install",
-        "-p",
-        installer_protected_base,
+        "-n",
+        "base",
         "example-plugin",
         raises=EnvironmentIsFrozenError,
     )
+    prompt.assert_called_once()
+    assert prompt.call_args.kwargs["default"] == "no"
+    assert "Frozen by admin" in str(exc.value)
+
+
+@pytest.mark.parametrize(
+    ("interactive", "flags", "always_yes"),
+    (
+        (False, (), False),
+        (True, ("--json",), False),
+        (True, ("--yes",), False),
+        (True, ("--dry-run",), False),
+        (True, (), True),
+    ),
+    ids=("non-tty", "json", "yes", "dry-run", "always-yes"),
+)
+def test_plugins_install_rejects_implicit_frozen_override(
+    conda_cli: CondaCLIFixture,
+    frozen_base: Path,
+    monkeypatch: MonkeyPatch,
+    mocker: MockerFixture,
+    interactive: bool,
+    flags: tuple[str, ...],
+    always_yes: bool,
+):
+    mocker.patch(
+        "conda.plugins.subcommands.plugins.install.is_interactive_tty",
+        return_value=interactive,
+    )
+    monkeypatch.setenv("CONDA_ALWAYS_YES", str(always_yes))
+    stdout, stderr, exc = conda_cli(
+        "plugins",
+        "install",
+        "-n",
+        "base",
+        *flags,
+        "example-plugin",
+        raises=EnvironmentIsFrozenError,
+    )
+    assert "Frozen by admin" in str(exc.value)
+    assert "(y/[n])?" not in stdout + stderr
+
+
+@pytest.mark.parametrize(
+    ("command", "is_base"),
+    (
+        (("plugins", "install"), False),
+        (("install",), True),
+        (("update",), True),
+        (("remove",), True),
+    ),
+)
+def test_freeze_prompt_is_limited_to_base_plugin_installs(
+    conda_cli: CondaCLIFixture,
+    frozen_base: Path,
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+    command: tuple[str, ...],
+    is_base: bool,
+):
+    if not is_base:
+        monkeypatch.setenv("CONDA_ROOT_PREFIX", str(tmp_path / "other-base"))
+    stdout, stderr, exc = conda_cli(
+        *command, "-p", frozen_base, "example-plugin", raises=EnvironmentIsFrozenError
+    )
+    assert "Frozen by admin" in str(exc.value)
+    assert "(y/[n])?" not in stdout + stderr
+
+
+@pytest.mark.parametrize("flags", ((), ("--override-frozen",)), ids=("prompt", "flag"))
+def test_plugins_install_checks_packages_after_frozen_override(
+    conda_cli: CondaCLIFixture,
+    frozen_base: Path,
+    tmp_pkgs_dir: Path,
+    monkeypatch: MonkeyPatch,
+    flags: tuple[str, ...],
+):
+    monkeypatch.setattr("sys.stdin", StringIO("yes\n" if not flags else "\n"))
+    marker = frozen_base / "conda-meta" / "frozen"
+    marker.write_text("")
+    non_plugin = TEST_RECIPES_CHANNEL / "noarch" / "dependency-1.0-0.conda"
+    stdout, stderr, exc = conda_cli(
+        "plugins",
+        "install",
+        "-n",
+        "base",
+        *flags,
+        non_plugin,
+        raises=CondaValueError,
+    )
+    assert "Not conda plugin packages: dependency" in str(exc.value)
+    assert ("(y/[n])?" in stdout + stderr) == (not flags)
+    assert marker.read_text() == ""
 
 
 @pytest.mark.parametrize(
@@ -409,10 +477,11 @@ def test_plugins_install_respects_freeze_outside_base(
     ),
     ids=("pip", "variables"),
 )
-def test_plugins_install_protected_base_environment_file(
+def test_plugins_install_checks_environment_file_after_freeze_confirmation(
     plugin_manager_with_plugins_command: CondaPluginManager,
     conda_cli: CondaCLIFixture,
-    installer_protected_base: Path,
+    frozen_base: Path,
+    monkeypatch: MonkeyPatch,
     tmp_path: Path,
     extra: str,
     message: str,
@@ -423,7 +492,8 @@ def test_plugins_install_protected_base_environment_file(
     environment_file = tmp_path / "environment.yml"
     environment_file.write_text("dependencies:\n  - example-plugin\n" + extra)
 
-    _, _, exc = conda_cli(
+    monkeypatch.setattr("sys.stdin", StringIO("yes\n"))
+    stdout, _, exc = conda_cli(
         "plugins",
         "install",
         "-n",
@@ -432,6 +502,7 @@ def test_plugins_install_protected_base_environment_file(
         environment_file,
         raises=CondaValueError,
     )
+    assert "(y/[n])?" in stdout
     assert message in str(exc.value)
 
 
