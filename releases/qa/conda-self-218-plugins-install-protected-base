@@ -4,7 +4,7 @@ Install a plugin in an installer-protected base.
 
 ### Why
 
-An installer can enable plugin installation while protecting base from ordinary package changes. An administrator can freeze plugin installation too.
+Users can install a plugin with the original installer freeze in place. An administrator can replace that freeze to block plugin installation.
 
 ### Platforms
 
@@ -14,13 +14,13 @@ An installer can enable plugin installation while protecting base from ordinary 
 
 ### Prerequisites
 
-Use a disposable installation built with the new marker and a plugin package available from the installer's channels.
+Use a disposable protected-base Miniconda or Anaconda Distribution installation running this build of conda. Choose a plugin from the installer's channels.
 
 ### Steps
 
 1. Activate a different environment. Run `conda plugins install -n base PACKAGE` with the plugin package name.
 2. Run `conda plugins list` to see whether the running conda loads the plugin.
-3. Create an empty `conda-meta/frozen` file in base. Repeat the install, leaving both markers in place.
+3. Empty the existing `conda-meta/frozen` file in base and repeat the install.
 
 ### Pass criteria
 

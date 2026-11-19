@@ -25,7 +25,6 @@ from ..base.constants import (
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     PREFIX_PINNED_FILE,
-    PREFIX_PROTECTED_BASE_FILE,
     PREFIX_STATE_FILE,
     RESERVED_ENV_NAMES,
     RESERVED_ENV_VARS,
@@ -69,6 +68,13 @@ if TYPE_CHECKING:
     T = TypeVar("T")
 
 log = getLogger(__name__)
+
+# The installer message includes the final newline.
+_PROTECTED_BASE_FREEZE_MESSAGE = (
+    "Your base environment is protected from direct modifications.\n\n"
+    "To manage conda and its plugins, use conda self:\n"
+    "  conda self --help\n"
+)
 
 
 class PrefixDataType(type):
@@ -133,7 +139,6 @@ class PrefixData(metaclass=PrefixDataType):
         self.prefix_path: Path = Path(prefix_path)
         self._magic_file: Path = self.prefix_path / PREFIX_MAGIC_FILE
         self._frozen_file: Path = self.prefix_path / PREFIX_FROZEN_FILE
-        self._protected_base_file = self.prefix_path / PREFIX_PROTECTED_BASE_FILE
         self._last_activated_file: Path = self.prefix_path / PREFIX_LAST_ACTIVATED_FILE
         self.__prefix_records: dict[str, PrefixRecord] | None = None
         self.__is_writable: bool | None | _Null = NULL
@@ -235,9 +240,13 @@ class PrefixData(metaclass=PrefixDataType):
             return False
 
     def is_frozen(self) -> bool:
-        """Check whether a CEP 22 freeze or installer protection applies."""
+        """
+        Check whether the environment is marked as frozen, as per CEP 22.
+
+        This is assessed by checking if `conda-meta/frozen` marker file exists.
+        """
         try:
-            return self._frozen_file.is_file() or self._protected_base_file.is_file()
+            return self._frozen_file.is_file()
         except OSError:
             return False
 
@@ -310,19 +319,37 @@ class PrefixData(metaclass=PrefixDataType):
             raise EnvironmentNotWritableError(self.prefix_path)
 
     def assert_not_frozen(self, *, allow_protected_base: bool = False) -> None:
-        """Check both freeze markers. A CEP 22 freeze takes precedence."""
-        self.assert_environment()
-        if self._frozen_file.is_file():
-            contents = self._frozen_file.read_text()
-            message = json.loads(contents).get("message", "") if contents else ""
-            raise EnvironmentIsFrozenError(self.prefix_path, message)
+        """Raise if a CEP 22 freeze blocks the requested operation.
 
-        if self._protected_base_file.is_file() and not (
-            allow_protected_base and self.is_base()
+        Args:
+            allow_protected_base: Allow the original installer freeze for plugin
+                installation in the configured base environment.
+
+        Raises:
+            EnvironmentIsFrozenError: If the environment is marked as frozen.
+        """
+        self.assert_environment()
+        if not self.is_frozen():
+            return
+        contents = self._frozen_file.read_text()
+        frozen = json.loads(contents) if contents else {}
+        if (
+            allow_protected_base
+            and self.is_base()
+            and frozen == {"message": _PROTECTED_BASE_FREEZE_MESSAGE}
         ):
-            raise EnvironmentIsFrozenError(
-                self.prefix_path, "The installer protects this base environment."
-            )
+            try:
+                installer = json.loads(
+                    (self.prefix_path / ".installer.info").read_text(encoding="utf-8")
+                )
+            except (OSError, ValueError):
+                installer = None
+            if isinstance(installer, dict) and installer.get("name") in (
+                "Miniconda3-PBE",
+                "Anaconda3-PBE",
+            ):
+                return
+        raise EnvironmentIsFrozenError(self.prefix_path, frozen.get("message", ""))
 
     def validate_path(self, expand_path: bool = False) -> None:
         """

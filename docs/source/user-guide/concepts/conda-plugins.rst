@@ -107,19 +107,15 @@ The environment must also contain conda, as in the example above:
 Installing plugins in a protected base environment
 --------------------------------------------------
 
-An installer can protect its base environment by creating an empty
-``conda-meta/protected-base`` file in the base prefix. The running conda can
-then install a plugin in its own base with ``conda plugins install -n base``.
-Regular package installs, updates, and removals still require ``--override-frozen``.
+With the protected-base Miniconda or Anaconda Distribution installers, use
+``conda plugins install -n base PACKAGE`` to install a plugin into base.
+Conda checks the installer name in ``.installer.info`` and the original
+installer message in ``conda-meta/frozen``. Ordinary installs, updates, and
+removals still require ``--override-frozen``.
 
-To freeze plugin installs as well, a user or administrator can create
-``conda-meta/frozen`` in base. This :ref:`freeze <frozen-env>` takes precedence
-even when both files exist. Earlier installers that shipped ``conda-meta/frozen``
-also require an explicit ``--override-frozen`` for plugin installs.
-
-Installers adopting ``conda-meta/protected-base`` should bundle a conda version
-that recognizes it. Older conda versions and other tools that only implement
-CEP 22 ignore this marker.
+To freeze plugin installation too, replace the contents of ``conda-meta/frozen``
+with an empty file or your own :ref:`freeze message <frozen-env>`.
+Restoring the original installer message enables plugin installation again.
 
 
 Inspecting plugins
