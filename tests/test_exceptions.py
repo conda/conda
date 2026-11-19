@@ -30,6 +30,7 @@ from conda.exceptions import (
     LinkError,
     LinkScriptError,
     LinkSourceNotFoundError,
+    NoChannelsConfiguredError,
     PackageNotInstalledError,
     PackagesNotFoundError,
     PackagesNotFoundInChannelsError,
@@ -1680,6 +1681,19 @@ def test_PackagesNotFoundInPrefixError_inherits_guidance() -> None:
     assert exc.guidance is not None and parent.guidance is not None
     assert exc.guidance.summary == "numpy, scipy are not installed in /tmp/env."
     assert exc.guidance.hint_codes == parent.guidance.hint_codes
+
+
+def test_NoChannelsConfiguredError_guidance() -> None:
+    exc = NoChannelsConfiguredError(["numpy"])
+    assert exc.guidance is not None
+    assert exc.guidance.summary == ("No channels are configured to search for numpy.")
+    assert exc.dump_map()["guidance"]["hint_codes"] == (
+        "add_channel_for_command",
+        "configure_channels_permanently",
+        "edit_condarc_file",
+    )
+    # The per-command hint carries the requested packages
+    assert "conda install -c <channel> numpy" in exc.guidance.hints[0].text
 
 
 def test_UnsatisfiableError_guidance() -> None:
