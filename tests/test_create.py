@@ -1092,11 +1092,19 @@ def test_tarball_install(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env(test_recipes_channel / "noarch" / "dependent-1.0-0.conda") as prefix:
+    tar_path = test_recipes_channel / "noarch" / "dependent-1.0-0.conda"
+    with tmp_env(tar_path) as prefix:
         assert package_is_installed(prefix, "dependent")
         assert not package_is_installed(prefix, "dependency")
         conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
         assert not package_is_installed(prefix, "dependent")
+        # Make sure that dry run does not install the package
+        with pytest.raises(DryRunExit):
+            conda_cli("install", f"--prefix={prefix}", tar_path, "--dry-run")
+        assert not package_is_installed(prefix, "dependent")
+        # Make sure that install can install the package from a tarball
+        conda_cli("install", f"--prefix={prefix}", tar_path, "--yes")
+        assert package_is_installed(prefix, "dependent")
 
 
 def test_install_package_in_env_file_does_not_exist(
