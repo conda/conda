@@ -60,7 +60,6 @@ from conda.exceptions import (
     DryRunExit,
     EnvironmentFileTypeMismatchError,
     EnvironmentNotWritableError,
-    InvalidMatchSpec,
     LinkError,
     NoChannelsConfiguredError,
     OperationNotAllowed,
@@ -1125,9 +1124,7 @@ def test_install_package_in_env_file_does_not_exist(
             )
         )
 
-        with pytest.raises(
-            (InvalidMatchSpec, PackagesNotFoundError), match="something-made-up"
-        ):
+        with pytest.raises(PackagesNotFoundError, match="something-made-up"):
             conda_cli("install", f"--prefix={prefix}", "--file", bad_metadata, "--yes")
 
         assert not package_is_installed(prefix, "something-made-up")
