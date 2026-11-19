@@ -6,6 +6,10 @@ packages in a selected environment. See :doc:`Plugins
 <../user-guide/concepts/conda-plugins>` for installation, update, and removal
 examples and guidance on choosing the environment that runs your plugins.
 
+.. tip::
+
+   ``conda plugin`` is an alias for ``conda plugins``.
+
 .. versionadded:: 26.11.0
 
    The ``install``, ``remove``, and ``update`` subcommands.
