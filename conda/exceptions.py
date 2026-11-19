@@ -977,14 +977,16 @@ class PackageNotInstalledError(PackagesNotFoundError):
 
         if len(names) == 1:
             summary = f"{names[0]} is not installed in {prefix}."
-            cause = "The target environment does not contain this package."
         elif len(names) < 5:
             joined = ", ".join(str(name) for name in names)
             summary = f"{joined} are not installed in {prefix}."
-            cause = "The target environment does not contain these packages."
         else:
             summary = f"{len(names)} packages are not installed in {prefix}."
-            cause = "The target environment does not contain these packages."
+        cause = (
+            "The target environment does not contain this package."
+            if len(names) == 1
+            else "The target environment does not contain these packages."
+        )
 
         # We call CondaError directly here because PackagesNotFoundError decides
         # the behaviour based on channel_urls, but this is a case of the package(s)

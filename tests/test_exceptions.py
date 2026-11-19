@@ -1645,7 +1645,10 @@ def test_PackagesNotFoundError_few_packages_printed_output(
     "packages,expected_summary",
     [
         (["single-pkg"], "single-pkg is not available from the configured channels."),
-        (["pkg-a", "pkg-b"], "pkg-a, pkg-b are not available from the configured"),
+        (
+            ["pkg-a", "pkg-b"],
+            "pkg-a, pkg-b are not available from the configured channels.",
+        ),
         ([f"pkg{i}" for i in range(5)], "Many packages are unavailable"),
     ],
 )
