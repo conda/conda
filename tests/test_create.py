@@ -60,7 +60,6 @@ from conda.exceptions import (
     DryRunExit,
     EnvironmentFileTypeMismatchError,
     EnvironmentNotWritableError,
-    InvalidMatchSpec,
     LinkError,
     NoChannelsConfiguredError,
     OperationNotAllowed,
@@ -1092,35 +1091,29 @@ def test_tarball_install(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env(test_recipes_channel / "noarch" / "dependent-1.0-0.conda") as prefix:
+    tar_path = test_recipes_channel / "noarch" / "dependent-1.0-0.conda"
+    with tmp_env(tar_path) as prefix:
         assert package_is_installed(prefix, "dependent")
         assert not package_is_installed(prefix, "dependency")
         conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
         assert not package_is_installed(prefix, "dependent")
-
-
-def test_tarball_install_and_bad_metadata(
-    test_recipes_channel: Path,
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCLIFixture,
-):
-    with tmp_env("small-executable", "dependent", "another_dependent") as prefix:
-        assert package_is_installed(prefix, "another_dependent")
-        conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
-        assert package_is_installed(prefix, "small-executable")
-        assert not package_is_installed(prefix, "dependent")
-        # make sure all dependencies of "dependent" were removed
-        assert not package_is_installed(prefix, "dependency")
-        assert not package_is_installed(prefix, "another_dependent")
-
-        tar_path = test_recipes_channel / "noarch" / "dependent-1.0-0.conda"
+        # Make sure that dry run does not install the package
         with pytest.raises(DryRunExit):
             conda_cli("install", f"--prefix={prefix}", tar_path, "--dry-run")
-
+        assert not package_is_installed(prefix, "dependent")
+        # Make sure that install can install the package from a tarball
         conda_cli("install", f"--prefix={prefix}", tar_path, "--yes")
         assert package_is_installed(prefix, "dependent")
 
-        bad_metadata = prefix / "bad_metadata.yml"
+
+def test_install_package_in_env_file_does_not_exist(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    temp_package_cache: Path,
+):
+    with tmp_env() as prefix:
+        bad_metadata = prefix / "environment.yml"
         bad_metadata.write_text(
             dals(
                 """
@@ -1130,9 +1123,11 @@ def test_tarball_install_and_bad_metadata(
                 """
             )
         )
-        with pytest.raises((InvalidMatchSpec, PackagesNotFoundError)):
-            conda_cli("install", f"--prefix={prefix}", bad_metadata, "--yes")
-            assert not package_is_installed(prefix, "something-made-up")
+
+        with pytest.raises(PackagesNotFoundError, match="something-made-up"):
+            conda_cli("install", f"--prefix={prefix}", "--file", bad_metadata, "--yes")
+
+        assert not package_is_installed(prefix, "something-made-up")
 
 
 def test_update_with_pinned_packages(
@@ -1270,15 +1265,20 @@ def test_clone_env_missing_channel_metadata(
             assert package_is_installed(clone, "small-executable")
 
 
-def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env(PYTHON_SPEC, "flask") as prefix:
-        assert package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
-        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask")
-        # this should get pruned when flask is removed
-        assert not package_is_installed(prefix, "itsdangerous")
-        assert package_is_installed(prefix, "python=3")
+def test_remove_includes_dependencies(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    temp_package_cache: Path,
+):
+    with tmp_env("small-executable", "dependent", "another_dependent") as prefix:
+        assert package_is_installed(prefix, "another_dependent")
+        conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
+        assert package_is_installed(prefix, "small-executable")
+        assert not package_is_installed(prefix, "dependent")
+        # make sure all dependencies of "dependent" were removed
+        assert not package_is_installed(prefix, "dependency")
+        assert not package_is_installed(prefix, "another_dependent")
 
 
 def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
