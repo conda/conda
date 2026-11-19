@@ -58,21 +58,25 @@ def require_installed_plugin_specs(
         )
 
 
-def require_plugin_update_environment(environment: Environment) -> None:
-    """Validate requested plugin updates after merging file input."""
+def require_conda_packages_only(environment: Environment, *, command: str) -> None:
+    """Reject changes from environment files outside the conda transaction."""
     if environment.external_packages:
         installers = ", ".join(sorted(environment.external_packages))
         raise CondaValueError(
-            "`conda plugins update` cannot update packages managed by external "
+            f"`conda plugins {command}` cannot {command} packages managed by external "
             f"installers. External installers: {installers}."
         )
 
     if environment.variables:
         raise CondaValueError(
-            "`conda plugins update` cannot set environment variables from "
+            f"`conda plugins {command}` cannot set environment variables from "
             "environment files."
         )
 
+
+def require_plugin_update_environment(environment: Environment) -> None:
+    """Validate requested plugin updates after merging file input."""
+    require_conda_packages_only(environment, command="update")
     require_installed_plugin_specs(
         environment.requested_packages,
         environment.prefix,

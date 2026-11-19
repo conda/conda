@@ -25,6 +25,7 @@ from ..base.constants import (
     PREFIX_MAGIC_FILE,
     PREFIX_NAME_DISALLOWED_CHARS,
     PREFIX_PINNED_FILE,
+    PREFIX_PROTECTED_BASE_FILE,
     PREFIX_STATE_FILE,
     RESERVED_ENV_NAMES,
     RESERVED_ENV_VARS,
@@ -132,6 +133,7 @@ class PrefixData(metaclass=PrefixDataType):
         self.prefix_path: Path = Path(prefix_path)
         self._magic_file: Path = self.prefix_path / PREFIX_MAGIC_FILE
         self._frozen_file: Path = self.prefix_path / PREFIX_FROZEN_FILE
+        self._protected_base_file = self.prefix_path / PREFIX_PROTECTED_BASE_FILE
         self._last_activated_file: Path = self.prefix_path / PREFIX_LAST_ACTIVATED_FILE
         self.__prefix_records: dict[str, PrefixRecord] | None = None
         self.__is_writable: bool | None | _Null = NULL
@@ -233,13 +235,9 @@ class PrefixData(metaclass=PrefixDataType):
             return False
 
     def is_frozen(self) -> bool:
-        """
-        Check whether the environment is marked as frozen, as per CEP 22.
-
-        This is assessed by checking if `conda-meta/frozen` marker file exists.
-        """
+        """Check whether a CEP 22 freeze or installer protection applies."""
         try:
-            return self._frozen_file.is_file()
+            return self._frozen_file.is_file() or self._protected_base_file.is_file()
         except OSError:
             return False
 
@@ -311,22 +309,20 @@ class PrefixData(metaclass=PrefixDataType):
         if not file_path_is_writable(self._magic_file):
             raise EnvironmentNotWritableError(self.prefix_path)
 
-    def assert_not_frozen(self) -> None:
-        """
-        Check whether the environment path is a valid conda environment and is not marked
-        as frozen (as per CEP 22).
-
-        Raises:
-            EnvironmentIsFrozenError: If the environment is marked as frozen.
-        """
+    def assert_not_frozen(self, *, allow_protected_base: bool = False) -> None:
+        """Check both freeze markers. A CEP 22 freeze takes precedence."""
         self.assert_environment()
-        if not self.is_frozen():
-            return
-        message = ""
-        contents = self._frozen_file.read_text()
-        if contents:
-            message = json.loads(contents).get("message", "")
-        raise EnvironmentIsFrozenError(self.prefix_path, message)
+        if self._frozen_file.is_file():
+            contents = self._frozen_file.read_text()
+            message = json.loads(contents).get("message", "") if contents else ""
+            raise EnvironmentIsFrozenError(self.prefix_path, message)
+
+        if self._protected_base_file.is_file() and not (
+            allow_protected_base and self.is_base()
+        ):
+            raise EnvironmentIsFrozenError(
+                self.prefix_path, "The installer protects this base environment."
+            )
 
     def validate_path(self, expand_path: bool = False) -> None:
         """

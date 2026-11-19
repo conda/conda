@@ -232,7 +232,9 @@ class Repodatas:
         self.success = True
 
 
-def validate_install_command(prefix: str, command: str = "install"):
+def validate_install_command(
+    prefix: str, command: str = "install", *, allow_protected_base: bool = False
+):
     """Executes a set of validations that are required before any installation
     command is executed. This includes:
       * ensure the configuration is valid
@@ -242,6 +244,7 @@ def validate_install_command(prefix: str, command: str = "install"):
     Args:
         prefix: The prefix where the environment will be created
         command: Type of operation being performed
+        allow_protected_base: Allow installation into an installer-protected base.
 
     Raises:
         error if the configuration for the install is bad
@@ -264,7 +267,7 @@ def validate_install_command(prefix: str, command: str = "install"):
             if not path_is_clean(prefix):
                 raise
         if context.protect_frozen_envs:
-            prefix_data.assert_not_frozen()
+            prefix_data.assert_not_frozen(allow_protected_base=allow_protected_base)
 
 
 def ensure_update_specs_exist(prefix: str, specs: list[str]):
@@ -297,7 +300,11 @@ def install(args, parser, command="install"):
     index_args = get_index_args(args=args)
 
     # common validations for all types of installs
-    validate_install_command(prefix=prefix, command=command)
+    validate_install_command(
+        prefix=prefix,
+        command=command,
+        allow_protected_base=getattr(args, "_allow_protected_base", False),
+    )
 
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
@@ -323,6 +330,8 @@ def install(args, parser, command="install"):
 
     # install explicit specs
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
+        if context.download_only:
+            raise CondaExitZero("Explicit packages downloaded to the package cache.")
         return install_explicit_packages(env.explicit_packages, env.prefix)
 
     repodata_fns = args.repodata_fns

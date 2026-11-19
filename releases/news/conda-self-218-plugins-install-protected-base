@@ -1,0 +1,3 @@
+### Enhancements
+
+* Allow `conda plugins install -n base` in a base environment marked with `conda-meta/protected-base` while honoring an explicit `conda-meta/frozen` freeze. (conda/conda-self#218)
