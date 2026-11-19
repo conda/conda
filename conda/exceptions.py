@@ -1068,6 +1068,38 @@ class NoChannelsConfiguredError(CondaError):
             message,
             packages=list(packages),
             packages_str=packages_str,
+            guidance={
+                "summary": f"No channels are configured to search for {packages_str}.",
+                "cause": (
+                    "Conda requires at least one configured channel to search "
+                    "for packages, but none are configured."
+                ),
+                "hints": [
+                    {
+                        "text": (
+                            "Add a channel for this command:\n"
+                            "      conda install -c <channel> "
+                            f"{packages_str if packages else '<package>'}"
+                        ),
+                        "hint_code": "add_channel_for_command",
+                    },
+                    {
+                        "text": (
+                            "Configure a channel for future commands:\n"
+                            "      conda config --append channels <channel>"
+                        ),
+                        "hint_code": "configure_channels_permanently",
+                    },
+                    {
+                        "text": (
+                            "Or add a channels entry to your .condarc file; "
+                            "see https://docs.conda.io/projects/conda/en/stable/"
+                            "user-guide/configuration/use-condarc.html"
+                        ),
+                        "hint_code": "edit_condarc_file",
+                    },
+                ],
+            },
         )
 
 
