@@ -263,7 +263,7 @@ BUILTIN_COMMANDS = {
 """Names (and aliases) of built-in commands; these cannot be overridden by plugin subcommands."""
 
 _PLUGIN_FREE_BUILTIN_COMMANDS = frozenset({"activate", "deactivate", "run"})
-"""Built-in commands that intentionally skip plugin discovery."""
+"""Built-in commands whose parsers skip plugin discovery."""
 
 
 def _configure_builtin_subcommand(sub_parsers, name: str) -> ArgumentParser:
