@@ -1,22 +1,26 @@
 # Copyright (C) 2012 Anaconda, Inc
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import datetime
 import json
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from os.path import abspath, basename, dirname, join
-from pathlib import Path
 from threading import Event
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest import MonkeyPatch
 
 from conda import CondaError, CondaMultiError
+from conda.auxlib.ish import dals
 from conda.base.constants import PACKAGE_CACHE_MAGIC_FILE
-from conda.base.context import context, reset_context
+from conda.base.context import Context, context, reset_context
 from conda.common.compat import on_win
+from conda.common.configuration import YamlRawParameter
 from conda.common.path import strip_pkg_extension
+from conda.common.serialize import yaml
 from conda.core import package_cache_data
 from conda.core.index import Index
 from conda.core.package_cache_data import (
@@ -26,7 +30,8 @@ from conda.core.package_cache_data import (
     ProgressiveFetchExtract,
 )
 from conda.core.path_actions import CacheUrlAction
-from conda.gateways.disk.create import copy
+from conda.exceptions import NoWritablePkgsDirError
+from conda.gateways.disk.create import copy, create_package_cache_directory
 from conda.gateways.disk.permissions import make_read_only
 from conda.gateways.disk.read import isfile, listdir, yield_lines
 from conda.models.enums import LinkType
@@ -34,6 +39,17 @@ from conda.models.match_spec import MatchSpec
 from conda.models.records import PrefixRecord
 from conda.testing.helpers import CHANNEL_DIR_V1
 from conda.utils import url_path
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from pytest import MonkeyPatch
+    from pytest_mock import MockerFixture
+
+    from conda.testing.fixtures import (
+        PathFactoryFixture,
+    )
+
 
 assert CHANNEL_DIR_V1 == abspath(
     join(dirname(__file__), "..", "data", "conda_format_repo")
@@ -89,6 +105,21 @@ def fresh_zlib_records():
         PackageRecord.from_objects(zlib_tar_bz2_prec),
         PackageRecord.from_objects(zlib_conda_prec),
     )
+
+
+def load_condarc(mocker: MockerFixture, string: str) -> None:
+    """Load condarc test data the way ``tests/base/test_context.py`` does.
+
+    Every CLI call reloads context from the search path, so that keeps
+    returning the test data too.
+    """
+    rd = {
+        "testdata": YamlRawParameter.make_raw_parameters("testdata", yaml.loads(string))
+    }
+    mocker.patch.object(Context, "_load_search_path", return_value=rd.items())
+    reset_context("")
+    context._set_raw_data(rd)
+    PackageCacheData.clear()
 
 
 def test_get_softlinked_package_dirs(mocker, tmp_path: Path):
@@ -1081,3 +1112,111 @@ def test_cover_extract_bad_package(tmp_path):
     with open(fullpath, "w") as archive:
         archive.write("")
     PackageCacheData.first_writable()._make_single_record(str(fullpath))
+
+
+def test_is_writable_read_only_dir(
+    mocker: MockerFixture,
+    path_factory: PathFactoryFixture,
+):
+    shared_cache = path_factory("shared-pkgs")
+    create_package_cache_directory(shared_cache)
+    make_read_only(shared_cache / PACKAGE_CACHE_MAGIC_FILE)
+    load_condarc(
+        mocker,
+        dals(
+            f"""
+            pkgs_dirs:
+              - path: {shared_cache}
+            """
+        ),
+    )
+
+    assert not PackageCacheData(str(shared_cache)).is_writable
+
+
+def test_read_only_cache_is_never_writable(
+    mocker: MockerFixture,
+    path_factory: PathFactoryFixture,
+):
+    shared_cache = path_factory("shared-pkgs")
+    user_cache = path_factory("user-pkgs")
+    create_package_cache_directory(shared_cache)
+    create_package_cache_directory(user_cache)
+    load_condarc(
+        mocker,
+        dals(
+            f"""
+            pkgs_dirs:
+              - path: {shared_cache}
+                read_only: true
+              - {user_cache}
+            """
+        ),
+    )
+
+    assert not PackageCacheData(str(shared_cache)).is_writable
+    assert PackageCacheData(str(user_cache)).is_writable
+    assert PackageCacheData.first_writable().pkgs_dir == str(user_cache)
+    assert [pc.pkgs_dir for pc in PackageCacheData.read_only_caches()] == [
+        str(shared_cache)
+    ]
+    assert [pc.pkgs_dir for pc in PackageCacheData.writable_caches()] == [
+        str(user_cache)
+    ]
+    assert [pc.pkgs_dir for pc in PackageCacheData.all_caches_writable_first()] == [
+        str(user_cache),
+        str(shared_cache),
+    ]
+
+
+def test_load_and_get_read_only_cache(
+    mocker: MockerFixture,
+    path_factory: PathFactoryFixture,
+):
+    read_only_cache = path_factory("ro-pkgs")
+    create_package_cache_directory(read_only_cache)
+    # copy .conda to package cache
+    pkg_url = f"{CONDA_PKG_REPO}/{subdir}/{zlib_conda_fn}"
+    cache_action = CacheUrlAction(
+        pkg_url,
+        read_only_cache,
+        zlib_conda_fn,
+    )
+    cache_action.verify()
+    cache_action.execute()
+    cache_action.cleanup()
+
+    load_condarc(
+        mocker,
+        dals(
+            f"""
+            pkgs_dirs:
+                - path: {read_only_cache}
+                  read_only: true
+            """
+        ),
+    )
+    cache = PackageCacheData(str(read_only_cache))
+    cache.load()
+    assert cache.get(PackageRecord.from_objects(zlib_conda_prec))
+
+
+def test_no_wriatable_pkgs_dirs(
+    mocker: MockerFixture,
+    path_factory: PathFactoryFixture,
+):
+    read_only_cache = path_factory("ro-pkgs")
+    create_package_cache_directory(read_only_cache)
+    load_condarc(
+        mocker,
+        dals(
+            f"""
+            pkgs_dirs:
+                - path: {read_only_cache}
+                  read_only: true
+            """
+        ),
+    )
+    cache = PackageCacheData(str(read_only_cache))
+    with pytest.raises(NoWritablePkgsDirError):
+        cache.first_writable()

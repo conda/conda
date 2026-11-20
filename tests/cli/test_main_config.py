@@ -17,6 +17,8 @@ from conda.cli.condarc import MISSING, ConfigurationFile
 from conda.cli.main_config import set_keys
 from conda.common.compat import on_mac, on_win
 from conda.common.configuration import DEFAULT_CONDARC_FILENAME
+from conda.common.path import expand
+from conda.common.serialize import yaml
 from conda.exceptions import (
     CondaKeyError,
     CouldntParseError,
@@ -119,6 +121,90 @@ def test_config_show_sources_json(conda_cli: CondaCLIFixture):
     assert "error" not in parsed  # not an error rendered as a json
     assert not stderr
     assert not err
+
+
+@pytest.fixture
+def pkgs_dirs_condarc(
+    tmp_path: Path, monkeypatch: MonkeyPatch
+) -> tuple[Path, list[str | dict]]:
+    """A condarc whose ``pkgs_dirs`` mixes plain paths and policy maps.
+
+    Returns the condarc path and the ``pkgs_dirs`` entries ``conda config``
+    is expected to report for it.
+    """
+    condarc = tmp_path / "condarc"
+    condarc.write_text(
+        "pkgs_dirs:\n"
+        "  - /plain\n"
+        "  - path: /explicit-false\n"
+        "    always_copy: false\n"
+        "    allow_softlinks: false\n"
+        "  - path: /read-only\n"
+        "    read_only: true\n"
+        "  - path: /read-only-false\n"
+        "    read_only: false\n"
+    )
+    monkeypatch.delenv("CONDA_PKGS_DIRS", raising=False)
+    monkeypatch.setenv("CONDARC", str(condarc))
+    reset_context()
+
+    expected = [
+        # plain paths stay plain strings
+        "/plain",
+        # explicit false link policies are kept, not dropped like unset ones
+        {"path": "/explicit-false", "always_copy": False, "allow_softlinks": False},
+        {"path": "/read-only", "read_only": True},
+        # read_only: false is the default, so the entry collapses to its path
+        "/read-only-false",
+    ]
+    return condarc, expected
+
+
+@pytest.mark.parametrize("as_json", [True, False], ids=["json", "text"])
+def test_config_show_pkgs_dirs(
+    conda_cli: CondaCLIFixture,
+    pkgs_dirs_condarc: tuple[Path, list[str | dict]],
+    as_json: bool,
+):
+    condarc, expected = pkgs_dirs_condarc
+    stdout, stderr, _ = conda_cli(
+        "config",
+        "--show",
+        "pkgs_dirs",
+        "--file",
+        condarc,
+        *(["--json"] if as_json else []),
+    )
+    assert not stderr
+    parsed = json.loads(stdout) if as_json else yaml.loads(stdout)
+    # --show reports expanded paths (e.g. "/plain" -> "C:\\plain" on Windows)
+    assert parsed["pkgs_dirs"] == [
+        {**entry, "path": expand(entry["path"])}
+        if isinstance(entry, dict)
+        else expand(entry)
+        for entry in expected
+    ]
+
+
+@pytest.mark.parametrize("as_json", [True, False], ids=["json", "text"])
+def test_config_show_sources_pkgs_dirs(
+    conda_cli: CondaCLIFixture,
+    pkgs_dirs_condarc: tuple[Path, list[str | dict]],
+    as_json: bool,
+):
+    condarc, expected = pkgs_dirs_condarc
+    stdout, stderr, _ = conda_cli(
+        "config", "--show-sources", *(["--json"] if as_json else [])
+    )
+    assert not stderr
+    if as_json:
+        source = json.loads(stdout)[str(condarc)]
+    else:
+        # each source is a "==> source <==" header, a YAML block and a blank line
+        _, _, section = stdout.partition(f"==> {condarc} <==\n")
+        assert section, f"no section for {condarc} in:\n{stdout}"
+        source = yaml.loads(section.split("\n\n", 1)[0])
+    assert source["pkgs_dirs"] == expected
 
 
 def test_format_dict_mapping_items():

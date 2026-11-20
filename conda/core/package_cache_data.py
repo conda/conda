@@ -381,6 +381,14 @@ class PackageCacheData(metaclass=PackageCacheType):
 
     @property
     def is_writable(self):
+        """
+        Consult conda configuration and file system permissions to confirm
+        if the cache is writeable.
+        """
+        # check if the user has configured the cache to be read only
+        pkg_dir_config = context.pkg_dir(self.pkgs_dir)
+        if pkg_dir_config and pkg_dir_config.read_only:
+            return False
         # returns None if package cache directory does not exist / has not been created
         if self.__is_writable is NULL:
             return self._check_writable()
@@ -533,7 +541,8 @@ class PackageCacheData(metaclass=PackageCacheType):
                         package_tarball_full_path,
                         e,
                     )
-                    rm_rf(package_tarball_full_path)
+                    if self.is_writable:
+                        rm_rf(package_tarball_full_path)
                     return None
 
             # we were able to read info/index.json, so let's continue

@@ -257,10 +257,13 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
 def format_dict(d):
     from ..common.compat import isiterable
     from ..common.configuration import pretty_list, pretty_map
+    from ..common.serialize import yaml
 
     lines = []
     for k, v in d.items():
-        if isinstance(v, Mapping):
+        if k == "pkgs_dirs":
+            lines.extend(yaml.dumps({k: v}).rstrip().splitlines())
+        elif isinstance(v, Mapping):
             if v:
                 lines.append(f"{k}:")
                 lines.append(pretty_map(v))
@@ -499,6 +502,14 @@ def execute_config(args: Namespace, parser: ArgumentParser) -> int | None:
             provided_plugin_parameters = context.plugins.list_parameters()
 
         d = {key: getattr(context, key) for key in provided_parameters}
+        if "pkgs_dirs" in d:
+            d["pkgs_dirs"] = []
+            for path in context.pkgs_dirs:
+                value = context.pkg_dir(path).to_json()
+                if isinstance(value, dict):
+                    d["pkgs_dirs"].append({**value, "path": path})
+                else:
+                    d["pkgs_dirs"].append(path)
 
         d["plugins"] = {}
 
