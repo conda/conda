@@ -6,15 +6,13 @@ to track measurements across commits.
 
 ## Run locally
 
-From the repository root, activate the
-{doc}`development environment <../development-environment>` and install
-pytest-benchmark. For Bash, use Python 3.14 and Miniconda to match the current CI
-configuration:
+From the repository root, run the benchmarks in the
+{doc}`development environment <../development-environment>`, which includes
+pytest-benchmark. Use Python 3.14 and the Anaconda `main` channel to match the
+current CI configuration:
 
 ```bash
-source ./dev/start -p 3.14 -i miniconda
-conda install --yes "pytest-benchmark>=5.1.0"
-python -m pytest -m benchmark
+pixi run -e py314-main python -m pytest -m benchmark
 ```
 
 Append a path or a pytest filter such as `-k test_generate_parser` to run a smaller

@@ -26,6 +26,7 @@ record.txt
 Vagrantfile
 dev-init.bat
 devenv/
+.pixi/
 Miniconda*.sh
 miniconda*.sh
 miniconda*.exe

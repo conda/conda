@@ -152,6 +152,154 @@ warn_return_any = true
 warn_unreachable = true
 warn_unused_ignores = true
 
+[tool.pixi.dependencies]
+# keep in sync with tests/requirements.txt and tests/requirements-ci.txt
+# (see tests/test_dev_environment.py)
+archspec = ">=0.2.3"
+boltons = ">=23.0.0"
+charset-normalizer = "*"
+conda = "*"
+conda-libmamba-solver = ">=26.4.1"
+conda-package-handling = ">=2.2.0"
+conda-pycosat-solver = ">=26.10.0"
+conda-pypi = ">=0.10.1"
+conda-rattler-solver = ">=26.10.2"
+coverage = "*"
+distro = ">=1.5.0"
+flask = ">=2.2"
+frozendict = ">=2.4.2"
+git = "*"
+importlib_resources = ">=5.10"
+menuinst = ">=2"
+msgpack-python = ">=1.1.1"
+packaging = ">=26.3"
+pexpect = "*"
+pip = "*"
+platformdirs = ">=3.10.0"
+pluggy = ">=1.6.0"
+pycosat = ">=0.6.3"
+pytest = "*"
+pytest-benchmark = "*"
+pytest-cov = "*"
+pytest-mock = "*"
+pytest-rerunfailures = "*"
+pytest-split = "*"
+pytest-timeout = "*"
+pytest-xprocess = "*"
+requests = ">=2.28.0,<3"
+responses = "*"
+"ruamel.yaml" = ">=0.11.14,<0.20"
+setuptools = ">=60.0.0"
+setuptools_scm = "*"
+tomli = "*"
+tqdm = ">=4"
+truststore = ">=0.8.0"
+werkzeug = ">=2.2"
+
+[tool.pixi.environments]
+default = { features = ["py311", "main"] }
+py311-conda-forge = { features = ["py311", "conda-forge"] }
+py311-main = { features = ["py311", "main"] }
+py312-conda-forge = { features = ["py312", "conda-forge"] }
+py312-main = { features = ["py312", "main"] }
+py313-conda-forge = { features = ["py313", "conda-forge"] }
+py313-main = { features = ["py313", "main"] }
+py314-conda-forge = { features = ["py314", "conda-forge"] }
+py314-conda-forge-full = { features = ["py314", "conda-forge", "s3", "typing"] }
+py314-main = { features = ["py314", "main"] }
+
+[tool.pixi.feature.conda-forge]
+channels = ["conda-forge"]
+
+[tool.pixi.feature.conda-forge.dependencies]
+xonsh = "*"
+
+[tool.pixi.feature.conda-forge.target.unix.activation.env]
+# configure the channel like the CI condarc
+CONDARC = "$PIXI_PROJECT_ROOT/dev/pixi/condarc-conda-forge.yml"
+
+[tool.pixi.feature.conda-forge.target.win.activation.env]
+CONDARC = "%PIXI_PROJECT_ROOT%\\dev\\pixi\\condarc-conda-forge.yml"
+
+[tool.pixi.feature.main]
+# osx-64 is not offered by the Anaconda main channel for current conda releases
+channels = [
+  "https://repo.anaconda.com/pkgs/main",
+  "https://repo.anaconda.com/pkgs/r",
+  # lowest priority fallback, only used for packages missing from main
+  { channel = "conda-forge", priority = -1 },
+]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "win-64"]
+
+[tool.pixi.feature.main.dependencies]
+xonsh = { version = "*", channel = "conda-forge" }
+
+[tool.pixi.feature.main.target.unix.activation.env]
+# configure the channel like the CI condarc
+CONDARC = "$PIXI_PROJECT_ROOT/dev/pixi/condarc-main.yml"
+
+[tool.pixi.feature.main.target.win.activation.env]
+CONDARC = "%PIXI_PROJECT_ROOT%\\dev\\pixi\\condarc-main.yml"
+
+[tool.pixi.feature.py311.dependencies]
+"backports.zstd" = ">=1.3.0"
+python = "3.11.*"
+
+[tool.pixi.feature.py312.dependencies]
+"backports.zstd" = ">=1.3.0"
+python = "3.12.*"
+
+[tool.pixi.feature.py313.dependencies]
+"backports.zstd" = ">=1.3.0"
+python = "3.13.*"
+
+[tool.pixi.feature.py314.dependencies]
+python = "3.14.*"
+
+[tool.pixi.feature.s3.dependencies]
+boto3 = "!=1.33.0"
+minio-server = { version = "*", channel = "conda-forge" }
+
+[tool.pixi.feature.typing.dependencies]
+lxml = "*"
+mypy = "*"
+
+[tool.pixi.target.linux-64.dependencies]
+patchelf = "*"
+
+[tool.pixi.target.linux-aarch64.dependencies]
+patchelf = "*"
+
+[tool.pixi.target.unix.activation.env]
+# run conda from source; keep any existing PYTHONPATH, like the legacy dev/start did
+PYTHONPATH = "$PIXI_PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+
+[tool.pixi.target.win.activation.env]
+PYTHONPATH = "%PIXI_PROJECT_ROOT%;%PYTHONPATH%"
+
+[tool.pixi.target.win-64.dependencies]
+conda-launchers = ">=24.7.1"
+pywin32 = "*"
+
+[tool.pixi.tasks]
+conda-init = "conda init --install"
+integration = "pytest -m integration"
+lint = "pre-commit run --all-files"
+smoketest = "pytest tests/test_create.py -k test_create_install_update_remove"
+unit = "pytest -m 'not integration'"
+
+[tool.pixi.workspace]
+channels = []
+name = "conda"
+platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
+requires-pixi = ">=0.84"
+
+[tool.pixi.workspace.conda-pypi-map]
+# main has no PyPI name mapping; without this pixi would also resolve the
+# [project] dependencies from PyPI instead of using the conda packages
+# (msgpack-python is named msgpack on PyPI)
+"https://repo.anaconda.com/pkgs/main" = { mapping = { msgpack-python = "msgpack" }, mapping-mode = "replace", same-name-heuristic = true }
+
 [tool.pytest.ini_options]
 addopts = [
   "--color=auto",

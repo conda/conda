@@ -47,7 +47,7 @@ The Application Identity Service is required for AppLocker to function properly.
    - Right-click on **Script Rules** and select **Create New Rule...**
    - Choose **Allow** under Permissions and set the user/group to **Everyone**
    - Select **Path** as the condition
-   - Enter the path to your development environment (e.g., path to `devenv`)
+   - Enter the path to your development environment (e.g., path to `.pixi\envs`)
    - Complete the wizard without adding exceptions
 4. Create an Allow Rule for the conda source code location using the same process
 5. Create a Deny Rule for the `%TEMP%` directory:
@@ -62,7 +62,7 @@ The Application Identity Service is required for AppLocker to function properly.
 
 After setting up AppLocker, you can test conda to ensure it works correctly:
 
-1. Start your development environment with `.\dev\start.bat`
+1. Start your development environment with `pixi shell`
 2. Run `conda activate` to test activation
 3. Test other conda commands to ensure they function properly
 

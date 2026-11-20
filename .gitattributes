@@ -3,3 +3,4 @@
 dev/start text eol=lf
 *.bat text eol=crlf
 .git_archival.txt export-subst
+pixi.lock linguist-language=YAML linguist-generated=true

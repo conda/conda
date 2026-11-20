@@ -1,0 +1,47 @@
+### Title
+Pixi development environments and deprecated `dev/start` scripts
+
+### Why
+Contributors switch from the `dev/start` scripts to pixi environments. The
+environments must run conda from the source checkout on every platform, and the
+scripts must keep working while warning about their deprecation.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+[pixi](https://pixi.sh/) installed and a clean checkout with no `.pixi` directory.
+Open a fresh shell, not one with an active conda environment. On Windows, test
+both cmd.exe and PowerShell. On macOS and Linux, test bash and zsh.
+
+### Steps
+1. Run `pixi shell -e py311-main`, then `python --version` and `conda info`.
+2. Run `python -c "import conda; print(conda.__file__)"`.
+3. Exit, then repeat steps 1 and 2 with `pixi shell -e py314-conda-forge`.
+4. In the shell, run `echo $PYTHONPATH` (`echo %PYTHONPATH%` in cmd.exe) with
+   `PYTHONPATH` unset before starting pixi, and again with it set to another path.
+5. Run `pixi run -e py314-conda-forge unit` and stop it after a few tests pass.
+6. Run `pixi run -e py314-conda-forge conda-init`.
+7. On macOS, run `pixi shell -e py314-main` and note that it is not available.
+8. Run `source ./dev/start --help` (`.\dev\start.bat /?` in cmd.exe) and then
+   `source ./dev/start -n` (`.\dev\start.bat /N`). Redirect stderr to a file.
+9. Repeat step 8 with `CONDA_DEV_START_NO_WARN=1` set.
+
+### Pass criteria
+The Python version matches the environment. `conda location` and
+`conda.__file__` point to the checkout. `PYTHONPATH` starts with the checkout
+and keeps an existing value. On Windows with `PYTHONPATH` unset, note whether the
+value contains a literal `%PYTHONPATH%`: the activation uses
+`%PIXI_PROJECT_ROOT%;%PYTHONPATH%`, which was not verified on Windows, and a
+literal entry there should be fixed in `pyproject.toml`. The unit tests start and
+`conda-init` runs.
+The `main` environments are unavailable on macOS Intel (osx-64). The `dev/start`
+scripts print a pending deprecation warning to stderr only, still behave as
+before, and are silent with `CONDA_DEV_START_NO_WARN` set.
+
+### Out of scope / notes
+The dependency sync with `tests/requirements*.txt` is covered by
+`tests/test_dev_environment.py`. The Windows activation syntax and `dev\start.bat`
+warning are only checked here.
