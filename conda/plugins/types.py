@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from ..common.path import PathType
     from ..core.path_actions import Action
     from ..core.solve import Solver
+    from ..models.channel import Channel
     from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PrefixRecord
@@ -289,6 +290,22 @@ class CondaPreCommand(CondaPlugin):
     name: str
     action: Callable[[str], None]
     run_for: set[str]
+
+
+@dataclass
+class CondaPreChannelFetch(CondaPlugin):
+    """Run a provider check before shared channel metadata acquisition.
+
+    For details, see
+    :meth:`~conda.plugins.hookspec.CondaSpecs.conda_pre_channel_fetches`.
+
+    Args:
+        name: Unique name for the registered check.
+        action: Callable receiving the channel. Raise to prevent acquisition.
+    """
+
+    name: str
+    action: Callable[[Channel], None]
 
 
 @dataclass

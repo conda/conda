@@ -1,0 +1,27 @@
+### Title
+Provider checks for related channels
+
+### Why
+Channel relations can introduce repositories after pre-command checks have run. Each repository must pass its provider check before conda reads its metadata.
+
+### Platforms
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+A conda build with shared channel resolution and this hook. A local test plugin registering `CondaPreChannelFetch` through `conda_pre_channel_fetches`. Have its action log each channel's `base_url` and raise `CondaError("Repository access required")` for a channel named `related`.
+
+### Steps
+1. Create sibling local channels named `head` and `related`, each containing a `noarch/repodata.json` file with empty `packages` and `packages.conda` mappings.
+2. Set the head's `info` to `{"subdir": "noarch", "channel_relations": {"base": "../related"}}`. Set the related channel's `info` to `{"subdir": "noarch"}`.
+3. Run `conda search --override-channels -c <head-file-url> example`.
+4. Repeat the command with `CONDA_CHANNEL_RELATIONS_MAX_DEPTH=0` in its environment.
+5. Remove the environment override and change the plugin to allow `related`. Repeat the search twice to cover cached metadata.
+6. Add the related URL to an isolated configuration's `denylist_channels`, then repeat the search.
+
+### Pass criteria
+The first search reports the provider's error and the plugin log lists the head followed by the related channel. With discovery disabled, only the head is checked. When allowed, both channels are checked on each search and conda reports that the example package is absent. With the related URL denied, conda reports its native channel policy error before invoking the provider for that channel.
+
+### Out of scope / notes
+The automated tests also observe metadata reads directly for JSON and shard indexes, and cover callback rejection before provider actions. This hook does not run for direct artifact downloads from explicit package records.
