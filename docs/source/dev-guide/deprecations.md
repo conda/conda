@@ -5,8 +5,9 @@
 Conda abides by the Deprecation Schedule defined in [CEP 9][cep9].
 
 :::{seealso}
-For breaking changes that are *not* a public API removal — config default changes, default
-solver changes, CLI removals — see {doc}`Breaking changes <breaking-changes>`.
+For changes to supported user-visible behavior, including breaking config defaults, default
+solver changes, and CLI removals, see {doc}`Breaking changes <breaking-changes>`. That guide
+applies the same schedule and adds communication and rollout steps.
 :::
 
 ## What must be deprecated
