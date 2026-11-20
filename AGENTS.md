@@ -28,6 +28,14 @@ Bootstrap and set up an environment for **development and testing** from the rep
 - **This repo** configures formatting and lint with **[Ruff](https://docs.astral.sh/ruff/)** in **`pyproject.toml`** and **`.pre-commit-config.yaml`** (`ruff format`, `ruff check`). Hooks are **[prek](https://prek.j178.dev/)**-compatible (drop-in for **[pre-commit](https://pre-commit.com/)**); assume **prek** / **pre-commit** is already set up locally—this document does not cover installing or enabling hooks. CI enforces the same checks if a change bypasses hooks.
 - **Docstrings** use **Google-style** (`Args:`, `Returns:`, `Raises:`). Napoleon renders these natively. Do **not** repeat types (annotations are the source of truth). Keep docstrings short. See the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) for reference.
 
+### Functions and methods
+
+- Before introducing a helper, check whether existing code or a test fixture already does the job.
+- Keep related steps together when separating them would obscure their order or shared state. Extract an operation when its name and inputs clarify the calling code or make nested control flow easier to understand. One caller can be enough.
+- A helper can also make substantial logic easier to test without unrelated filesystem, network, or configuration setup. Avoid creating trivial functions just to test expressions separately. Retain coverage through the calling code where needed.
+- Assess the caller and helper together, including state changes and error handling. When requesting extraction or inlining, explain the specific improvement in readability or testing. Shorter functions and lower complexity scores alone do not establish that improvement.
+- Avoid speculative reuse and wrappers that merely pass arguments unless an API requires them. Keep refactoring within the requested change and follow the deprecation policy for released APIs.
+
 ## Changelog (`releases/news/`)
 
 - Add **one file per significant change** under **`releases/news/`** at the repo root. Use a copy of **`releases/news/TEMPLATE`** as the template. Do **not** edit **`CHANGELOG.md`** directly; releases fold in `releases/news/` fragments.
