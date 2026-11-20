@@ -399,16 +399,6 @@ class PackageCacheData(metaclass=PackageCacheType):
         if isfile(magic_file):
             i_wri = file_path_is_writable(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
             self.__is_writable = i_wri
-        # returns None if package cache directory does not exist / has not been created
-        if self.__is_writable is NULL:
-            return self._check_writable()
-        return self.__is_writable
-
-    def _check_writable(self):
-        magic_file = join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE)
-        if isfile(magic_file):
-            i_wri = file_path_is_writable(join(self.pkgs_dir, PACKAGE_CACHE_MAGIC_FILE))
-            self.__is_writable = i_wri
             log.debug("package cache directory '%s' writable: %s", self.pkgs_dir, i_wri)
         else:
             log.log(TRACE, "package cache directory '%s' does not exist", self.pkgs_dir)
