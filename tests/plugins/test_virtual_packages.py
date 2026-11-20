@@ -92,9 +92,13 @@ def test_duplicated(plugin_manager):
         )
 
 
-def test_cuda_detection(clear_cuda_version):
+@pytest.mark.benchmark
+def test_cuda_detection(benchmark):
+    """
+    Test, time cuda detection which is done in a subprocess.
+    """
     # confirm that CUDA detection doesn't raise exception
-    version = cuda.cuda_version()
+    version = benchmark(cuda.cuda_version)
     assert version is NULL or isinstance(version, str)
 
 
