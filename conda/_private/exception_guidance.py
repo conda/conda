@@ -70,6 +70,22 @@ class ErrorGuidance:
         result["hint_codes"] = self.hint_codes
         return {k: v for k, v in result.items() if v}
 
+    def with_hint(self, text: str, hint_code: str) -> ErrorGuidance:
+        """Return a new instance with an additional hint appended.
+
+        When ``hint_code`` already exists, the new hint replaces the previous
+        one.
+        """
+        new_hints = tuple(
+            {
+                hint.hint_code: hint
+                for hint in (*self.hints, GuidanceHint(text, hint_code))
+            }.values()
+        )
+        if new_hints == self.hints:
+            return self
+        return replace(self, hints=new_hints)
+
     @classmethod
     def from_hints(cls, hints: Iterable[GuidanceHint]) -> ErrorGuidance | None:
         """Create guidance from hints, deduplicating by ``hint_code``."""
