@@ -293,6 +293,7 @@ class UnlinkLinkTransaction:
                     stp.remove_specs,
                     stp.update_specs,
                     stp.neutered_specs,
+                    package_verifiers=self._pfe._package_verifiers,
                 )
 
         self._prepared = True
@@ -405,6 +406,8 @@ class UnlinkLinkTransaction:
         remove_specs,
         update_specs,
         neutered_specs,
+        *,
+        package_verifiers=(),
     ):
         # make sure prefix directory exists
         if not isdir(target_prefix):
@@ -426,8 +429,11 @@ class UnlinkLinkTransaction:
         # NOTE: load_meta can return None
         # TODO: figure out if this filter shouldn't be an assert not None
         prefix_recs_to_unlink = tuple(lpd for lpd in prefix_recs_to_unlink if lpd)
+        # A same-device cache may contain an extraction that was not verified.
         pkg_cache_recs_to_link = tuple(
-            PackageCacheData.get_entry_to_link(prec, target_prefix)
+            PackageCacheData.get_entry_to_link(
+                prec, None if package_verifiers else target_prefix
+            )
             for prec in link_precs
         )
         if not all(pkg_cache_recs_to_link):
