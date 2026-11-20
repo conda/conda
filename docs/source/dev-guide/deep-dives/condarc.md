@@ -14,8 +14,44 @@ modifying, and writing conda configuration files (`.condarc`). It handles:
 - Configuration file validation
 - Type checking and conversion
 - Parameter existence checking
-- Atomic file operations via context manager
+- Automatic writes on successful exit from a context manager
 - Support for sequence, map, and primitive parameters
+
+## Concurrent edits
+
+`ConfigurationFile` records the resolved target, contents, file identity, and file
+metadata when reading. If these change before a write, including a replacement
+with identical contents, writing raises `CondaError`. Read the file again and
+reapply the intended changes before retrying. A failed conflict check leaves the
+competing file intact. Writing to another path starts tracking that destination
+when `write()` begins. Supplying `content=` without reading does the same.
+
+Conda normally locks a persistent `<target>.lock` file next to the resolved
+target. It holds the lock through the final conflict check and atomic
+replacement. Cooperating editors need write access to the lock file and must
+leave it in place between writes. A separate lock serializes writes within the
+same process. Configuration locking stays enabled even when `no_lock` is set
+for the index cache. An unchanged write does not require a lock file or a
+writable directory.
+
+On POSIX, conda also locks the existing configuration file before changing it.
+If permissions prevent opening the sibling lock file, conda can proceed with
+the configuration file locked. If directory permissions prevent creating a
+temporary file, conda writes in place while holding that lock. It tries to
+restore the original contents if the write fails. An interruption can leave
+the file partially written.
+
+The containing directory and its parent directories must be controlled by trusted
+users. conda checks observed changes to the destination, lock file, and staged
+file, but these checks and replacement are separate operations. An editor that
+does not take the same lock can still modify or replace a file after a check.
+File timestamps also depend on the operating system and filesystem. In particular,
+Python 3.10 reports creation time as `st_ctime` on Windows, so checking it does not
+detect every Windows access-control change. These checks do not provide
+conditional replacement against arbitrary writers or hostile directory changes.
+
+After replacement, the instance retains the contents and identity it committed.
+It does not adopt another writer's replacement as the baseline for its next edit.
 
 ## Basic Usage
 
@@ -60,7 +96,7 @@ config.write()
 
 ### Using Context Manager
 
-For atomic operations, use the context manager pattern:
+The context manager calls `write()` when the `with` block exits successfully.
 
 ```python
 from conda.cli.condarc import ConfigurationFile
@@ -300,7 +336,6 @@ Here's a complete example that demonstrates multiple operations:
 ```python
 from conda.cli.condarc import ConfigurationFile
 
-# Use context manager for atomic operations
 with ConfigurationFile.from_user_condarc() as config:
     # Set primitive parameters
     config.set_key("auto_update_conda", False)
@@ -399,8 +434,7 @@ threads, consider using locks or creating separate instances for each thread.
 
 ## Best Practices
 
-1. **Use context managers**: For atomic operations, always use the context manager pattern to ensure
-   changes are only written on success.
+1. **Use context managers** to save a group of changes when the block exits successfully.
 
 2. **Validate keys**: Use `key_exists()` to check parameter validity before attempting operations.
 
