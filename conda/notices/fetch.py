@@ -6,10 +6,12 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import requests  # noqa: TID253
 
+from ..base.context import context
 from ..gateways.connection.session import get_session
 from ..reporters import get_spinner
 from .cache import cached_response
@@ -39,7 +41,10 @@ def get_notice_responses(
     """
     executor = ThreadPoolExecutor(max_workers=max_workers)
 
-    with get_spinner("Retrieving notices"):
+    spinner = (
+        nullcontext() if silent or context.json else get_spinner("Retrieving notices")
+    )
+    with spinner:
         return tuple(
             filter(
                 None,

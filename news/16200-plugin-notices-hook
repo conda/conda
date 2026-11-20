@@ -1,0 +1,4 @@
+### Enhancements
+
+* Add `conda_notices` plugin hook so plugins can yield structured notice messages into conda's notice pipeline. (#16200)
+* Add `conda notices --plugin` flag to filter only plugin-sourced notices. (#16200)
