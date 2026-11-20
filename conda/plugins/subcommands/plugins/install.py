@@ -7,6 +7,7 @@ from __future__ import annotations
 from functools import partial
 from typing import TYPE_CHECKING
 
+from ....base.context import context
 from ....cli import main_install
 from ....cli.helpers import (
     add_parser_create_install_update,
@@ -16,7 +17,9 @@ from ....cli.helpers import (
     add_parser_update_modifiers,
 )
 from ....common.constants import NULL
+from ....core.prefix_data import PrefixData
 from .package_validation import (
+    require_conda_packages_only,
     require_explicit_plugin_packages,
     require_plugin_transaction,
 )
@@ -54,4 +57,18 @@ def execute(args: Namespace) -> int:
         prefetch_link_precs=True,
     )
     args.cmd = "install"
+    prefix_data = PrefixData.from_context()
+    if (
+        context.protect_frozen_envs
+        and prefix_data.is_base()
+        and prefix_data.is_frozen()
+    ):
+        args._frozen_override_prompt = (
+            "Override the freeze for this plugin installation"
+        )
+        args._validate_environment = partial(
+            require_conda_packages_only, command="install"
+        )
+        with context._override("auto_update_conda", False):
+            return main_install.execute(args, args._plugin_parser)
     return main_install.execute(args, args._plugin_parser)

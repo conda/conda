@@ -17,12 +17,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ..base.constants import (
+    DEFAULT_JSON_REPORTER_BACKEND,
     REPODATA_FN,
     UpdateModifier,
 )
 from ..base.context import context
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
 from ..common.constants import NULL
+from ..common.terminal import is_interactive_tty
 from ..core.index import Index
 from ..core.link import PrefixSetup, UnlinkLinkTransaction
 from ..core.prefix_data import PrefixData
@@ -37,6 +39,7 @@ from ..exceptions import (
     CondaValueError,
     DirectoryNotACondaEnvironmentError,
     DryRunExit,
+    EnvironmentIsFrozenError,
     NoBaseEnvironmentError,
     PackageNotInstalledError,
     PackagesNotFoundError,
@@ -57,7 +60,7 @@ from ..models.channel import all_channel_urls
 from ..models.environment import Environment
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
-from ..reporters import confirm_yn, get_spinner
+from ..reporters import confirm_yn, get_spinner, prompt
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
@@ -232,7 +235,12 @@ class Repodatas:
         self.success = True
 
 
-def validate_install_command(prefix: str, command: str = "install"):
+def validate_install_command(
+    prefix: str,
+    command: str = "install",
+    *,
+    frozen_override_prompt: str | None = None,
+):
     """Executes a set of validations that are required before any installation
     command is executed. This includes:
       * ensure the configuration is valid
@@ -242,6 +250,7 @@ def validate_install_command(prefix: str, command: str = "install"):
     Args:
         prefix: The prefix where the environment will be created
         command: Type of operation being performed
+        frozen_override_prompt: Question to ask before overriding a freeze for this operation.
 
     Raises:
         error if the configuration for the install is bad
@@ -255,6 +264,13 @@ def validate_install_command(prefix: str, command: str = "install"):
         raise CondaValueError("cannot use CONDA_FORCE_32BIT=1 in base env")
 
     if command in ("install", "update", "remove"):
+        if frozen_override_prompt is not None and (
+            context.dry_run or context.download_only
+        ):
+            # A plugin preview or cache download does not modify the target environment.
+            prefix_data.assert_environment()
+            return
+
         try:
             prefix_data.assert_writable()
         except DirectoryNotACondaEnvironmentError as exc:
@@ -264,7 +280,26 @@ def validate_install_command(prefix: str, command: str = "install"):
             if not path_is_clean(prefix):
                 raise
         if context.protect_frozen_envs:
-            prefix_data.assert_not_frozen()
+            try:
+                prefix_data.assert_not_frozen()
+            except EnvironmentIsFrozenError as exc:
+                if (
+                    frozen_override_prompt is None
+                    or context.always_yes
+                    or context.console == DEFAULT_JSON_REPORTER_BACKEND
+                    or not is_interactive_tty()
+                ):
+                    raise
+                try:
+                    choice = prompt(
+                        f"{exc}\n\n{frozen_override_prompt}",
+                        choices=("yes", "no"),
+                        default="no",
+                    )
+                except KeyboardInterrupt:
+                    choice = None
+                if choice != "yes":
+                    raise
 
 
 def ensure_update_specs_exist(prefix: str, specs: list[str]):
@@ -297,7 +332,11 @@ def install(args, parser, command="install"):
     index_args = get_index_args(args=args)
 
     # common validations for all types of installs
-    validate_install_command(prefix=prefix, command=command)
+    validate_install_command(
+        prefix=prefix,
+        command=command,
+        frozen_override_prompt=getattr(args, "_frozen_override_prompt", None),
+    )
 
     if context.use_only_tar_bz2:
         args.repodata_fns = ("repodata.json",)
@@ -323,6 +362,8 @@ def install(args, parser, command="install"):
 
     # install explicit specs
     if len(env.explicit_packages) > 0 and len(env.requested_packages) == 0:
+        if context.download_only:
+            raise CondaExitZero("Explicit packages downloaded to the package cache.")
         return install_explicit_packages(env.explicit_packages, env.prefix)
 
     repodata_fns = args.repodata_fns

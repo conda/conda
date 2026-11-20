@@ -79,6 +79,11 @@ def get_spinner(message: str, fail_message: str = "failed\n") -> SpinnerBase:
     return _get_render_func("spinner")(message, fail_message)
 
 
+def prompt(message: str, *, choices: tuple[str, ...], default: str) -> str | None:
+    """Ask the current reporter for a choice. A noninteractive reporter may return None."""
+    return _get_render_func("prompt")(message, choices=choices, default=default)
+
+
 def confirm_yn(message: str = "Proceed", default="yes", dry_run=None) -> bool:
     """
     Display a "yes/no" confirmation input
@@ -90,9 +95,7 @@ def confirm_yn(message: str = "Proceed", default="yes", dry_run=None) -> bool:
         return True
 
     try:
-        choice = _get_render_func("prompt")(
-            message, choices=("yes", "no"), default=default
-        )
+        choice = prompt(message, choices=("yes", "no"), default=default)
 
     except KeyboardInterrupt:  # pragma: no cover
         raise CondaSystemExit("\nOperation aborted.  Exiting.")

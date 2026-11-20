@@ -1,0 +1,28 @@
+### Title
+
+Install a plugin interactively in a frozen base.
+
+### Why
+
+The user must approve overriding the freeze separately from the package transaction.
+
+### Platforms
+
+- [ ] Windows
+- [ ] macOS
+- [ ] Linux
+
+### Prerequisites
+
+Use a disposable conda installation with a writable base and a plugin available from its channels.
+In base, write `{"message": "Frozen for maintenance"}` to `conda-meta/frozen`.
+
+### Steps
+
+1. Run `conda plugins install -n base PACKAGE` from a terminal and press Enter at the freeze prompt.
+2. Repeat the command, answer yes to the freeze prompt, and decline the package transaction.
+3. Repeat and approve both prompts. Then run the original command again.
+
+### Pass criteria
+
+Conda shows the maintenance message before asking for an override. Steps 1 and 2 leave the plugin uninstalled. Step 3 installs it, preserves the freeze file, and asks about the freeze on the next invocation.
