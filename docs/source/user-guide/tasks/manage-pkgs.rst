@@ -353,17 +353,21 @@ Use the terminal for the following steps.
 
   .. code::
 
-    conda update conda
+    conda self update
 
 .. note::
    Conda updates to the highest version in its series, so
    when updating Python, it updates to the highest available in the 3.x series.
 
+.. note::
+   If ``conda self`` is not available, update conda itself with
+   ``conda update conda``. See :doc:`manage-conda` for more information.
+
 To update the Anaconda metapackage:
 
 .. code-block:: bash
 
-   conda update conda
+   conda self update
    conda update anaconda
 
 Regardless of what package you are updating, conda compares

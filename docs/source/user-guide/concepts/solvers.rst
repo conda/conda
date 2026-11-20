@@ -147,7 +147,7 @@ Conda saves the setting in your ``.condarc`` file. For more information on your
 
    .. code-block:: bash
 
-      conda install --name base conda-rattler-solver
+      conda plugins install conda-rattler-solver
 
 To return to the default solver, remove the custom solver setting:
 
