@@ -236,6 +236,12 @@ class PkgsDirConfig(ConfigurationObject):
         fields = ", ".join(f"{name}={value!r}" for name, value in vars(self).items())
         return f"{type(self).__name__}({fields})"
 
+    def to_json(self):
+        values = {key: value for key, value in vars(self).items() if value is not None}
+        if not self.read_only:
+            values.pop("read_only")
+        return values if len(values) > 1 else self.path
+
     def __eq__(self, other):
         if type(other) is type(self):
             return self.path == other.path
