@@ -102,6 +102,7 @@ def test_console_reporter_backend(
 
     renderer = console.renderer()
 
-    output = getattr(renderer, method)(argument)
+    with pytest.deprecated_call():
+        output = getattr(renderer, method)(argument)
 
     assert output == expected

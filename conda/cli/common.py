@@ -30,7 +30,7 @@ from ..exceptions import (
 )
 from ..gateways.connection.session import CONDA_SESSION_SCHEMES
 from ..models.match_spec import MatchSpec
-from ..reporters import render
+from ..reporters import render_data
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -141,7 +141,7 @@ def disp_features(features):
 
 @swallow_broken_pipe
 def stdout_json(d):
-    render(d)
+    render_data(d)
 
 
 def stdout_json_success(success=True, **kwargs):

@@ -42,7 +42,6 @@ from ..common.iterators import groupby_to_dict as groupby
 from ..common.path import expand, strip_pkg_extension, url_to_path
 from ..common.serialize import json
 from ..common.signals import signal_handler
-from ..common.terminal import is_tty, term_dumb
 from ..common.url import path_to_url
 from ..exceptions import NotWritableError, NoWritablePkgsDirError, PluginError
 from ..gateways.disk.create import (
@@ -62,14 +61,20 @@ from ..gateways.disk.read import (
 from ..gateways.disk.test import file_path_is_writable, paths_on_same_device
 from ..models.match_spec import MatchSpec
 from ..models.records import PackageCacheRecord, PackageRecord
-from ..reporters import get_progress_bar, get_progress_bar_context_manager
-from ..utils import human_bytes
+from ..plugins.reporter_backends.events import (
+    FetchSectionEndEvent,
+    FetchSectionStartEvent,
+    FetchTaskEndEvent,
+    FetchTaskProgressEvent,
+    FetchTaskStartEvent,
+)
+from ..reporters import get_reporter
 from .path_actions import CacheUrlAction, ExtractPackageAction
 
 if TYPE_CHECKING:
     from concurrent.futures import Future
 
-    from ..plugins.types import ProgressBarBase
+    from ..reporters import CondaReporter
 
 log = getLogger(__name__)
 
@@ -856,18 +861,17 @@ class ProgressiveFetchExtract:
         if context.dry_run:
             raise RuntimeError("Cannot run .execute() in dry-run mode.")
 
-        with get_progress_bar_context_manager() as pbar_context:
+        reporter = get_reporter()
+        reporter.send(FetchSectionStartEvent())
+        succeeded = False
+        try:
             if self._executed:
+                succeeded = True
                 return
             if not self._prepared:
                 self.prepare()
 
-            if not context.verbose and not context.quiet and not context.json:
-                print(
-                    "\nDownloading and Extracting Packages:",
-                    end="\n" if is_tty() and not term_dumb() else " ...working...",
-                )
-            else:
+            if context.verbose or context.quiet or context.json:
                 log.debug(
                     "prepared package cache actions:\n"
                     "  cache_actions:\n"
@@ -879,7 +883,7 @@ class ProgressiveFetchExtract:
                 )
 
             exceptions = []
-            progress_bars = {}
+            task_ids: dict = {}
             futures: list[Future] = []
             extract_futures = {}
             extract_actions = self.extract_actions
@@ -945,11 +949,17 @@ class ProgressiveFetchExtract:
                         # Not sure when this is reached.
                         continue
 
-                    progress_bar = self._progress_bar(
-                        prec_or_spec, context_manager=pbar_context, leave=False
+                    task_id = id(prec_or_spec)
+                    task_ids[prec_or_spec] = task_id
+                    reporter.send(
+                        FetchTaskStartEvent(
+                            task_id=task_id,
+                            name=prec_or_spec.name or "",
+                            version=prec_or_spec.version or "",
+                            size=getattr(prec_or_spec, "size", None),
+                        )
                     )
-
-                    progress_bars[prec_or_spec] = progress_bar
+                    progress_bar = _FetchTask(reporter, task_id)
 
                     future = fetch_executor.submit(
                         do_cache_action,
@@ -976,7 +986,7 @@ class ProgressiveFetchExtract:
                         prec_or_spec = completed_future.result()
 
                         cache_action, extract_action = self.paired_actions[prec_or_spec]
-                        progress_bar = progress_bars[prec_or_spec]
+                        progress_bar = _FetchTask(reporter, task_ids[prec_or_spec])
                         actions = (cache_action, extract_action)
                         if not extract_action:
                             do_cleanup(actions)
@@ -1045,15 +1055,6 @@ class ProgressiveFetchExtract:
                             progress_bar.finish()
                             progress_bar.refresh()
 
-            for bar in progress_bars.values():
-                bar.close()
-
-            if not context.verbose and not context.quiet and not context.json:
-                if is_tty() and not term_dumb():
-                    print("\r")  # move to column 0
-                else:
-                    print(" done")
-
             if exceptions:
                 # avoid printing one CancelledError() per pending download
                 not_cancelled = [
@@ -1064,41 +1065,41 @@ class ProgressiveFetchExtract:
                 raise CondaMultiError(not_cancelled)
 
             self._executed = True
-
-    @staticmethod
-    def _progress_bar(
-        prec_or_spec, position=None, leave=False, context_manager=None
-    ) -> ProgressBarBase:
-        description = ""
-        if prec_or_spec.name and prec_or_spec.version:
-            description = "{}-{}".format(
-                prec_or_spec.name or "", prec_or_spec.version or ""
-            )
-        size = getattr(prec_or_spec, "size", None)
-        size_str = size and human_bytes(size) or ""
-        if len(description) > 0:
-            description = "%-20.20s | " % description
-        if len(size_str) > 0:
-            description += "%-9s | " % size_str
-
-        progress_bar = get_progress_bar(
-            description,
-            context_manager=context_manager,
-            position=position,
-            leave=leave,
-            enabled=not context.verbose
-            and not context.quiet
-            and is_tty()
-            and not term_dumb(),
-        )
-
-        return progress_bar
+            succeeded = True
+        finally:
+            reporter.send(FetchSectionEndEvent(success=succeeded))
 
     def __hash__(self):
         return hash(self.link_precs)
 
     def __eq__(self, other):
         return hash(self) == hash(other)
+
+
+class _FetchTask:
+    """
+    Reports progress for one fetch task by sending events to the reporter.
+
+    This keeps the ``update_to`` / ``finish`` call shape used by the fetch and extract
+    helpers so they do not need to know about events.
+    """
+
+    def __init__(self, reporter: CondaReporter, task_id: int) -> None:
+        self._reporter = reporter
+        self._task_id = task_id
+
+    def update_to(self, fraction: float) -> None:
+        self._reporter.send(
+            FetchTaskProgressEvent(task_id=self._task_id, fraction=fraction)
+        )
+
+    def finish(self) -> None:
+        self._reporter.send(FetchTaskEndEvent(task_id=self._task_id, success=True))
+
+    def refresh(self) -> None:
+        """
+        Kept for call-shape compatibility; renderers refresh themselves.
+        """
 
 
 def do_cache_action(prec, cache_action, progress_bar, download_total=1.0, *, cancelled):
@@ -1154,7 +1155,7 @@ def do_reverse(actions):
 def done_callback(
     future: Future,
     actions: tuple[CacheUrlAction | ExtractPackageAction, ...],
-    progress_bar: ProgressBarBase,
+    progress_bar: _FetchTask,
     exceptions: list[Exception],
     finish: bool = False,
 ):

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 import requests  # noqa: TID253
 
 from ..gateways.connection.session import get_session
-from ..reporters import get_spinner
+from ..reporters import spinner
 from .cache import cached_response
 from .types import ChannelNoticeResponse
 
@@ -39,7 +39,7 @@ def get_notice_responses(
     """
     executor = ThreadPoolExecutor(max_workers=max_workers)
 
-    with get_spinner("Retrieving notices"):
+    with spinner("Retrieving notices"):
         return tuple(
             filter(
                 None,

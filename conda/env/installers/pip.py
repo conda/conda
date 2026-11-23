@@ -11,7 +11,7 @@ from ...auxlib.compat import Utf8NamedTemporaryFile
 from ...common.path import expand, is_path, paths_equal
 from ...common.url import is_url
 from ...env.pip_util import get_pip_installed_packages, get_pip_workdir, pip_subprocess
-from ...reporters import get_spinner
+from ...reporters import spinner
 
 log = getLogger(__name__)
 
@@ -42,7 +42,7 @@ def install(prefix, specs, args, *_, workdir=None, requirements_sources=None, **
       resolves all specs together.
     """
 
-    with get_spinner("Installing pip dependencies"):
+    with spinner("Installing pip dependencies"):
         if requirements_sources:
             source_workdirs = {
                 expand(source_workdir) if source_workdir else None

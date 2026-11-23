@@ -32,6 +32,12 @@ from conda.gateways.disk.read import isfile, listdir, yield_lines
 from conda.models.enums import LinkType
 from conda.models.match_spec import MatchSpec
 from conda.models.records import PrefixRecord
+from conda.plugins.reporter_backends.events import (
+    FetchSectionEndEvent,
+    FetchSectionStartEvent,
+    FetchTaskEndEvent,
+    FetchTaskStartEvent,
+)
 from conda.testing.helpers import CHANNEL_DIR_V1
 from conda.utils import url_path
 
@@ -211,7 +217,6 @@ def test_process_extract_finishes_when_later_fetch_fails(mocker):
         "get_package_extractor",
         return_value=SimpleNamespace(name="conda-package"),
     )
-    mocker.patch.object(pfe, "_progress_bar", return_value=mocker.MagicMock())
 
     with pytest.raises(CondaMultiError, match="fetch failed"):
         pfe.execute()
@@ -219,6 +224,68 @@ def test_process_extract_finishes_when_later_fetch_fails(mocker):
     good_extract._finish_extract.assert_called_once_with()
     good_extract.cleanup.assert_called_once_with()
     bad_extract._finish_extract.assert_not_called()
+
+
+def _pfe_with_one_package(mocker, cache_side_effect=None):
+    record = PackageRecord(
+        name="pkg", version="1", build="0", build_number=0, size=2048
+    )
+    cache = mocker.MagicMock()
+    extract = mocker.MagicMock(
+        source_full_path="/tmp/pkg.conda", target_full_path="/tmp/pkg"
+    )
+    pfe = ProgressiveFetchExtract(())
+    pfe.paired_actions = {record: (cache, extract)}
+    pfe._prepared = True
+    mocker.patch.object(package_cache_data, "EXTRACT_PROCESSES", 1)
+    if cache_side_effect:
+        mocker.patch.object(
+            package_cache_data, "do_cache_action", side_effect=cache_side_effect
+        )
+    reporter = mocker.patch.object(package_cache_data, "get_reporter").return_value
+    return pfe, record, reporter
+
+
+def test_execute_sends_fetch_events_in_order(mocker):
+    pfe, record, reporter = _pfe_with_one_package(mocker)
+
+    pfe.execute()
+
+    events = [call.args[0] for call in reporter.send.call_args_list]
+    task_id = id(record)
+    assert events[0] == FetchSectionStartEvent()
+    assert events[1] == FetchTaskStartEvent(
+        task_id=task_id, name="pkg", version="1", size=2048
+    )
+    assert FetchTaskEndEvent(task_id=task_id, success=True) in events
+    assert events[-1] == FetchSectionEndEvent(success=True)
+    assert events.index(FetchTaskStartEvent(task_id, "pkg", "1", 2048)) < events.index(
+        FetchTaskEndEvent(task_id=task_id, success=True)
+    )
+
+
+def test_execute_ends_section_with_failure_when_fetch_fails(mocker):
+    def fail(*args, **kwargs):
+        raise OSError("fetch failed")
+
+    pfe, _, reporter = _pfe_with_one_package(mocker, cache_side_effect=fail)
+
+    with pytest.raises(CondaMultiError, match="fetch failed"):
+        pfe.execute()
+
+    events = [call.args[0] for call in reporter.send.call_args_list]
+    assert events[0] == FetchSectionStartEvent()
+    assert events[-1] == FetchSectionEndEvent(success=False)
+    assert not any(isinstance(e, FetchTaskEndEvent) and e.success for e in events)
+
+
+def test_execute_when_already_executed_sends_no_events(mocker):
+    pfe, _, reporter = _pfe_with_one_package(mocker)
+    pfe._executed = True
+
+    pfe.execute()
+
+    reporter.send.assert_not_called()
 
 
 @pytest.mark.parametrize(

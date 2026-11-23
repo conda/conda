@@ -181,7 +181,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     from ..core.subdir_data import query_all
     from ..models.match_spec import MatchSpec
     from ..models.records import PackageRecord
-    from ..reporters import get_spinner
+    from ..reporters import spinner
 
     spec = MatchSpec(args.match_spec)
     if spec.get_exact_value("subdir"):
@@ -190,7 +190,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         subdirs = context.subdirs
 
     if args.envs:
-        with get_spinner(f"Searching environments for {spec}"):
+        with spinner(f"Searching environments for {spec}"):
             prefix_matches = query_all_prefixes(spec)
             ordered_result = tuple(
                 {
@@ -245,7 +245,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             print("\n".join(builder))
         return 0
 
-    with get_spinner("Loading channels"):
+    with spinner("Loading channels"):
         spec_channel = spec.get_exact_value("channel")
         channel_urls = (spec_channel,) if spec_channel else context.channels
         if not channel_urls:
@@ -262,7 +262,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         flex_spec = MatchSpec(spec, name=f"*{spec.name}*")
         if not context.json:
             print(f"No match found for: {spec}. Search: {flex_spec}")
-        with get_spinner("Searching for similar names"):
+        with spinner("Searching for similar names"):
             matches = exclude_newer_policy.filter_records(
                 query_all(flex_spec, channel_urls, subdirs)
             )

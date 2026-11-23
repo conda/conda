@@ -48,18 +48,23 @@ def test_console_reporter_renderer(monkeypatch):
     )
     console_reporter_renderer = ConsoleReporterRenderer()
 
-    assert console_reporter_renderer.detail_view(test_data) == expected_table_str
-    assert console_reporter_renderer.render(test_str) == f"{test_str}\n"
+    with pytest.deprecated_call():
+        assert console_reporter_renderer.detail_view(test_data) == expected_table_str
+    with pytest.deprecated_call():
+        assert console_reporter_renderer.render(test_str) == f"{test_str}\n"
 
-    progress_bar = console_reporter_renderer.progress_bar(
-        description="Test progress bar description", io_context_manager=nullcontext()
-    )
+    with pytest.deprecated_call():
+        progress_bar = console_reporter_renderer.progress_bar(
+            description="Test progress bar description",
+            io_context_manager=nullcontext(),
+        )
 
     assert isinstance(progress_bar, TQDMProgressBar)
 
-    progress_bar_context_manager = (
-        console_reporter_renderer.progress_bar_context_manager()
-    )
+    with pytest.deprecated_call():
+        progress_bar_context_manager = (
+            console_reporter_renderer.progress_bar_context_manager()
+        )
     assert isinstance(progress_bar_context_manager, nullcontext)
 
 
@@ -71,7 +76,8 @@ def test_console_reporter_renderer_envs_list(mocker):
     mock_context.envs_dirs = ["/tmp"]
     console_reporter_renderer = ConsoleReporterRenderer()
 
-    output = console_reporter_renderer.envs_list(["/tmp/envs"])
+    with pytest.deprecated_call():
+        output = console_reporter_renderer.envs_list(["/tmp/envs"])
 
     assert f"envs                     {Path('/tmp/envs')}" in output
 
@@ -263,7 +269,8 @@ def test_progress_bar_quiet_context_returns_quiet_bar(monkeypatch):
         "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=True)
     )
     renderer = ConsoleReporterRenderer()
-    bar = renderer.progress_bar("test")
+    with pytest.deprecated_call():
+        bar = renderer.progress_bar("test")
     assert isinstance(bar, QuietProgressBar)
 
 
@@ -277,7 +284,8 @@ def test_progress_bar_non_tty_returns_quiet_bar(monkeypatch):
         "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
     )
     renderer = ConsoleReporterRenderer()
-    bar = renderer.progress_bar("test")
+    with pytest.deprecated_call():
+        bar = renderer.progress_bar("test")
     assert isinstance(bar, QuietProgressBar)
 
 
@@ -291,7 +299,8 @@ def test_progress_bar_term_dumb_returns_quiet_bar(monkeypatch):
         "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
     )
     renderer = ConsoleReporterRenderer()
-    bar = renderer.progress_bar("test")
+    with pytest.deprecated_call():
+        bar = renderer.progress_bar("test")
     assert isinstance(bar, QuietProgressBar)
 
 
@@ -305,7 +314,8 @@ def test_progress_bar_tty_returns_tqdm_bar(monkeypatch):
         "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
     )
     renderer = ConsoleReporterRenderer()
-    bar = renderer.progress_bar("test")
+    with pytest.deprecated_call():
+        bar = renderer.progress_bar("test")
     assert isinstance(bar, TQDMProgressBar)
 
 
@@ -319,7 +329,8 @@ def test_spinner_quiet_context_returns_quiet_spinner(monkeypatch):
         "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=True)
     )
     renderer = ConsoleReporterRenderer()
-    spinner = renderer.spinner("test")
+    with pytest.deprecated_call():
+        spinner = renderer.spinner("test")
     assert isinstance(spinner, QuietSpinner)
 
 
@@ -333,7 +344,8 @@ def test_spinner_non_tty_returns_quiet_spinner(monkeypatch):
         "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
     )
     renderer = ConsoleReporterRenderer()
-    spinner = renderer.spinner("test")
+    with pytest.deprecated_call():
+        spinner = renderer.spinner("test")
     assert isinstance(spinner, QuietSpinner)
 
 
@@ -347,7 +359,8 @@ def test_spinner_term_dumb_returns_quiet_spinner(monkeypatch):
         "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
     )
     renderer = ConsoleReporterRenderer()
-    spinner = renderer.spinner("test")
+    with pytest.deprecated_call():
+        spinner = renderer.spinner("test")
     assert isinstance(spinner, QuietSpinner)
 
 
@@ -361,7 +374,8 @@ def test_spinner_tty_returns_animated_spinner(monkeypatch):
         "conda.plugins.reporter_backends.console.context", SimpleNamespace(quiet=False)
     )
     renderer = ConsoleReporterRenderer()
-    spinner = renderer.spinner("test")
+    with pytest.deprecated_call():
+        spinner = renderer.spinner("test")
     assert isinstance(spinner, Spinner)
 
 
@@ -380,7 +394,8 @@ def test_handle_detail_view_event_matches_legacy(capsys):
 
     renderer.handle(DetailViewEvent(data=data))
 
-    assert capsys.readouterr().out == renderer.detail_view(data)
+    with pytest.deprecated_call():
+        assert capsys.readouterr().out == renderer.detail_view(data)
 
 
 @pytest.mark.parametrize("show_size", [False, True])
@@ -392,7 +407,8 @@ def test_handle_envs_list_event_matches_legacy(mocker, capsys, show_size):
 
     renderer.handle(EnvsListEvent(prefixes=("/tmp/envs",), show_size=show_size))
 
-    expected = renderer.envs_list(["/tmp/envs"], show_size=show_size)
+    with pytest.deprecated_call():
+        expected = renderer.envs_list(["/tmp/envs"], show_size=show_size)
     assert capsys.readouterr().out == expected
 
 

@@ -32,12 +32,18 @@ def test_json_handler():
     test_str = "a string value"
     json_handler_object = JSONReporterRenderer()
 
-    assert json_handler_object.detail_view(test_data) == json.dumps(test_data)
-    assert json_handler_object.envs_list(test_envs) == json.dumps({"envs": test_envs})
-    assert json_handler_object.envs_list(test_envs_dict) == json.dumps(
-        {"envs": test_envs}
-    )
-    assert json_handler_object.render(test_str) == json.dumps(test_str)
+    with pytest.deprecated_call():
+        assert json_handler_object.detail_view(test_data) == json.dumps(test_data)
+    with pytest.deprecated_call():
+        assert json_handler_object.envs_list(test_envs) == json.dumps(
+            {"envs": test_envs}
+        )
+    with pytest.deprecated_call():
+        assert json_handler_object.envs_list(test_envs_dict) == json.dumps(
+            {"envs": test_envs}
+        )
+    with pytest.deprecated_call():
+        assert json_handler_object.render(test_str) == json.dumps(test_str)
 
 
 def test_json_progress_bar_enabled(mocker):
@@ -100,7 +106,8 @@ def test_handle_detail_view_event_matches_legacy(capsys):
 
     renderer.handle(DetailViewEvent(data=data))
 
-    assert capsys.readouterr().out == renderer.detail_view(data)
+    with pytest.deprecated_call():
+        assert capsys.readouterr().out == renderer.detail_view(data)
 
 
 def test_handle_envs_list_event_matches_legacy(capsys):
@@ -109,7 +116,8 @@ def test_handle_envs_list_event_matches_legacy(capsys):
 
     renderer.handle(EnvsListEvent(prefixes=prefixes))
 
-    assert capsys.readouterr().out == renderer.envs_list(list(prefixes))
+    with pytest.deprecated_call():
+        assert capsys.readouterr().out == renderer.envs_list(list(prefixes))
 
 
 def test_handle_spinner_events_are_silent(capsys):
@@ -134,7 +142,8 @@ def test_handle_fetch_events_match_legacy_progress_bar(mocker):
     renderer.handle(FetchSectionEndEvent(success=True))
 
     legacy_stdout = mocker.patch("conda.plugins.reporter_backends.json.sys.stdout")
-    bar = JSONReporterRenderer().progress_bar("numpy-1.0")
+    with pytest.deprecated_call():
+        bar = JSONReporterRenderer().progress_bar("numpy-1.0")
     bar.update_to(0.3)
     bar.finish()
     bar.refresh()
