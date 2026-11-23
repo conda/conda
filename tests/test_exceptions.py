@@ -1611,7 +1611,7 @@ def test_PackagesNotFoundError_guidance_for_few_packages(
         channel_urls=["https://repo.anaconda.org/pkgs/main"],
     )
     assert exc.guidance is not None
-    # No summary: the message lists the packages and channels, keep it as headline
+    # No summary on purpose: the message stays the headline
     assert exc.guidance.summary is None
     assert exc.guidance.cause == (
         "The requested package was not found in the configured channels."
@@ -1651,7 +1651,7 @@ def test_PackagesNotFoundError_few_packages_printed_output(
 def test_PackagesNotFoundError_guidance_without_channels() -> None:
     exc = PackagesNotFoundError(["single-pkg"])
     assert exc.guidance is not None
-    # No summary: the message lists the packages, keep it as headline
+    # No summary on purpose: the message stays the headline
     assert exc.guidance.summary is None
     assert exc.guidance.cause == (
         "The requested package is missing from the target environment."
@@ -1719,6 +1719,43 @@ def test_NoChannelsConfiguredError_guidance() -> None:
     )
     # The per-command hint carries the requested packages
     assert "conda install -c <channel> numpy" in exc.guidance.hints[0].text
+
+
+@pytest.mark.parametrize(
+    "exc,expected",
+    [
+        (
+            PackagesNotFoundInChannelsError(["pkg-a"], ["https://example.com"]),
+            "pkg-a is not available from the configured channels.",
+        ),
+        (
+            PackageNotInstalledError("/tmp/env", "numpy"),
+            "numpy is not installed in /tmp/env.",
+        ),
+        (
+            PackagesNotFoundInPrefixError(["numpy"], prefix="/tmp/env"),
+            "numpy is not installed in /tmp/env.",
+        ),
+        (
+            NoChannelsConfiguredError(["numpy"]),
+            "No channels are configured to search for numpy.",
+        ),
+    ],
+)
+def test_packages_not_found_family_printed_output(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+    exc: Exception,
+    expected: str,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert expected in stderr
+    assert "Next steps:" in stderr
+    assert "Traceback" not in stderr
 
 
 def test_UnsatisfiableError_guidance() -> None:

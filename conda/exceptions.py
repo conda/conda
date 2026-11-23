@@ -906,12 +906,10 @@ class PackagesNotFoundError(CondaError):
                     "channel configuration, an incomplete package index, or a "
                     "platform mismatch."
                 )
-            # Below 5 packages there is no summary: the message already lists
-            # the packages and channels, so keep it as the headline.
+            # No summary below 5: the message lists packages and channels.
         else:
-            # No channels were searched and no prefix is known here, so keep
-            # the guidance generic; again no summary, the message lists the
-            # packages and stays the headline.
+            # No channels searched, no prefix known: generic guidance, and
+            # no summary so the message stays the headline.
             if len(self.packages) == 1:
                 cause = "The requested package is missing from the target environment."
             else:
@@ -965,8 +963,7 @@ class PackagesNotFoundInChannelsError(PackagesNotFoundError):
     ):
         super().__init__(packages, channel_urls=channel_urls)
         if self.guidance is not None and len(self.packages) < 5:
-            # Channel-specific summary naming what was searched for; the
-            # bulk summary above 5 packages already covers this case.
+            # Name what was searched for; 5+ keeps the bulk summary.
             from dataclasses import replace
 
             names = ", ".join(str(package) for package in self.packages)
