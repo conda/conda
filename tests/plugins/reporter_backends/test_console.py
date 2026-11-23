@@ -443,6 +443,10 @@ def test_handle_fetch_events(monkeypatch, mocker, tty, expected_cls):
     monkeypatch.setattr(
         "conda.plugins.reporter_backends.console.term_dumb", lambda: False
     )
+    monkeypatch.setenv("CONDA_QUIET", "false")
+    monkeypatch.setenv("CONDA_JSON", "false")
+    monkeypatch.setenv("CONDA_VERBOSITY", "0")
+    reset_context()
     mocker.patch.object(TQDMProgressBar, "_tqdm")
     renderer = ConsoleReporterRenderer()
 
@@ -497,6 +501,10 @@ def test_handle_fetch_section_messages(
     monkeypatch.setattr(
         "conda.plugins.reporter_backends.console.term_dumb", lambda: False
     )
+    monkeypatch.setenv("CONDA_QUIET", "false")
+    monkeypatch.setenv("CONDA_JSON", "false")
+    monkeypatch.setenv("CONDA_VERBOSITY", "0")
+    reset_context()
     renderer = ConsoleReporterRenderer()
 
     renderer.handle(FetchSectionStartEvent())
