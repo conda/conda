@@ -14,7 +14,11 @@ from conda.plugins.reporter_backends.console import (
     ConsoleReporterRenderer,
     TQDMProgressBar,
 )
-from conda.plugins.reporter_backends.events import Event
+from conda.plugins.reporter_backends.events import (
+    DetailViewEvent,
+    Event,
+    RenderDataEvent,
+)
 from conda.plugins.reporter_backends.json import JSONReporterRenderer
 from conda.plugins.types import ReporterRendererBase
 from conda.reporters import (
@@ -202,27 +206,31 @@ def test_reporter_add_renderer_receives_only_later_events(mocker):
     late.handle.assert_called_once_with(after)
 
 
-def test_reporter_renders_to_log_file_and_telemetry_at_once(tmp_path):
+def test_reporter_renders_to_stdout_log_file_and_telemetry_at_once(capsys, tmp_path):
     log_file = tmp_path / "conda.log"
     telemetry = _TelemetryRenderer()
-    reporter = CondaReporter(_LogFileRenderer(log_file), telemetry)
-    event = Event()
+    reporter = CondaReporter(
+        ConsoleReporterRenderer(), _LogFileRenderer(log_file), telemetry
+    )
+    event = RenderDataEvent(data="hello")
 
     reporter.send(event)
 
-    assert log_file.read_text() == "Event\n"
+    assert capsys.readouterr().out == "hello\n"
+    assert log_file.read_text() == "RenderDataEvent\n"
     assert telemetry.events == [event]
 
 
-def test_reporter_failing_renderer_does_not_block_others(caplog):
+def test_reporter_failing_renderer_does_not_block_others(capsys, caplog):
     telemetry = _TelemetryRenderer()
-    reporter = CondaReporter(_BrokenRenderer(), telemetry)
-    event = Event()
+    reporter = CondaReporter(_BrokenRenderer(), ConsoleReporterRenderer(), telemetry)
+    event = RenderDataEvent(data="hello")
 
     reporter.send(event)
 
+    assert capsys.readouterr().out == "hello\n"
     assert telemetry.events == [event]
-    assert "_BrokenRenderer failed to handle Event" in caplog.text
+    assert "_BrokenRenderer failed to handle RenderDataEvent" in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -263,3 +271,16 @@ def test_get_reporter_uses_configured_backend(
     reset_context()
 
     assert isinstance(get_reporter().renderers[0], renderer_type)
+
+
+@pytest.mark.parametrize(
+    "event,expected",
+    [
+        (RenderDataEvent(data="text"), "text\n"),
+        (DetailViewEvent(data={"a": "b"}), "\n a : b\n\n"),
+    ],
+)
+def test_reporter_send_renders_event_with_console_renderer(capsys, event, expected):
+    CondaReporter(ConsoleReporterRenderer()).send(event)
+
+    assert capsys.readouterr().out == expected

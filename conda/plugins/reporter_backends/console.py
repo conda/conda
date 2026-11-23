@@ -8,6 +8,7 @@ This reporter backend provides the default output for conda.
 
 from __future__ import annotations
 
+import logging
 import sys
 from errno import EPIPE, ESHUTDOWN
 from itertools import cycle
@@ -32,12 +33,27 @@ from ..types import (
     ReporterRendererBase,
     SpinnerBase,
 )
+from .events import (
+    DetailViewEvent,
+    EnvsListEvent,
+    FetchSectionEndEvent,
+    FetchSectionStartEvent,
+    FetchTaskEndEvent,
+    FetchTaskProgressEvent,
+    FetchTaskStartEvent,
+    RenderDataEvent,
+    SpinnerEndEvent,
+    SpinnerStartEvent,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from typing import Any
 
     from ...common.path import PathType
+    from .events import Event as ReporterEvent
+
+logger = logging.getLogger(__name__)
 
 
 class QuietProgressBar(ProgressBarBase):
@@ -182,58 +198,136 @@ class QuietSpinner(SpinnerBase):
             sys.stdout.flush()
 
 
+def _format_detail_view(data: dict[str, str | int | bool]) -> str:
+    longest_header = max(map(len, data.keys()))
+    table_parts = [
+        f" {header:>{longest_header}} : {value}" for header, value in data.items()
+    ]
+
+    # leading and trailing newlines
+    return "\n" + "\n".join(table_parts) + "\n\n"
+
+
+def _format_envs_list(
+    prefixes: Iterable[PathType | PrefixData], show_size: bool = False
+) -> str:
+    output = [
+        "# conda environments:",
+        "#",
+        "# * -> active",
+        "# + -> frozen",
+    ]
+
+    def disp_env(prefix: PrefixData) -> str:
+        active = (
+            "*"
+            if context.active_prefix
+            and paths_equal(prefix.prefix_path, context.active_prefix)
+            else " "
+        )
+        frozen = "+" if prefix.is_frozen() else " "
+        if show_size:
+            size_str = human_bytes(prefix.size())
+            return f"{prefix.name:20} {active} {frozen} {size_str:>10} {prefix.prefix_path}"
+        else:
+            return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
+
+    for env_prefix in prefixes:
+        if not isinstance(env_prefix, PrefixData):
+            env_prefix = PrefixData(env_prefix)
+        output.append(disp_env(env_prefix))
+
+    # leading and trailing newlines
+    return "\n" + "\n".join(output) + "\n\n"
+
+
+def _format_fetch_description(name: str, version: str, size: int | None) -> str:
+    description = f"{name}-{version}" if name and version else ""
+    size_str = size and human_bytes(size) or ""
+    if description:
+        description = "%-20.20s | " % description
+    if size_str:
+        description += "%-9s | " % size_str
+    return description
+
+
 class ConsoleReporterRenderer(ReporterRendererBase):
     """
     Default implementation for console reporting in conda
     """
 
+    def __init__(self) -> None:
+        self._fetch_bars: dict[int, ProgressBarBase] = {}
+        self._spinners: dict[str, SpinnerBase] = {}
+
+    def handle(self, event: ReporterEvent) -> None:
+        match event:
+            case RenderDataEvent():
+                text = str(event.data)
+                sys.stdout.write(text if text.endswith("\n") else f"{text}\n")
+            case DetailViewEvent():
+                sys.stdout.write(_format_detail_view(event.data))
+            case EnvsListEvent():
+                sys.stdout.write(_format_envs_list(event.prefixes, event.show_size))
+            case SpinnerStartEvent():
+                spinner_cls = QuietSpinner if self.animations_disabled else Spinner
+                spinner = spinner_cls(event.message, event.fail_message)
+                self._spinners[event.message] = spinner
+                spinner.__enter__()
+            case SpinnerEndEvent():
+                if (spinner := self._spinners.pop(event.message, None)) is not None:
+                    if event.success:
+                        spinner.__exit__(None, None, None)
+                    else:
+                        spinner.__exit__(Exception, None, None)
+            case FetchSectionStartEvent():
+                self._fetch_bars.clear()
+                if not context.verbose and not context.quiet and not context.json:
+                    print(
+                        "\nDownloading and Extracting Packages:",
+                        end="\n" if is_tty() and not term_dumb() else " ...working...",
+                    )
+            case FetchTaskStartEvent():
+                description = _format_fetch_description(
+                    event.name, event.version, event.size
+                )
+                bar_cls = (
+                    QuietProgressBar
+                    if context.verbose or self.animations_disabled
+                    else TQDMProgressBar
+                )
+                self._fetch_bars[event.task_id] = bar_cls(description, leave=False)
+            case FetchTaskProgressEvent():
+                if (bar := self._fetch_bars.get(event.task_id)) is not None:
+                    bar.update_to(event.fraction)
+            case FetchTaskEndEvent():
+                if (bar := self._fetch_bars.get(event.task_id)) is not None:
+                    if event.success:
+                        bar.finish()
+                    bar.refresh()
+            case FetchSectionEndEvent():
+                for bar in self._fetch_bars.values():
+                    bar.close()
+                self._fetch_bars.clear()
+                if not context.verbose and not context.quiet and not context.json:
+                    if is_tty() and not term_dumb():
+                        print("\r")
+                    else:
+                        print(" done")
+            case _:
+                logger.debug("No handler for %s; ignoring", type(event).__name__)
+
     def render(self, data: Any, **kwargs) -> str:
-        text = super().render(data, **kwargs)
+        text = str(data)
         # trailing newline
         return text if text.endswith("\n") else f"{text}\n"
 
     def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
-        table_parts = []
-        longest_header = max(map(len, data.keys()))
-
-        for header, value in data.items():
-            table_parts.append(f" {header:>{longest_header}} : {value}")
-
-        # leading and trailing newlines
-        return "\n" + "\n".join(table_parts) + "\n\n"
+        return _format_detail_view(data)
 
     @staticmethod
     def envs_list(prefixes: Iterable[PathType | PrefixData], **kwargs) -> str:
-        show_size = kwargs.get("show_size", False)
-
-        output = [
-            "# conda environments:",
-            "#",
-            "# * -> active",
-            "# + -> frozen",
-        ]
-
-        def disp_env(prefix: PrefixData) -> str:
-            active = (
-                "*"
-                if context.active_prefix
-                and paths_equal(prefix.prefix_path, context.active_prefix)
-                else " "
-            )
-            frozen = "+" if prefix.is_frozen() else " "
-            if show_size:
-                size_str = human_bytes(prefix.size())
-                return f"{prefix.name:20} {active} {frozen} {size_str:>10} {prefix.prefix_path}"
-            else:
-                return f"{prefix.name:20} {active} {frozen} {prefix.prefix_path}"
-
-        for env_prefix in prefixes:
-            if not isinstance(env_prefix, PrefixData):
-                env_prefix = PrefixData(env_prefix)
-            output.append(disp_env(env_prefix))
-
-        # leading and trailing newlines
-        return "\n" + "\n".join(output) + "\n\n"
+        return _format_envs_list(prefixes, kwargs.get("show_size", False))
 
     @property
     def animations_disabled(self) -> bool:
