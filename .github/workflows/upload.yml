@@ -26,9 +26,9 @@ jobs:
     if: '!github.event.repository.fork'
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Required to upload source archives and checksums to releases.
-      attestations: write  # Required to publish artifact attestations to GitHub.
-      id-token: write  # Required to sign attestations with GitHub's OIDC identity.
+      contents: write # Required to upload source archives and checksums to releases.
+      attestations: write # Required to publish artifact attestations to GitHub.
+      id-token: write # Required to sign attestations with GitHub's OIDC identity.
     env:
       ARCHIVE_NAME: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}
     steps:

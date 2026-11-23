@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-slim
     permissions:
       contents: read
-      issues: write  # Required to create, update, and delete repository issue labels.
+      issues: write # Required to create, update, and delete repository issue labels.
     env:
       GLOBAL: https://raw.githubusercontent.com/conda/infra/main/.github/global.yml
       LOCAL: .github/labels.yml
