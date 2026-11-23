@@ -20,9 +20,84 @@ from .exceptions import CondaSystemExit, DryRunExit
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from .plugins.types import ProgressBarBase, SpinnerBase
+    from .plugins.reporter_backends.events import Event
+    from .plugins.types import ProgressBarBase, ReporterRendererBase, SpinnerBase
 
 logger = logging.getLogger(__name__)
+
+
+class CondaReporter:
+    """
+    Dispatches events to one or more reporter renderers.
+
+    Every event is sent to each registered renderer in registration order. This
+    allows, for example, rendering to stdout, a log file and telemetry at once.
+    An exception raised by one renderer is logged and does not prevent the
+    remaining renderers from receiving the event.
+
+    Args:
+        *renderers: Renderers to register initially.
+    """
+
+    def __init__(self, *renderers: ReporterRendererBase):
+        self._renderers: list[ReporterRendererBase] = list(renderers)
+
+    @property
+    def renderers(self) -> tuple[ReporterRendererBase, ...]:
+        """
+        The registered renderers, in registration order.
+        """
+        return tuple(self._renderers)
+
+    def add_renderer(self, renderer: ReporterRendererBase) -> None:
+        """
+        Register another renderer to receive all subsequent events.
+
+        Args:
+            renderer: The renderer to add.
+        """
+        self._renderers.append(renderer)
+
+    def send(self, event: Event) -> None:
+        """
+        Send an event to the
+        :meth:`~conda.plugins.types.ReporterRendererBase.handle` method of every
+        registered renderer.
+
+        Args:
+            event: The event to dispatch.
+        """
+        for renderer in self._renderers:
+            try:
+                renderer.handle(event)
+            except Exception:
+                logger.exception(
+                    "%s failed to handle %s",
+                    type(renderer).__name__,
+                    type(event).__name__,
+                )
+
+
+_reporter: CondaReporter | None = None
+
+
+def get_reporter() -> CondaReporter:
+    """
+    Return the :class:`CondaReporter` for the currently configured reporter backend.
+    """
+    global _reporter
+    if _reporter is None:
+        backend = context.plugin_manager.get_reporter_backend(context.console)
+        _reporter = CondaReporter(backend.renderer())
+    return _reporter
+
+
+def reset_reporter() -> None:
+    """
+    Discard the cached :class:`CondaReporter` so it is rebuilt on next use.
+    """
+    global _reporter
+    _reporter = None
 
 
 @cache
