@@ -908,6 +908,40 @@ class PackagesNotFoundError(CondaError):
                 )
             # Below 5 packages there is no summary: the message already lists
             # the packages and channels, so keep it as the headline.
+        else:
+            # No channels were searched and no prefix is known here, so keep
+            # the guidance generic; again no summary, the message lists the
+            # packages and stays the headline.
+            if len(self.packages) == 1:
+                cause = "The requested package is missing from the target environment."
+            else:
+                cause = (
+                    f"{len(self.packages)} requested packages are missing from "
+                    "the target environment."
+                )
+            guidance = {
+                "cause": cause,
+                "hints": [
+                    {
+                        "text": (
+                            "List the packages in the target environment:\n"
+                            "      conda list"
+                        ),
+                        "hint_code": "check_prefix_contents",
+                    },
+                    {
+                        "text": (
+                            "Confirm this is the environment you meant to target:\n"
+                            "      conda info --envs"
+                        ),
+                        "hint_code": "check_target_prefix",
+                    },
+                    {
+                        "text": "Check that the package name is spelled correctly.",
+                        "hint_code": "check_package_name",
+                    },
+                ],
+            }
 
         super().__init__(
             message,

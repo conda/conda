@@ -385,6 +385,13 @@ def test_PackageNotFoundError(monkeypatch: MonkeyPatch, capsys: CaptureFixture) 
             "",
             "  - Potato",
             "",
+            "Cause: The requested package is missing from the target environment.",
+            "Next steps:",
+            "  - (check_prefix_contents) List the packages in the target environment:",
+            "      conda list",
+            "  - (check_target_prefix) Confirm this is the environment you meant to target:",
+            "      conda info --envs",
+            "  - (check_package_name) Check that the package name is spelled correctly.",
             "",
             "",
         )
@@ -1639,6 +1646,21 @@ def test_PackagesNotFoundError_few_packages_printed_output(
     )
     assert "(check_channel_config)" in stderr
     assert "Traceback" not in stderr
+
+
+def test_PackagesNotFoundError_guidance_without_channels() -> None:
+    exc = PackagesNotFoundError(["single-pkg"])
+    assert exc.guidance is not None
+    # No summary: the message lists the packages, keep it as headline
+    assert exc.guidance.summary is None
+    assert exc.guidance.cause == (
+        "The requested package is missing from the target environment."
+    )
+    assert exc.dump_map()["guidance"]["hint_codes"] == (
+        "check_prefix_contents",
+        "check_target_prefix",
+        "check_package_name",
+    )
 
 
 @pytest.mark.parametrize(
