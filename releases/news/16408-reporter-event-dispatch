@@ -1,3 +1,3 @@
 ### Enhancements
 
-* Add event dispatch system (`conda.reporters.CondaReporter`, `conda.reporters.get_reporter`, the `conda.plugins.reporter_backends.events.Event` base class, and `conda.plugins.types.ReporterRendererBase.handle`) as groundwork for event-based reporter backends. `CondaReporter` can send each event to multiple renderers. (#16408)
+* Add event dispatch system (`conda.reporters.CondaReporter`, `conda.reporters.get_reporter`, the `conda.plugins.reporter_backends.events.Event` base class, and `conda.plugins.types.ReporterRendererBase.handle`) as groundwork for event-based reporter backends. `CondaReporter` can send each event to multiple renderers. (#16408 via #17024)
