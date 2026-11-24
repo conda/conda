@@ -24,10 +24,11 @@ the running conda installation. See :doc:`the command reference
 
 .. tip::
 
-   For plugins in the ``base`` environment, ``conda plugins install``,
-   ``conda plugins update``, and ``conda plugins remove`` are the safer path: they
-   always target ``base`` and also work when ``base`` is protected
-   (see :ref:`frozen-env`). See the
+   For managing installation wide plugins, be sure to target the ``base`` 
+   environment by specifying the ``base`` environment as the target. For
+   example, ``conda plugsin install -n base``. If the ``base`` environment 
+   is protected, you may additionally provide the ``--override-frozen``
+   argument  (see :ref:`frozen-env`). See the
    `conda-self documentation <https://conda.github.io/conda-self/>`_
    for details.
 
