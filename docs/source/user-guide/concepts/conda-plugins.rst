@@ -24,9 +24,9 @@ the running conda installation. See :doc:`the command reference
 
 .. tip::
 
-   For managing installation wide plugins, be sure to target the ``base`` 
+   For managing installation wide plugins, be sure to target the ``base``
    environment by specifying the ``base`` environment as the target. For
-   example, ``conda plugsin install -n base``. If the ``base`` environment 
+   example, ``conda plugsin install -n base``. If the ``base`` environment
    is protected, you may additionally provide the ``--override-frozen``
    argument  (see :ref:`frozen-env`). See the
    `conda-self documentation <https://conda.github.io/conda-self/>`_
