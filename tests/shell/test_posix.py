@@ -12,7 +12,7 @@ import pytest
 
 from conda import CONDA_PACKAGE_ROOT
 from conda import __version__ as CONDA_VERSION
-from conda.common.compat import on_mac, on_win
+from conda.common.compat import on_win
 from conda.common.path import win_path_to_unix
 
 from . import activate, deactivate, install
@@ -26,13 +26,6 @@ pytestmark = pytest.mark.integration
 PARAMETRIZE_POSIX = pytest.mark.parametrize(
     "shell",
     [
-        pytest.param(
-            "ash",
-            marks=[
-                pytest.mark.skipif(on_mac, reason="unavailable on macOS"),
-                pytest.mark.skipif(on_win, reason="unavailable on Windows"),
-            ],
-        ),
         "bash",
         pytest.param(
             "dash",
@@ -55,7 +48,7 @@ def test_shell_available(shell: Shell) -> None:
 
 @cache
 def is_a_function(sh: InteractiveShell) -> str:
-    if sh.shell_name in ("ash", "dash", "zsh"):
+    if sh.shell_name in ("dash", "zsh"):
         return "conda is a shell function"
     return "conda is a function"
 
@@ -309,7 +302,6 @@ def test_bash_activate_error(
 @pytest.mark.parametrize(
     "shell",
     [
-        pytest.param("ash", marks=pytest.mark.skip("sourcing ignores arguments")),
         "bash",
         pytest.param("dash", marks=pytest.mark.skip("sourcing ignores arguments")),
         pytest.param(

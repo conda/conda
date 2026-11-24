@@ -6,7 +6,6 @@ from pathlib import Path
 from pprint import pprint
 
 from conda.common.compat import on_win
-from conda.common.path import get_python_site_packages_short_path
 from conda.common.serialize import json
 from conda.plugins.prefix_data_loaders.pypi.pkg_format import read_python_record
 
@@ -14,7 +13,8 @@ ENV_METADATA_DIR = Path(__file__).parent.parent.parent / "data" / "env_metadata"
 
 
 def test_scrapy_py36_osx_whl():
-    anchor_file = "lib/python3.6/site-packages/Scrapy-1.5.1.dist-info/RECORD"
+    sp_dir = "lib/python3.6/site-packages"
+    anchor_file = f"{sp_dir}/Scrapy-1.5.1.dist-info/RECORD"
     prefix_path = str(ENV_METADATA_DIR / "py36-osx-whl")
     prefix_rec = read_python_record(prefix_path, anchor_file, "3.6")
 
@@ -48,7 +48,6 @@ def test_scrapy_py36_osx_whl():
     }
     print(json.dumps(files))
     print(json.dumps(paths_data["paths"]))
-    sp_dir = get_python_site_packages_short_path("3.6")
     assert sp_dir + "/scrapy/core/scraper.py" in files
     assert sp_dir + "/scrapy/core/__pycache__/scraper.cpython-36.pyc" in files
     pd1 = {
@@ -66,7 +65,7 @@ def test_scrapy_py36_osx_whl():
     }
     assert pd2 in paths_data["paths"]
     pd3 = {
-        "_path": "../bin/scrapy" if on_win else "bin/scrapy",
+        "_path": "bin/scrapy",
         "path_type": "hardlink",
         "sha256": "467700028c521274a2ff4548a29691c6caba92bc9018beb561b13078dd935b78",
         "size_in_bytes": 268,
@@ -75,7 +74,8 @@ def test_scrapy_py36_osx_whl():
 
 
 def test_twilio_py36_osx_whl():
-    anchor_file = "lib/python3.6/site-packages/twilio-6.16.1.dist-info/RECORD"
+    sp_dir = "lib/python3.6/site-packages"
+    anchor_file = f"{sp_dir}/twilio-6.16.1.dist-info/RECORD"
     prefix_path = str(ENV_METADATA_DIR / "py36-osx-whl")
     prefix_rec = read_python_record(prefix_path, anchor_file, "3.6")
     pprint(prefix_rec.depends)
@@ -106,7 +106,6 @@ def test_twilio_py36_osx_whl():
     }
     print(json.dumps(files))
     print(json.dumps(paths_data["paths"]))
-    sp_dir = get_python_site_packages_short_path("3.6")
     assert sp_dir + "/twilio/compat.py" in files
     assert sp_dir + "/twilio/__pycache__/compat.cpython-36.pyc" in files
     pd1 = {
@@ -126,7 +125,8 @@ def test_twilio_py36_osx_whl():
 
 
 def test_pyjwt_py36_osx_whl():
-    anchor_file = "lib/python3.6/site-packages/PyJWT-1.6.4.dist-info/RECORD"
+    sp_dir = "lib/python3.6/site-packages"
+    anchor_file = f"{sp_dir}/PyJWT-1.6.4.dist-info/RECORD"
     prefix_path = str(ENV_METADATA_DIR / "py36-osx-whl")
     prefix_rec = read_python_record(prefix_path, anchor_file, "3.6")
 
@@ -148,11 +148,10 @@ def test_pyjwt_py36_osx_whl():
     }
     print(json.dumps(files))
     print(json.dumps(paths_data["paths"]))
-    sp_dir = get_python_site_packages_short_path("3.6")
-    assert ("../bin/pyjwt" if on_win else "bin/pyjwt") in files
+    assert ("bin/pyjwt") in files
     assert sp_dir + "/jwt/__pycache__/__init__.cpython-36.pyc" in files
     pd1 = {
-        "_path": "../bin/pyjwt" if on_win else "bin/pyjwt",
+        "_path": "bin/pyjwt",
         "path_type": "hardlink",
         "sha256": "c19113ff6e2e643129b0c761010efc02cb3693eefa690e7dc8f484e034c4d93a",
         "size_in_bytes": 260,
@@ -217,7 +216,8 @@ def test_cherrypy_py36_osx_whl():
 
 
 def test_scrapy_py27_osx_no_binary():
-    anchor_file = "lib/python2.7/site-packages/Scrapy-1.5.1-py2.7.egg-info/PKG-INFO"
+    sp_dir = "lib/python2.7/site-packages"
+    anchor_file = f"{sp_dir}/Scrapy-1.5.1-py2.7.egg-info/PKG-INFO"
     prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
 
@@ -251,10 +251,9 @@ def test_scrapy_py27_osx_no_binary():
     }
     print(json.dumps(files))
     print(json.dumps(paths_data["paths"]))
-    sp_dir = get_python_site_packages_short_path("2.7")
     assert sp_dir + "/scrapy/contrib/downloadermiddleware/decompression.py" in files
     assert sp_dir + "/scrapy/downloadermiddlewares/decompression.pyc" in files
-    assert ("../bin/scrapy" if on_win else "bin/scrapy") in files
+    assert ("bin/scrapy") in files
     pd1 = {
         "_path": sp_dir + "/scrapy/contrib/downloadermiddleware/decompression.py",
         "path_type": "hardlink",
@@ -266,14 +265,15 @@ def test_scrapy_py27_osx_no_binary():
     }
     assert pd2 in paths_data["paths"]
     pd3 = {
-        "_path": "../bin/scrapy" if on_win else "bin/scrapy",
+        "_path": "bin/scrapy",
         "path_type": "hardlink",
     }
     assert pd3 in paths_data["paths"]
 
 
 def test_twilio_py27_osx_no_binary():
-    anchor_file = "lib/python2.7/site-packages/twilio-6.16.1-py2.7.egg-info/PKG-INFO"
+    sp_dir = "lib/python2.7/site-packages"
+    anchor_file = f"{sp_dir}/twilio-6.16.1-py2.7.egg-info/PKG-INFO"
     prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
     pprint(prefix_rec.depends)
@@ -297,7 +297,6 @@ def test_twilio_py27_osx_no_binary():
     }
     print(json.dumps(files))
     print(json.dumps(paths_data["paths"]))
-    sp_dir = get_python_site_packages_short_path("2.7")
     assert sp_dir + "/twilio/compat.py" in files
     assert sp_dir + "/twilio/compat.pyc" in files
     pd1 = {"_path": sp_dir + "/twilio/compat.py", "path_type": "hardlink"}
@@ -307,7 +306,8 @@ def test_twilio_py27_osx_no_binary():
 
 
 def test_pyjwt_py27_osx_no_binary():
-    anchor_file = "lib/python2.7/site-packages/PyJWT-1.6.4-py2.7.egg-info/PKG-INFO"
+    sp_dir = "lib/python2.7/site-packages"
+    anchor_file = f"{sp_dir}/PyJWT-1.6.4-py2.7.egg-info/PKG-INFO"
     prefix_path = str(ENV_METADATA_DIR / "py27-osx-no-binary")
     prefix_rec = read_python_record(prefix_path, anchor_file, "2.7")
 
@@ -329,10 +329,9 @@ def test_pyjwt_py27_osx_no_binary():
     }
     print(json.dumps(files))
     print(json.dumps(paths_data["paths"]))
-    sp_dir = get_python_site_packages_short_path("2.7")
-    assert ("../bin/pyjwt" if on_win else "bin/pyjwt") in files
+    assert ("bin/pyjwt") in files
     assert sp_dir + "/jwt/__init__.pyc" in files
-    pd1 = {"_path": "../bin/pyjwt" if on_win else "bin/pyjwt", "path_type": "hardlink"}
+    pd1 = {"_path": "bin/pyjwt", "path_type": "hardlink"}
     assert pd1 in paths_data["paths"]
     pd2 = {"_path": sp_dir + "/jwt/contrib/__init__.pyc", "path_type": "hardlink"}
     assert pd2 in paths_data["paths"]
@@ -408,3 +407,45 @@ def test_six_py27_osx_no_binary_unmanageable():
     }
     assert not files
     assert not prefix_rec.paths_data.paths
+
+
+def test_dist_info_paths_use_anchor_site_packages(tmp_path: Path):
+    """
+    RECORD paths must be relative to the site-packages dir the anchor file
+    lives in, not the platform's default short path (e.g. python 3.15 on
+    Windows uses Lib/python/site-packages, not Lib/site-packages).
+    """
+    sp_dir = "Lib/python/site-packages"
+    dist_info = tmp_path / sp_dir / "foo-1.0.dist-info"
+    dist_info.mkdir(parents=True)
+    (dist_info / "METADATA").write_text("Name: foo\nVersion: 1.0\n")
+    (dist_info / "RECORD").write_text(
+        "foo/__init__.py,,\nfoo-1.0.dist-info/METADATA,,\n../../../Scripts/foo.exe,,\n"
+    )
+    anchor_file = f"{sp_dir}/foo-1.0.dist-info/RECORD"
+
+    prefix_rec = read_python_record(str(tmp_path), anchor_file, "3.15")
+
+    assert set(prefix_rec.files) == {
+        f"{sp_dir}/foo/__init__.py",
+        f"{sp_dir}/foo/__pycache__/__init__.cpython-315.pyc",
+        f"{sp_dir}/foo-1.0.dist-info/METADATA",
+        "Scripts/foo.exe",
+    }
+
+
+def test_egg_info_paths_use_anchor_site_packages(tmp_path: Path):
+    sp_dir = "Lib/python/site-packages"
+    egg_info = tmp_path / sp_dir / "foo-1.0-py3.15.egg-info"
+    egg_info.mkdir(parents=True)
+    (egg_info / "PKG-INFO").write_text("Name: foo\nVersion: 1.0\n")
+    (egg_info / "installed-files.txt").write_text("../foo/__init__.py\nPKG-INFO\n")
+    anchor_file = f"{sp_dir}/foo-1.0-py3.15.egg-info/PKG-INFO"
+
+    prefix_rec = read_python_record(str(tmp_path), anchor_file, "3.15")
+
+    assert set(prefix_rec.files) == {
+        f"{sp_dir}/foo/__init__.py",
+        f"{sp_dir}/foo/__pycache__/__init__.cpython-315.pyc",
+        f"{sp_dir}/foo-1.0-py3.15.egg-info/PKG-INFO",
+    }

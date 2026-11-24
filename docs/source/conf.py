@@ -27,6 +27,7 @@ version = release = conda.__version__
 # ones.
 extensions = [
     "autoapi.extension",
+    "conda_cheatsheet",
     "conda_umls",
     "conda_sphinx_theme.version_anchors",
     "nav_glossary",

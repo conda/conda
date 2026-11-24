@@ -32,10 +32,11 @@ Overview of package artifacts and their intended purpose.
 | `run_constrained` | `1.0` | `noarch` | [[23]](#23-run_constrained) |
 | `sample_noarch_python` | `1.0` | `noarch` | [[24]](#24-sample_noarch_python) |
 | `small-executable` | `1.0` | `noarch` | [[25]](#25-small-executable) |
-| `track_feature` | `1.0`<br>`2.0` | `noarch` | [[26]](#26-track_feature) |
-| `unsatisfiable` | `1.0` | `noarch` | [[27]](#27-unsatisfiable) |
-| `versioned` | `1.0`<br>`2.0` | `noarch` | [[28]](#28-versioned) |
-| `virtualdep-package` | `1.0`<br>`2.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` | [[29]](#29-virtualdep-package) |
+| `small-python-package` | `1.0.0` | `noarch` | [[26]](#26-small-python-package) |
+| `track_feature` | `1.0`<br>`2.0` | `noarch` | [[27]](#27-track_feature) |
+| `unsatisfiable` | `1.0` | `noarch` | [[28]](#28-unsatisfiable) |
+| `versioned` | `1.0`<br>`2.0` | `noarch` | [[29]](#29-versioned) |
+| `virtualdep-package` | `1.0`<br>`2.0` | `linux-fake`<br>`osx-fake`<br>`win-fake` | [[30]](#30-virtualdep-package) |
 
 ## [1] activate_deactivate_package
 Activate/deactivate scripts that set environment variables
@@ -115,17 +116,20 @@ noarch: python package installing into $SP_DIR
 ## [25] small-executable
 Tiny bin/Scripts entry point plus activate.d env vars
 
-## [26] track_feature
+## [26] small-python-package
+noarch: python package with an entry point script (spp)
+
+## [27] track_feature
 ### `1.0` `noarch`
 Package with track_features: track_feature1
 ### `2.0` `noarch`
 Package with track_features: track_feature2
 
-## [27] unsatisfiable
+## [28] unsatisfiable
 Depends on impossible versioned <1.0 for UnsatisfiableError
 
-## [28] versioned
+## [29] versioned
 Versioned fixture for upgrade/update/conflict tests
 
-## [29] virtualdep-package
+## [30] virtualdep-package
 Architecture-specific package with a virtual dependency

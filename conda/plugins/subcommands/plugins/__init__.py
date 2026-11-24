@@ -40,6 +40,7 @@ def execute(args: Namespace) -> int:
 def conda_subcommands():
     yield CondaSubcommand(
         name="plugins",
+        aliases=("plugin",),
         summary=SUMMARY,
         action=execute,
         configure_parser=configure_parser,

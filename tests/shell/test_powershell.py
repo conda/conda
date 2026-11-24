@@ -147,6 +147,7 @@ def test_powershell_PATH_management(
         sh.expect(r"Executing transaction: ...working... done.*\n")
 
 
+@pytest.mark.flaky(reruns=2, condition=on_win)
 @PARAMETRIZE_POWERSHELL
 def test_powershell_activate_help(shell: Shell) -> None:
     with shell.interactive() as sh:

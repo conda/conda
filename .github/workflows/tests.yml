@@ -6,8 +6,8 @@ on:
     branches:
       - main
       - feature/**
-      - '[0-9].*.x'  # e.g., 4.14.x
-      - '[0-9][0-9].*.x'  # e.g., 23.3.x
+      - '[0-9].*.x' # e.g., 4.14.x
+      - '[0-9][0-9].*.x' # e.g., 23.3.x
 
   # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads#pull_request
   pull_request:
@@ -17,7 +17,7 @@ on:
 
   # no payload
   schedule:
-      # https://crontab.guru/#37_18_*_*_*
+    # https://crontab.guru/#37_18_*_*_*
     - cron: 37 18 * * *
 
 concurrency:
@@ -45,6 +45,7 @@ jobs:
       pull-requests: read
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      docs: ${{ steps.filter.outputs.docs }}
     steps:
       - name: Checkout Source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -62,6 +63,15 @@ jobs:
               - 'tests/**'
               - 'recipe/**'
               - '.github/workflows/benchmarks.yml'
+              - '.github/workflows/tests.yml'
+            docs:
+              - 'docs/source/_extensions/**'
+              - 'docs/build-assets/**'
+              - 'docs/source/user-guide/cheatsheet.rst'
+              - 'docs/source/user-guide/cheatsheets/**'
+              - 'docs/environment.yml'
+              - 'docs/pytest.ini'
+              - 'docs/tests/**'
               - '.github/workflows/tests.yml'
 
   # windows test suite
@@ -81,7 +91,7 @@ jobs:
       matrix:
         # test lower version (w/ defaults) and upper version (w/ defaults and conda-forge)
         runs-on: [windows-latest, windows-11-arm]
-        python-version: ['3.11', '3.14']
+        python-version: ['3.11', '3.15']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
@@ -98,11 +108,13 @@ jobs:
             default-channel: conda-forge
             subdir: win-arm64
     env:
-      ErrorActionPreference: Stop  # powershell exit immediately on error
+      ErrorActionPreference: Stop # powershell exit immediately on error
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ (matrix.subdir == 'win-arm64' || github.event_name == 'pull_request') && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
       CONDA_TEST_SUBDIR: ${{ matrix.subdir }}
+      CONDA_REMOTE_MAX_RETRIES: 5
+      CONDA_REMOTE_BACKOFF_FACTOR: 2
 
     steps:
       - name: Checkout Source
@@ -111,7 +123,7 @@ jobs:
           fetch-depth: 0
 
       - name: Hash + Timestamp
-        shell: bash  # use bash to run date command
+        shell: bash # use bash to run date command
         run: |
           STEM="${{ runner.os }}-${{ runner.arch }}-${{ matrix.subdir }}-Py${{ matrix.python-version }}-${{ matrix.default-channel }}-$(date -u "+%Y%m")"
           echo "CACHE_KEY=${STEM}" >> $GITHUB_ENV
@@ -131,7 +143,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         with:
           condarc-file: .github\condarc-${{ matrix.default-channel }}
-          run-post: false  # skip post cleanup
+          run-post: false # skip post cleanup
           # Use x64 Miniconda to bootstrap the test environment until a native installer is available.
           architecture: x64
         env:
@@ -202,7 +214,7 @@ jobs:
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.subdir }},${{ matrix.python-version }},${{ matrix.test-type }}
-          token: ${{ secrets.CODECOV_TOKEN }}  # required
+          token: ${{ secrets.CODECOV_TOKEN }} # required
 
       - name: Upload Test Results
         if: '!cancelled()'
@@ -214,7 +226,7 @@ jobs:
             .coverage
             durations\${{ runner.os }}.json
             test-report.xml
-          retention-days: 1  # temporary, combined in aggregate below
+          retention-days: 1 # temporary, combined in aggregate below
 
   # linux test suite
   linux:
@@ -228,15 +240,15 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}  # bash exit immediately on error + login shell
+        shell: bash -el {0} # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
       matrix:
         # test all lower versions (w/ defaults) and upper version (w/ defaults and conda-forge)
         runs-on:
-          - ubuntu-latest  # linux-64
-          - ubuntu-24.04-arm  # linux-aarch64
-        python-version: ['3.11', '3.12', '3.13', '3.14']
+          - ubuntu-latest # linux-64
+          - ubuntu-24.04-arm # linux-aarch64
+        python-version: ['3.11', '3.12', '3.13', '3.14', '3.15']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
@@ -254,7 +266,9 @@ jobs:
     env:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
-      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.14' || matrix.default-channel == 'conda-forge' ) && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
+      CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && ( matrix.python-version != '3.15' || matrix.default-channel == 'conda-forge' ) && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
+      CONDA_REMOTE_MAX_RETRIES: 5
+      CONDA_REMOTE_BACKOFF_FACTOR: 2
 
     steps:
       - name: Checkout Source
@@ -280,7 +294,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
-          run-post: false  # skip post cleanup
+          run-post: false # skip post cleanup
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
         timeout-minutes: 10
@@ -327,7 +341,7 @@ jobs:
           apt_install_shells() {
             sudo timeout --kill-after=30 300 apt-get update -o Acquire::Retries=3 &&
               sudo timeout --kill-after=30 300 apt-get install -y \
-                --no-install-recommends -o Acquire::Retries=3 ash csh fish tcsh zsh
+                --no-install-recommends -o Acquire::Retries=3 csh fish tcsh zsh
           }
           apt_install_shells || {
             sudo sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' \
@@ -354,7 +368,7 @@ jobs:
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
-          token: ${{ secrets.CODECOV_TOKEN }}  # required
+          token: ${{ secrets.CODECOV_TOKEN }} # required
 
       - name: Upload Test Results
         if: '!cancelled()'
@@ -366,7 +380,7 @@ jobs:
             .coverage
             durations/${{ runner.os }}.json
             test-report.xml
-          retention-days: 1  # temporary, combined in aggregate below
+          retention-days: 1 # temporary, combined in aggregate below
 
   # linux benchmarks
   linux-benchmarks:
@@ -382,11 +396,11 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}  # bash exit immediately on error + login shell
+        shell: bash -el {0} # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.14']
+        python-version: ['3.15']
 
     steps:
       - name: Checkout Source
@@ -414,7 +428,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         with:
           condarc-file: .github/condarc-defaults
-          run-post: false  # skip post cleanup
+          run-post: false # skip post cleanup
 
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
@@ -443,7 +457,7 @@ jobs:
         run: conda list --show-channel-urls | tee "$RUNNER_TEMP/benchmark_dependencies.txt"
 
       - name: Install Bencher diagnostics
-        uses: bencherdev/bencher@7de3c69a85380826613050826b4bce062be2f07d # v0.6.16
+        uses: bencherdev/bencher@b2484bc6734c8e6da4fad141bd13527a11da3988 # v0.6.17
         with:
           version: 0.6.12
 
@@ -519,6 +533,68 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # linux docs
+  linux-docs:
+    # only run docs tests if the Sphinx extensions (or the data/assets/tests
+    # they depend on) changed; kept separate from the main test matrix so
+    # weasyprint and its native libraries are only installed here
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
+
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
+        shell: bash -el {0} # bash exit immediately on error + login shell
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Hash + Timestamp
+        run: |
+          STEM="${{ runner.os }}-${{ runner.arch }}-$(date -u "+%Y%m")"
+          echo "CACHE_KEY=${STEM}-conda-forge-docs" >> $GITHUB_ENV
+
+      - name: Cache Conda
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/conda_pkgs_dir/*.tar.bz2
+            ~/conda_pkgs_dir/*.conda
+          key: cache-${{ env.CACHE_KEY }}
+
+      - name: Setup Miniconda
+        # docs/environment.yml is resolved against conda-forge (as on Read the Docs)
+        uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
+        with:
+          condarc-file: .github/condarc-conda-forge
+          miniforge-version: latest
+          # docs/environment.yml holds both the docs build and docs test
+          # dependencies so everything lives in a single (activated) environment
+          activate-environment: docs
+          environment-file: docs/environment.yml
+          run-post: false # skip post cleanup
+        timeout-minutes: 15
+
+      - name: Conda Info
+        # view docs env info (not base)
+        run: conda info --verbose
+
+      - name: Conda Config
+        run: conda config --show-sources
+
+      - name: Conda List
+        run: conda list --show-channel-urls
+
+      - name: Run Docs Tests
+        # uses docs/pytest.ini, not the project pytest settings in pyproject.toml
+        run: python -m pytest
+        working-directory: docs
+        timeout-minutes: 15
+
   # linux typing
   linux-typing:
     # only run test suite if there are code changes
@@ -529,11 +605,11 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}  # bash exit immediately on error + login shell
+        shell: bash -el {0} # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.14']
+        python-version: ['3.15']
 
     steps:
       - name: Checkout Source
@@ -559,7 +635,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         with:
           condarc-file: .github/condarc-defaults
-          run-post: false  # skip post cleanup
+          run-post: false # skip post cleanup
 
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
@@ -600,7 +676,7 @@ jobs:
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},MyPy
-          token: ${{ secrets.CODECOV_TOKEN }}  # required
+          token: ${{ secrets.CODECOV_TOKEN }} # required
           files: .mypy_cache/coverage.xml
 
       - name: Upload Test Results
@@ -613,7 +689,7 @@ jobs:
             .coverage
             .mypy_cache/report.*
             .mypy_cache/coverage.xml
-          retention-days: 1  # temporary, combined in aggregate below
+          retention-days: 1 # temporary, combined in aggregate below
 
   # linux-qemu test suite
   linux-qemu:
@@ -632,11 +708,11 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}  # bash exit immediately on error + login shell
+        shell: bash -el {0} # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.14']
+        python-version: ['3.15']
         image:
           - condaforge/miniforge3:latest
         platform: [ppc64le]
@@ -686,11 +762,11 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}  # bash exit immediately on error + login shell
+        shell: bash -el {0} # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.14']
+        python-version: ['3.15']
 
     steps:
       - name: Checkout Source
@@ -716,7 +792,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         with:
           condarc-file: .github/condarc-defaults
-          run-post: false  # skip post cleanup
+          run-post: false # skip post cleanup
 
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
@@ -759,21 +835,21 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}  # bash exit immediately on error + login shell
+        shell: bash -el {0} # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
       matrix:
         # test lower version (w/ osx-64 & defaults & unit tests) and upper version (w/ osx-arm64 & defaults & integration tests)
         runs-on:
-          - macos-15-intel  # osx-64
-          - macos-latest  # osx-arm64
-        python-version: ['3.11', '3.14']
+          - macos-15-intel # osx-64
+          - macos-latest # osx-arm64
+        python-version: ['3.11', '3.15']
         default-channel: [defaults, conda-forge]
         test-type: [unit, integration]
         test-group: [1, 2, 3]
         exclude:
           - runs-on: macos-15-intel
-            python-version: '3.14'
+            python-version: '3.15'
           - runs-on: macos-15-intel
             default-channel: defaults
           - runs-on: macos-15-intel
@@ -790,6 +866,8 @@ jobs:
       PYTEST_MARKER: ${{ matrix.test-type == 'unit' && 'not integration and not benchmark' || 'integration and not benchmark' }}
       PYTEST_SPLITS: ${{ matrix.test-type == 'unit' && '2' || '3' }}
       CONDA_TEST_SOLVERS: ${{ github.event_name == 'pull_request' && 'rattler,libmamba' || 'rattler,libmamba,classic' }}
+      CONDA_REMOTE_MAX_RETRIES: 5
+      CONDA_REMOTE_BACKOFF_FACTOR: 2
 
     steps:
       - name: Checkout Source
@@ -815,7 +893,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         with:
           condarc-file: .github/condarc-${{ matrix.default-channel }}
-          run-post: false  # skip post cleanup
+          run-post: false # skip post cleanup
           miniconda-version: ${{ matrix.default-channel == 'defaults' && 'latest' || null }}
           miniforge-version: ${{ matrix.default-channel == 'conda-forge' && 'latest' || null }}
 
@@ -863,7 +941,7 @@ jobs:
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           flags: ${{ runner.os }},${{ runner.arch }},${{ matrix.python-version }},${{ matrix.test-type }}
-          token: ${{ secrets.CODECOV_TOKEN }}  # required
+          token: ${{ secrets.CODECOV_TOKEN }} # required
 
       - name: Upload Test Results
         if: '!cancelled()'
@@ -875,7 +953,7 @@ jobs:
             .coverage
             durations/${{ runner.os }}.json
             test-report.xml
-          retention-days: 1  # temporary, combined in aggregate below
+          retention-days: 1 # temporary, combined in aggregate below
 
   # aggregate and upload
   aggregate:
@@ -900,7 +978,7 @@ jobs:
           name: test-results-${{ github.sha }}-all
           include-hidden-files: true
           path: test-results-*
-          retention-days: 7  # for durations.yml workflow
+          retention-days: 7 # for durations.yml workflow
 
       - name: Test Summary
         uses: test-summary/action@37b508cfee6d4d080eedd00b5bb240a6a784a6a5 # v2.6
@@ -909,7 +987,16 @@ jobs:
 
   # required check
   analyze:
-    needs: [windows, linux, linux-qemu, linux-benchmarks, macos, aggregate]
+    needs:
+      [
+        windows,
+        linux,
+        linux-docs,
+        linux-qemu,
+        linux-benchmarks,
+        macos,
+        aggregate,
+      ]
     if: '!cancelled()'
 
     runs-on: ubuntu-slim
@@ -964,12 +1051,12 @@ jobs:
     defaults:
       run:
         # https://github.com/conda-incubator/setup-miniconda#use-a-default-shell
-        shell: bash -el {0}  # bash exit immediately on error + login shell
+        shell: bash -el {0} # bash exit immediately on error + login shell
     strategy:
       fail-fast: false
       matrix:
         # check missing imports in one representative environment
-        python-version: ['3.14']
+        python-version: ['3.15']
         default-channel: [defaults]
 
     steps:
@@ -1005,7 +1092,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
         with:
           condarc-file: conda/.github/condarc-${{ matrix.default-channel }}
-          run-post: false  # skip post cleanup
+          run-post: false # skip post cleanup
 
       # Workaround: miniforge ships c-l-s 26.4.0 which has a sqlite locking bug.
       # Remove once miniforge ships c-l-s >=26.4.1.
