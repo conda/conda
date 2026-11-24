@@ -54,7 +54,7 @@ $ conda install -n base conda-forge::conda-workspaces
 Then, from the repository root, create the default development environment:
 
 ```bash
-$ conda workspace install
+$ conda workspace install -e default
 ```
 
 This solves and installs the environment into `.conda/envs/default` inside your
