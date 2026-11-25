@@ -69,6 +69,6 @@ def test_requests_ca_bundle_check_action_fails(
     requests_ca_bundle_check(env_ok.prefix, verbose=True)
     captured = capsys.readouterr()
     assert (
-        f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`:"
+        f"{X_MARK} The following error occurred while verifying `REQUESTS_CA_BUNDLE`:"
         in captured.out
     )

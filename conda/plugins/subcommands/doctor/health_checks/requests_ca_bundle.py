@@ -41,7 +41,7 @@ def requests_ca_bundle_check(prefix: str, verbose: bool) -> None:
             print(f"{OK_MARK} `REQUESTS_CA_BUNDLE` was verified.\n")
         except (OSError, RequestException) as e:
             print(
-                f"{X_MARK} The following error occured while verifying `REQUESTS_CA_BUNDLE`: {e}\n"
+                f"{X_MARK} The following error occurred while verifying `REQUESTS_CA_BUNDLE`: {e}\n"
             )
 
 
