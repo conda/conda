@@ -355,3 +355,76 @@ def test_rename_default_activation_env(
                 f"--prefix={prefix}",
                 tmp_path,
             )
+
+
+@pytest.mark.parametrize(
+    "force,existing_destination", [(False, False), (True, False), (True, True)]
+)
+@pytest.mark.parametrize(
+    "relative_destination", ["nested/renamed", "nested/../nested/renamed"]
+)
+def test_cannot_rename_into_source(
+    conda_cli: CondaCLIFixture,
+    empty_env: Path,
+    force: bool,
+    existing_destination: bool,
+    relative_destination: str,
+):
+    (empty_env / "nested").mkdir()
+    marker = empty_env / "important.txt"
+    marker.write_text("user data")
+    destination = empty_env / relative_destination
+    if existing_destination:
+        destination.mkdir()
+
+    with pytest.raises(CondaEnvException, match="inside the source environment"):
+        conda_cli(
+            "rename", "--prefix", empty_env, destination, *(["--yes"] if force else [])
+        )
+
+    assert PrefixData(empty_env).is_environment()
+    assert marker.read_text() == "user data"
+    assert destination.exists() == existing_destination
+
+
+@pytest.mark.skipif(on_win, reason="symlink creation requires privileges on Windows")
+@pytest.mark.parametrize("force", [False, True])
+@pytest.mark.parametrize("alias_source", [False, True])
+def test_cannot_rename_into_source_through_symlink(
+    conda_cli: CondaCLIFixture,
+    empty_env: Path,
+    tmp_path: Path,
+    force: bool,
+    alias_source: bool,
+):
+    alias = tmp_path / "alias"
+    alias.symlink_to(empty_env, target_is_directory=True)
+    source = alias if alias_source else empty_env
+    destination = (empty_env if alias_source else alias) / "nested" / "renamed"
+
+    with pytest.raises(CondaEnvException, match="inside the source environment"):
+        conda_cli(
+            "rename", "--prefix", source, destination, *(["--yes"] if force else [])
+        )
+
+    assert PrefixData(empty_env).is_environment()
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize("force", [False, True])
+def test_rename_to_sibling_with_shared_name(
+    conda_cli: CondaCLIFixture,
+    empty_env: Path,
+    force: bool,
+):
+    (empty_env / "important.txt").write_text("user data")
+    destination = empty_env.with_name(f"{empty_env.name}-renamed")
+
+    _, stderr, rc = conda_cli(
+        "rename", "--prefix", empty_env, destination, *(["--yes"] if force else [])
+    )
+
+    assert rc == 0, f"conda rename failed ({rc}): {stderr}"
+    assert not empty_env.exists()
+    assert PrefixData(destination).is_environment()
+    assert (destination / "important.txt").read_text() == "user data"
