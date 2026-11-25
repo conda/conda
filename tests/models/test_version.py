@@ -434,3 +434,9 @@ def test_pep_440_arbitrary_equality_operator():
     # We're going to leave the not implemented for now.
     with pytest.raises(InvalidVersionSpec):
         VersionSpec("===3.3.2")
+
+
+@pytest.mark.parametrize("spec", ["(>=1.0)(<2.0)", ">=1.0(<2.0)", "(>=1.0)<2.0"])
+def test_juxtaposed_clauses_invalid(spec):
+    with pytest.raises(InvalidVersionSpec):
+        VersionSpec(spec)

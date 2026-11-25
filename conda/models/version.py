@@ -397,6 +397,8 @@ def treeify(spec_str):
         )
     if not output:
         raise InvalidVersionSpec(spec_str, "unable to determine version from spec")
+    if len(output) != 1:
+        raise InvalidVersionSpec(spec_str, "expressions must be joined by ',' or '|'")
     return output[0]
 
 
