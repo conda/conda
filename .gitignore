@@ -27,7 +27,6 @@ Vagrantfile
 dev-init.bat
 devenv/
 .conda/
-conda.lock
 Miniconda*.sh
 miniconda*.sh
 miniconda*.exe
@@ -40,6 +39,7 @@ conda.tmp/
 *.iws
 test-report.xml
 .env
+.conda/
 
 # default pytest duration files
 .test_durations
