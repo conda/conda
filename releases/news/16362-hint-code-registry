@@ -1,0 +1,19 @@
+### Enhancements
+
+* <news item>
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* Add a pre-commit-generated developer registry of structured error hint codes, messages, guidance summaries, and source locations. (#16362 via #17009)
+
+### Other
+
+* <news item>

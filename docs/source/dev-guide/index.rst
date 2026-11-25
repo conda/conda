@@ -36,6 +36,10 @@ Understand how conda is structured and how its most complex subsystems work.
         Detailed explorations of particularly complex subsystems such as the solver,
         activation, context, and logging.
 
+    :doc:`Hint code registry <hint-code-registry>`
+        Generated registry of structured error hint codes, guidance text, and source
+        locations.
+
 Extending conda :octicon:`plug;1em;sd-text-primary`
 ....................................................
 
@@ -93,6 +97,7 @@ API reference :octicon:`code;1em;sd-text-primary`
    contributing
    development-environment
    deep-dives/index
+   hint-code-registry
    writing-tests/index
    deprecations
    breaking-changes

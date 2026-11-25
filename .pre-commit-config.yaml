@@ -89,6 +89,17 @@ repos:
             tests/data/recipes/generate_recipes_readme.py |
             tests/data/recipes/README.md
           )$
+      - id: generate-hint-code-registry
+        name: Generate hint code registry
+        entry: python docs/source/dev-guide/generate_hint_code_registry.py
+        language: python
+        pass_filenames: false
+        files: |
+          (?x)^(
+            conda/.+\.py |
+            docs/source/dev-guide/generate_hint_code_registry.py |
+            docs/source/dev-guide/hint-code-registry.md
+          )$
       # sphinx-autoapi doesn't support #: comments, use trailing docstrings instead
       - id: no-sphinx-autodoc-comments
         name: 'Disallow #: comments, require trailing docstrings'
