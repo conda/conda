@@ -14,10 +14,13 @@ Short reference for changelog entries, deprecations, and tests in **conda**. Det
 
 ## Local development
 
-Bootstrap and set up an environment for **development and testing** from the repository root:
+Set up an environment for **development and testing** from the repository root with **[conda-workspaces](https://conda-incubator.github.io/conda-workspaces/)**. The manifest lives in **`pyproject.toml`** under `[tool.conda.*]`:
 
-- **Unix / macOS:** `. ./dev/start`
-- **Windows:** `.\dev\start.bat`
+- **One-time setup:** `conda install -n base conda-forge::conda-workspaces`
+- **Create the default environment:** `conda workspace install` (installs `conda` from the repo in editable mode)
+- **Run a command:** `conda workspace run -- python -m pytest tests/test_exports.py`; or open a shell with `conda workspace shell`
+- **Other environments:** `py311`, `py312`, `py313`, `py314`, `s3`, `typing`, `docs`, `lint` (select with `-e <name>`); list tasks with `conda task list`
+- **Deprecated:** `. ./dev/start` and `.\dev\start.bat` still work but are pending deprecation (removal in 27.9)
 - **Dev Container:** Open the repo with **[Dev Containers](https://containers.dev/)** using **`.devcontainer/`** (e.g. VS Code). That gives a reproducible setup and avoids host **conda** / user configuration skewing tests (channel priority, etc.).
 - When interacting with GitHub (e.g. repos, issues, pull requests etc), make use of the [GitHub CLI tool](https://cli.github.com/) to efficiently query the GitHub API.
 - When working with GitHub issues and pull requests, always follow the issue and pull request templates and other conventions native to the GitHub entity in question.

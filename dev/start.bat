@@ -1,3 +1,9 @@
+@ECHO WARNING: dev\start.bat is pending deprecation and will be removed in conda 27.9. 1>&2
+@ECHO          Use conda-workspaces instead: 1>&2
+@ECHO            conda install -n base conda-forge::conda-workspaces 1>&2
+@ECHO            conda workspace install ^&^& conda workspace shell 1>&2
+@ECHO          See docs\source\dev-guide\development-environment.md for details. 1>&2
+
 @CALL :CLEANUP
 
 :: preserve script for help
