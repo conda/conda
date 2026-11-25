@@ -1688,6 +1688,16 @@ def test_PackagesNotFoundInChannelsError_guidance_summary(
     assert exc.dump_map()["guidance"]["summary"] == exc.guidance.summary
 
 
+def test_PackagesNotFoundInChannelsError_no_channels_uses_parent_guidance() -> None:
+    # With no channels searched, the channel-specific summary must not appear
+    exc = PackagesNotFoundInChannelsError(["single-pkg"], [])
+    assert exc.guidance is not None
+    assert exc.guidance.summary is None
+    assert exc.guidance.cause == (
+        "The requested package is missing from the target environment."
+    )
+
+
 def test_PackageNotInstalledError_guidance() -> None:
     exc = PackageNotInstalledError("/tmp/env", "numpy")
     assert exc.guidance is not None

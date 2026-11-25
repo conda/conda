@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import sys
 from collections import defaultdict
+from dataclasses import replace
 from datetime import timedelta
 from logging import getLogger
 from os.path import join
@@ -962,10 +963,8 @@ class PackagesNotFoundInChannelsError(PackagesNotFoundError):
         channel_urls: Iterable[str],
     ):
         super().__init__(packages, channel_urls=channel_urls)
-        if self.guidance is not None and len(self.packages) < 5:
+        if self.guidance is not None and self.channel_urls and len(self.packages) < 5:
             # Name what was searched for; 5+ keeps the bulk summary.
-            from dataclasses import replace
-
             names = ", ".join(str(package) for package in self.packages)
             verb = "is" if len(self.packages) == 1 else "are"
             self._guidance = replace(
