@@ -10,12 +10,21 @@ import pytest
 
 from conda.base.context import context, reset_context
 from conda.exceptions import CondaSystemExit, DryRunExit
-from conda.plugins.reporter_backends.console import TQDMProgressBar
+from conda.plugins.reporter_backends.console import (
+    ConsoleReporterRenderer,
+    TQDMProgressBar,
+)
+from conda.plugins.reporter_backends.events import Event
+from conda.plugins.reporter_backends.json import JSONReporterRenderer
+from conda.plugins.types import ReporterRendererBase
 from conda.reporters import (
+    CondaReporter,
     confirm_yn,
     get_progress_bar,
     get_progress_bar_context_manager,
+    get_reporter,
     render,
+    reset_reporter,
 )
 
 if TYPE_CHECKING:
@@ -117,3 +126,140 @@ def test_confirm_yn_no(monkeypatch: MonkeyPatch):
         assert not context.dry_run
 
         confirm_yn()
+
+
+class _LogFileRenderer(ReporterRendererBase):
+    """Stand-in renderer that writes every event to a log file."""
+
+    detail_view = envs_list = progress_bar = spinner = prompt = None  # type: ignore[assignment]
+
+    def __init__(self, path):
+        self.path = path
+
+    def handle(self, event: Event) -> None:
+        with self.path.open("a") as fh:
+            fh.write(f"{type(event).__name__}\n")
+
+
+class _TelemetryRenderer(ReporterRendererBase):
+    """Stand-in renderer that records events for a telemetry backend."""
+
+    detail_view = envs_list = progress_bar = spinner = prompt = None  # type: ignore[assignment]
+
+    def __init__(self):
+        self.events: list[Event] = []
+
+    def handle(self, event: Event) -> None:
+        self.events.append(event)
+
+
+class _BrokenRenderer(ReporterRendererBase):
+    detail_view = envs_list = progress_bar = spinner = prompt = None  # type: ignore[assignment]
+
+    def handle(self, event: Event) -> None:
+        raise RuntimeError("boom")
+
+
+def test_reporter_send_calls_renderer_handle(mocker):
+    renderer = mocker.MagicMock()
+    event = Event()
+
+    CondaReporter(renderer).send(event)
+
+    renderer.handle.assert_called_once_with(event)
+
+
+def test_reporter_without_renderers_ignores_events():
+    CondaReporter().send(Event())
+
+
+def test_reporter_accepts_multiple_renderers_in_order(mocker):
+    calls = mocker.MagicMock()
+    first, second = calls.first, calls.second
+    event = Event()
+
+    reporter = CondaReporter(first, second)
+    reporter.send(event)
+
+    assert reporter.renderers == (first, second)
+    assert calls.mock_calls == [
+        mocker.call.first.handle(event),
+        mocker.call.second.handle(event),
+    ]
+
+
+def test_reporter_add_renderer_receives_only_later_events(mocker):
+    first, late = mocker.MagicMock(), mocker.MagicMock()
+    reporter = CondaReporter(first)
+    before, after = Event(), Event()
+
+    reporter.send(before)
+    reporter.add_renderer(late)
+    reporter.send(after)
+
+    assert reporter.renderers == (first, late)
+    assert [c.args[0] for c in first.handle.call_args_list] == [before, after]
+    late.handle.assert_called_once_with(after)
+
+
+def test_reporter_renders_to_log_file_and_telemetry_at_once(tmp_path):
+    log_file = tmp_path / "conda.log"
+    telemetry = _TelemetryRenderer()
+    reporter = CondaReporter(_LogFileRenderer(log_file), telemetry)
+    event = Event()
+
+    reporter.send(event)
+
+    assert log_file.read_text() == "Event\n"
+    assert telemetry.events == [event]
+
+
+def test_reporter_failing_renderer_does_not_block_others(caplog):
+    telemetry = _TelemetryRenderer()
+    reporter = CondaReporter(_BrokenRenderer(), telemetry)
+    event = Event()
+
+    reporter.send(event)
+
+    assert telemetry.events == [event]
+    assert "_BrokenRenderer failed to handle Event" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "renderer_type", [ConsoleReporterRenderer, JSONReporterRenderer]
+)
+def test_renderer_handle_ignores_unhandled_event(capsys, renderer_type):
+    CondaReporter(renderer_type()).send(Event())
+
+    assert not capsys.readouterr().out
+
+
+def test_get_reporter_is_singleton():
+    reset_reporter()
+    reporter = get_reporter()
+
+    assert isinstance(reporter, CondaReporter)
+    assert get_reporter() is reporter
+
+    reset_reporter()
+    assert get_reporter() is not reporter
+
+
+def test_reset_context_resets_reporter():
+    reporter = get_reporter()
+    reset_context()
+
+    assert get_reporter() is not reporter
+
+
+@pytest.mark.parametrize(
+    "console,renderer_type",
+    [("classic", ConsoleReporterRenderer), ("json", JSONReporterRenderer)],
+)
+def test_get_reporter_uses_configured_backend(
+    monkeypatch: MonkeyPatch, console, renderer_type
+):
+    monkeypatch.setenv("CONDA_CONSOLE", console)
+    reset_context()
+
+    assert isinstance(get_reporter().renderers[0], renderer_type)

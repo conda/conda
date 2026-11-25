@@ -2175,7 +2175,7 @@ def reset_context(
     # need to import here to avoid circular dependency
 
     # clear function cache
-    from ..reporters import _get_render_func
+    from ..reporters import _get_render_func, reset_reporter
 
     # reload plugin config params
     with suppress(AttributeError):
@@ -2184,6 +2184,7 @@ def reset_context(
         del context.exclude_newer_policy
 
     _get_render_func.cache_clear()
+    reset_reporter()
 
     return context
 

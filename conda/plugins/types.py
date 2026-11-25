@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from ..models.environment import Environment
     from ..models.match_spec import MatchSpec
     from ..models.records import PrefixRecord
+    from .reporter_backends.events import Event
 
     CondaPrefixDataLoaderCallable: TypeAlias = Callable[
         [PathType, dict[str, PrefixRecord]],
@@ -501,7 +502,22 @@ class SpinnerBase(ABC):
 class ReporterRendererBase(ABC):
     """
     Base class for all reporter renderers.
+
+    Renderers respond to events sent through :meth:`conda.reporters.CondaReporter.send`
+    by overriding :meth:`handle`.
     """
+
+    def handle(self, event: Event) -> None:
+        """
+        Handle an event sent to the reporter.
+
+        The default implementation ignores every event, so existing renderers keep
+        working while they migrate. Override this method and dispatch on the event
+        type, e.g. with a ``match`` statement.
+
+        Args:
+            event: The event to handle.
+        """
 
     def render(self, data: Any, **kwargs) -> str:
         return str(data)
