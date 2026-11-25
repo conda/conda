@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from contextlib import contextmanager
+from shutil import copytree
 from typing import TYPE_CHECKING
 
 import pytest
@@ -13,16 +14,19 @@ from conda.base.context import context, reset_context
 from conda.cli.main_search import _pretty_record_format, pretty_record
 from conda.common.serialize import json
 from conda.exceptions import NoChannelsConfiguredError, PackagesNotFoundError
-from conda.gateways.anaconda_client import read_binstar_tokens
 from conda.models.records import PackageRecord
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from pytest import CaptureFixture, MonkeyPatch
+    from pytest import MonkeyPatch
     from pytest_mock import MockerFixture
 
-    from conda.testing.fixtures import CondaCLIFixture
+    from conda.testing.fixtures import (
+        CondaCLIFixture,
+        HttpTestServerFixture,
+        TmpRepodataChannelFixture,
+    )
 
 # all tests in this file are integration tests
 pytestmark = [pytest.mark.integration]
@@ -427,35 +431,44 @@ def test_unknown_platform_package_missing(
         conda_cli("search", "--platform=linux-unknown", "arch-package", "--json")
 
 
-@pytest.mark.skipif(
-    read_binstar_tokens(),
-    reason="binstar token found in global configuration",
-)
 def test_anaconda_token_with_private_package(
     conda_cli: CondaCLIFixture,
-    capsys: CaptureFixture,
+    http_test_server: HttpTestServerFixture,
+    tmp_repodata_channel: TmpRepodataChannelFixture,
+    tmp_pkgs_dir: Path,
 ):
-    # TODO: should also write a test to use binstar_client to set the token,
-    # then let conda load the token
     package = "private-package"
+    public_channel, _ = tmp_repodata_channel()
+    private_channel, _ = tmp_repodata_channel(
+        [{"name": package, "version": "1.0", "build": "0"}]
+    )
+    copytree(public_channel, http_test_server.directory / "channel")
+    copytree(
+        private_channel, http_test_server.directory / "t" / "test-token" / "channel"
+    )
 
-    # Step 1. Make sure without the token we don't see the package
-    channel_url = "https://conda-web.anaconda.org/conda-test"
-    with pytest.raises(PackagesNotFoundError):
-        conda_cli("search", f"--channel={channel_url}", package)
-    # flush stdout/stderr
-    capsys.readouterr()
-
-    # Step 2. Now with the token make sure we can see the package
-    reset_context()
-    channel_url = "https://conda-web.anaconda.org/t/co-de3376bc-5463-41fe-8d14-878c7e6a8253/conda-test"
-    stdout, _, _ = conda_cli(
+    conda_cli(
         "search",
-        f"--channel={channel_url}",
+        "--override-channels",
+        "--channel",
+        http_test_server.get_url("channel"),
+        package,
+        raises=PackagesNotFoundError,
+    )
+
+    stdout, stderr, code = conda_cli(
+        "search",
+        "--override-channels",
+        "--channel",
+        http_test_server.get_url("t/test-token/channel"),
         package,
         "--json",
     )
-    assert package in json.loads(stdout)
+    assert code == 0, stderr
+    records = json.loads(stdout)[package]
+    assert [
+        (record["name"], record["version"], record["build"]) for record in records
+    ] == [(package, "1.0", "0")]
 
 
 def test_bad_anaconda_token(monkeypatch: MonkeyPatch, conda_cli: CondaCLIFixture):
