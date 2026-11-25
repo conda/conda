@@ -1,10 +1,10 @@
 name: CLA
 
 on:
-  issue_comment:  # zizmor: ignore[dangerous-triggers] CLA check only; no untrusted code is checked out.
+  issue_comment: # zizmor: ignore[dangerous-triggers] CLA check only; no untrusted code is checked out.
     types:
       - created
-  pull_request_target:  # zizmor: ignore[dangerous-triggers] Required to react to new PRs for CLA verification; no untrusted code is checked out.
+  pull_request_target: # zizmor: ignore[dangerous-triggers] Required to react to new PRs for CLA verification; no untrusted code is checked out.
 
 concurrency:
   # Only share a concurrency group with runs that can actually perform the check
@@ -36,8 +36,8 @@ jobs:
     runs-on: ubuntu-slim
     permissions:
       contents: read
-      pull-requests: write  # Required to update labels and comments on pull requests.
-      statuses: write  # Required to publish the CLA commit status.
+      pull-requests: write # Required to update labels and comments on pull requests.
+      statuses: write # Required to publish the CLA commit status.
     steps:
       - name: Check CLA
         uses: conda/actions/check-cla@8153f7f73472ac36d654d5111be19abaecc48cc6 # v26.10.0
@@ -46,7 +46,7 @@ jobs:
           # A token with ability to comment, label, and modify the commit status
           # (`pull_request: write` and `statuses: write` for fine-grained PAT; `repo` for classic PAT)
           # (default: secrets.GITHUB_TOKEN)
-          token: ${{ secrets.CLA_ACTION_TOKEN }}  # zizmor: ignore[secrets-outside-env] CLA action token; environment policy unchanged.
+          token: ${{ secrets.CLA_ACTION_TOKEN }} # zizmor: ignore[secrets-outside-env] CLA action token; environment policy unchanged.
           # [required]
           # Label to apply to contributor's PR once CLA is signed
           label: cla-signed

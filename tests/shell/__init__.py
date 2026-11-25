@@ -88,7 +88,6 @@ class InteractiveShellType(type):
             "args": ("-l",) if on_win else (),
             "base_shell": "posix",  # inheritance implemented in __init__
         },
-        "ash": {"base_shell": "posix"},
         "dash": {"base_shell": "posix"},
         "zsh": {"base_shell": "posix"},
         # Hook from the checkout; CONDA_EXE is the conda launcher in sys.prefix.

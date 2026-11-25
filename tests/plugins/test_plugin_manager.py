@@ -78,11 +78,13 @@ def installed_plugin_prefix(
         yield prefix
 
 
+@pytest.mark.parametrize("command", ("plugins", "plugin"))
 def test_plugins_help(
+    command: str,
     plugin_manager_with_plugins_command: CondaPluginManager,
     conda_cli: CondaCLIFixture,
 ):
-    out, err, exc = conda_cli("plugins", "--help", raises=SystemExit)
+    out, err, exc = conda_cli(command, "--help", raises=SystemExit)
 
     assert exc.value.code == 0
     assert "info" in out
@@ -119,11 +121,13 @@ def test_plugins_install_help(
     assert not err
 
 
+@pytest.mark.parametrize("command", ("plugins", "plugin"))
 def test_plugins_list_help(
+    command: str,
     plugin_manager_with_plugins_command: CondaPluginManager,
     conda_cli: CondaCLIFixture,
 ):
-    out, err, exc = conda_cli("plugins", "list", "--help", raises=SystemExit)
+    out, err, exc = conda_cli(command, "list", "--help", raises=SystemExit)
 
     assert exc.value.code == 0
     assert "List installed conda plugins." in out
@@ -1077,13 +1081,15 @@ def test_plugins_list_disabled(
     assert not err
 
 
+@pytest.mark.parametrize("command", ("plugins", "plugin"))
 def test_plugins_list_json(
+    command: str,
     plugin_manager_with_test_plugin: CondaPluginManager,
     conda_cli: CondaCLIFixture,
 ):
-    out, err, code = conda_cli("plugins", "list", "--json")
+    out, err, code = conda_cli(command, "list", "--json")
 
-    assert code == 0, f"conda plugins list --json failed ({code}): {err}"
+    assert code == 0, f"conda {command} list --json failed ({code}): {err}"
     data = json.loads(out)
     test_plugin = next(
         plugin for plugin in data if plugin["name"] == "conda-test-plugin"

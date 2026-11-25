@@ -11,8 +11,8 @@ on:
   # Build canaries immediately on push to release branches (*.x).
   push:
     branches:
-      - '[0-9].*.x'  # e.g., 4.14.x
-      - '[0-9][0-9].*.x'  # e.g., 23.3.x
+      - '[0-9].*.x' # e.g., 4.14.x
+      - '[0-9][0-9].*.x' # e.g., 23.3.x
 
   # Build canaries on demand
   workflow_dispatch:

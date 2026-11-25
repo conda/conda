@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 from uuid import uuid4
 
-import menuinst
 import pytest
 
 from conda.auxlib.ish import dals
@@ -61,7 +60,6 @@ from conda.exceptions import (
     DryRunExit,
     EnvironmentFileTypeMismatchError,
     EnvironmentNotWritableError,
-    InvalidMatchSpec,
     LinkError,
     NoChannelsConfiguredError,
     OperationNotAllowed,
@@ -127,6 +125,21 @@ pytestmark = [
 ]
 
 
+def get_python_record_sp_dir(prefix: Path, version: str | None = None) -> Path | None:
+    python_record = PrefixData(prefix).get("python")
+    if python_record:
+        py_ver = get_major_minor_version(python_record.version)
+        return (
+            python_record.python_site_packages_path
+            or get_python_site_packages_short_path(py_ver)
+        )
+    elif version:
+        py_ver = get_major_minor_version(version)
+        return get_python_site_packages_short_path(py_ver)
+
+    return None
+
+
 def test_install_python_and_search(
     path_factory: PathFactoryFixture,
     mocker: MockerFixture,
@@ -150,7 +163,7 @@ def test_install_python_and_search(
         "conda-forge",
     )
     monkeypatch.setenv("CONDA_CHANNELS", ",".join(channels))
-    reset_context()
+    reset_context("")
     assert context.register_envs
     assert context.allow_non_channel_urls
     assert context.channels == channels
@@ -589,26 +602,21 @@ def test_conda_update_package_is_not_name_only_spec(
 def test_noarch_python_package_with_entry_points(
     tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
 ):
-    """
-    Makes sure that entry point file is installed.
-
-    This test uses "pygments" as a Python package because it has no other dependencies and has an
-    entry point script, "pygmentize".
-    """
-    with tmp_env("pygments", PYTHON_SPEC) as prefix:
+    with tmp_env(
+        f"{TEST_RECIPES_CHANNEL.as_uri()}::small-python-package",
+        PYTHON_SPEC,
+    ) as prefix:
         python_record = PrefixData(prefix).get("python")
         py_ver = get_major_minor_version(python_record.version)
         sp_dir = (
             python_record.python_site_packages_path
             or get_python_site_packages_short_path(py_ver)
         )
-        py_file = sp_dir + "/pygments/__init__.py"
+        py_file = sp_dir + "/small_python_package/__init__.py"
         pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
         assert (prefix / pyc_file).is_file()
-        exe_path = (
-            prefix / BIN_DIRECTORY / ("pygmentize.exe" if on_win else "pygmentize")
-        )
+        exe_path = prefix / BIN_DIRECTORY / ("spp.exe" if on_win else "spp")
         assert exe_path.is_file()
         if context.subdir == "win-arm64":
             assert PrefixData(prefix).get("python").subdir == "win-arm64"
@@ -617,9 +625,11 @@ def test_noarch_python_package_with_entry_points(
             )
             assert compute_sum(exe_path, "sha256") == compute_sum(launcher, "sha256")
         output = check_output([exe_path, "--help"], text=True)
-        assert "usage: pygmentize" in output
+        assert "usage: spp" in output
 
-        conda_cli("remove", f"--prefix={prefix}", "pygments", "--yes")
+        conda_cli(
+            "remove", f"--prefix={prefix}", "small-python-package", "--force", "--yes"
+        )
 
         assert not (prefix / py_file).is_file()
         assert not (prefix / pyc_file).is_file()
@@ -676,7 +686,9 @@ def test_noarch_python_package_reinstall_on_pyver_change(
     with tmp_env("itsdangerous", PYTHON_SPEC_OLD) as prefix:
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC_OLD))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = pkg.python_site_packages_path or get_python_site_packages_short_path(
+            py_ver
+        )
         py_file = sp_dir + "/itsdangerous/__init__.py"
         old_pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
@@ -686,7 +698,9 @@ def test_noarch_python_package_reinstall_on_pyver_change(
         assert not (prefix / old_pyc_file).is_file()
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = pkg.python_site_packages_path or get_python_site_packages_short_path(
+            py_ver
+        )
         py_file = sp_dir + "/itsdangerous/__init__.py"
         new_pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
@@ -961,7 +975,9 @@ def test_list_with_pip_no_binary(
         assert (prefix, True) in PrefixData._cache_
         assert (pkg := package_is_installed(prefix, PYTHON_SPEC))
         py_ver = get_major_minor_version(pkg.version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = pkg.python_site_packages_path or get_python_site_packages_short_path(
+            py_ver
+        )
         _rm_rf(prefix / sp_dir)
         assert prefix not in PrefixData._cache_
 
@@ -1075,35 +1091,29 @@ def test_tarball_install(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
 ):
-    with tmp_env(test_recipes_channel / "noarch" / "dependent-1.0-0.conda") as prefix:
+    tar_path = test_recipes_channel / "noarch" / "dependent-1.0-0.conda"
+    with tmp_env(tar_path) as prefix:
         assert package_is_installed(prefix, "dependent")
         assert not package_is_installed(prefix, "dependency")
         conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
         assert not package_is_installed(prefix, "dependent")
-
-
-def test_tarball_install_and_bad_metadata(
-    test_recipes_channel: Path,
-    tmp_env: TmpEnvFixture,
-    conda_cli: CondaCLIFixture,
-):
-    with tmp_env("small-executable", "dependent", "another_dependent") as prefix:
-        assert package_is_installed(prefix, "another_dependent")
-        conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
-        assert package_is_installed(prefix, "small-executable")
-        assert not package_is_installed(prefix, "dependent")
-        # make sure all dependencies of "dependent" were removed
-        assert not package_is_installed(prefix, "dependency")
-        assert not package_is_installed(prefix, "another_dependent")
-
-        tar_path = test_recipes_channel / "noarch" / "dependent-1.0-0.conda"
+        # Make sure that dry run does not install the package
         with pytest.raises(DryRunExit):
             conda_cli("install", f"--prefix={prefix}", tar_path, "--dry-run")
-
+        assert not package_is_installed(prefix, "dependent")
+        # Make sure that install can install the package from a tarball
         conda_cli("install", f"--prefix={prefix}", tar_path, "--yes")
         assert package_is_installed(prefix, "dependent")
 
-        bad_metadata = prefix / "bad_metadata.yml"
+
+def test_install_package_in_env_file_does_not_exist(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    temp_package_cache: Path,
+):
+    with tmp_env() as prefix:
+        bad_metadata = prefix / "environment.yml"
         bad_metadata.write_text(
             dals(
                 """
@@ -1113,9 +1123,11 @@ def test_tarball_install_and_bad_metadata(
                 """
             )
         )
-        with pytest.raises((InvalidMatchSpec, PackagesNotFoundError)):
-            conda_cli("install", f"--prefix={prefix}", bad_metadata, "--yes")
-            assert not package_is_installed(prefix, "something-made-up")
+
+        with pytest.raises(PackagesNotFoundError, match="something-made-up"):
+            conda_cli("install", f"--prefix={prefix}", "--file", bad_metadata, "--yes")
+
+        assert not package_is_installed(prefix, "something-made-up")
 
 
 def test_update_with_pinned_packages(
@@ -1253,25 +1265,29 @@ def test_clone_env_missing_channel_metadata(
             assert package_is_installed(clone, "small-executable")
 
 
-def test_install_prune_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
-    with tmp_env(PYTHON_SPEC, "flask") as prefix:
-        assert package_is_installed(prefix, "flask")
-        assert package_is_installed(prefix, "python=3")
-        conda_cli("remove", f"--prefix={prefix}", "flask", "--yes")
-        assert not package_is_installed(prefix, "flask")
-        # this should get pruned when flask is removed
-        assert not package_is_installed(prefix, "itsdangerous")
-        assert package_is_installed(prefix, "python=3")
+def test_remove_includes_dependencies(
+    test_recipes_channel: Path,
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    temp_package_cache: Path,
+):
+    with tmp_env("small-executable", "dependent", "another_dependent") as prefix:
+        assert package_is_installed(prefix, "another_dependent")
+        conda_cli("remove", f"--prefix={prefix}", "dependent", "--yes")
+        assert package_is_installed(prefix, "small-executable")
+        assert not package_is_installed(prefix, "dependent")
+        # make sure all dependencies of "dependent" were removed
+        assert not package_is_installed(prefix, "dependency")
+        assert not package_is_installed(prefix, "another_dependent")
 
 
-@pytest.mark.skipif(on_win, reason="readline is only a python dependency on unix")
 def test_remove_force_remove_flag(tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture):
     with tmp_env(PYTHON_SPEC) as prefix:
-        assert package_is_installed(prefix, "readline")
+        assert package_is_installed(prefix, "bzip2")
         assert package_is_installed(prefix, PYTHON_SPEC)
 
-        conda_cli("remove", f"--prefix={prefix}", "readline", "--force-remove", "--yes")
-        assert not package_is_installed(prefix, "readline")
+        conda_cli("remove", f"--prefix={prefix}", "bzip2", "--force-remove", "--yes")
+        assert not package_is_installed(prefix, "bzip2")
         assert package_is_installed(prefix, PYTHON_SPEC)
 
 
@@ -1457,7 +1473,10 @@ def test_compile_pyc(use_sys_python: bool, tmp_env: TmpEnvFixture):
             python_binary = prefix / PYTHON_BINARY
         assert python_binary.exists()
 
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        if use_sys_python:
+            sp_dir = get_python_site_packages_short_path(py_ver)
+        else:
+            sp_dir = get_python_record_sp_dir(prefix, py_ver)
         py_file = prefix / sp_dir / "test_compile.py"
         pyc_file = prefix / pyc_path(str(py_file), py_ver)
 
@@ -1540,7 +1559,13 @@ def test_update_all_updates_pip_pkg(
         }
 
         # updating all updates itsdangerous from a conda channel
-        conda_cli("update", f"--prefix={prefix}", "--all", "--yes")
+        conda_cli(
+            "update",
+            f"--prefix={prefix}",
+            "--all",
+            "--repodata-fn=repodata.json",
+            "--yes",
+        )
         assert (prec := package_is_installed(prefix, "itsdangerous>=2"))
         assert prec.subdir != "pypi"
         assert package_is_installed(prefix, "pytz>=2023")
@@ -1719,6 +1744,8 @@ def test_menuinst_v2(
     conda_cli: CondaCLIFixture,
     request: FixtureRequest,
 ):
+    import menuinst
+
     install = mocker.spy(menuinst, "install")
 
     (tmp_path / ".nonadmin").touch()
@@ -1887,6 +1914,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     pip_cli: PipCLIFixture,
+    temp_package_cache: Path,
 ):
     if "conda-forge" in context.channels:
         pytest.skip("This test is too slow with conda-forge as default channel.")
@@ -1920,8 +1948,7 @@ def test_conda_pip_interop_pip_clobbers_conda(
         stdout, _, _ = pip_cli("list", "--format=freeze", prefix=prefix)
         assert any(pkg.strip() == "six==1.9.0" for pkg in stdout.splitlines())
 
-        py_ver = get_major_minor_version(PrefixData(prefix).get("python", None).version)
-        sp_dir = get_python_site_packages_short_path(py_ver)
+        sp_dir = get_python_record_sp_dir(prefix)
 
         PrefixData._cache_.clear()
         stdout, stderr, code = pip_cli(
@@ -2075,6 +2102,7 @@ def test_conda_pip_interop_conda_editable_package(
     tmp_env: TmpEnvFixture,
     conda_cli: CondaCLIFixture,
     pip_cli: PipCLIFixture,
+    temp_package_cache: Path,
 ):
     request.applymarker(
         pytest.mark.xfail(

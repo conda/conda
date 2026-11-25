@@ -1,0 +1,23 @@
+package:
+  name: small-python-package
+  version: "1.0.0"
+
+source:
+  path: ../small_python_package
+
+build:
+  noarch: python
+  script: '{{ PYTHON }} -m pip install . --no-deps --no-build-isolation -vv'
+  entry_points:
+    - spp = small_python_package.cli:main
+
+requirements:
+  host:
+    - python
+    - pip
+    - setuptools
+  run:
+    - python
+
+about:
+  summary: "noarch: python package with an entry point script (spp)"

@@ -1,0 +1,19 @@
+### Enhancements
+
+* Make `conda.common.path.get_python_site_packages_short` compliant with cfep-27 and cep-17 on windows. (#16888 via #16969)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* Add python 3.15 to the test matrix. (#16589 via #16969)

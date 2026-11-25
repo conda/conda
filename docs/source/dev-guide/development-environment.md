@@ -23,16 +23,16 @@ $ git remote add upstream git@github.com:conda/conda
 
 ```{tab-item} cmd.exe (Windows)
 ```batch
-# choose the repository location
-# warning: not the location of an existing conda installation!
+:: choose the repository location
+:: warning: not the location of an existing conda installation!
 > set "CONDA_PROJECT_ROOT=%HOMEPATH%\conda"
 
-# clone the project
-# replace `your-username` with your actual GitHub username
+:: clone the project
+:: replace `your-username` with your actual GitHub username
 > git clone git@github.com:your-username/conda "%CONDA_PROJECT_ROOT%"
 > cd "%CONDA_PROJECT_ROOT%"
 
-# set the `upstream` as the main repository
+:: set the `upstream` as the main repository
 > git remote add upstream git@github.com:conda/conda
 ```
 
@@ -54,7 +54,7 @@ $ conda install -n base conda-forge::conda-workspaces
 Then, from the repository root, create the default development environment:
 
 ```bash
-$ conda workspace install
+$ conda workspace install -e default
 ```
 
 This solves and installs the environment into `.conda/envs/default` inside your

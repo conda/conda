@@ -9,7 +9,7 @@ using conda in your own projects.
 Install  :octicon:`download;1em;sd-text-primary`
 ................................................
 
-We recommend the following conda distribtions to install conda:
+We recommend the following conda distributions to install conda:
 
 .. grid:: 2
 
@@ -157,11 +157,11 @@ Other useful resources :octicon:`light-bulb;1em;sd-text-primary`
 
         Learn about the various ways conda's behavior can be configured
 
-    .. grid-item-card:: Glossary :octicon:`book;1em;sd-text-primary`
-        :link: /glossary/
-        :link-type: doc
+    .. grid-item-card:: Conda Blog :octicon:`megaphone;1em;sd-text-primary`
+        :link: https://conda.org/blog/
+        :link-type: url
 
-        Important vocabulary to know when working with conda
+        Read the latest news, release announcements, and in-depth articles from the conda community
 
 
 Contributors welcome :octicon:`git-pull-request;1em;sd-text-primary`
