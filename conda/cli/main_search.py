@@ -335,8 +335,17 @@ def _pretty_record_format(record: PackageRecord) -> str:
         builder.append("%-12s: %s" % ("size", human_bytes(size)))
     push_line("license", "license")
     push_line("subdir", "subdir")
+    channel = record.channel
+    if channel is not None:
+        if channel.scheme == "file":
+            name = channel.canonical_name
+        else:
+            name = channel.name or channel.canonical_name
+        if name:
+            builder.append("%-12s: %s" % ("channel", name))
     push_line("url", "url")
     push_line("md5", "md5")
+    push_line("sha256", "sha256")
     if record.timestamp and isinstance(record.timestamp, (int, float)):
         date_str = datetime.fromtimestamp(record.timestamp, UTC).strftime(
             "%Y-%m-%d %H:%M:%S %Z"
