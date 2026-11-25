@@ -362,6 +362,12 @@ Multi-platform lockfiles
 
      conda self update
 
+  If ``conda self`` is not available, install a version that supports lockfiles:
+
+  .. code-block:: bash
+
+     conda install --name base "conda>=26.5"
+
 A lockfile contains the exact packages, versions, builds, and
 channels required to recreate an environment exactly. Because
 the lockfile captures a fully resolved state, conda can skip the solver
