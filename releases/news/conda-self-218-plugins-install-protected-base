@@ -1,3 +1,7 @@
 ### Enhancements
 
 * Show the CEP 22 freeze reason and offer a one-time override when installing a plugin into frozen base interactively. Allow dry runs and cache-only downloads without a freeze override. (conda/conda-self#218 via #17013)
+
+### Bug fixes
+
+* Honor `--download-only` for package archives and `@EXPLICIT` files in `conda install` and `conda create`. (#17013)
