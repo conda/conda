@@ -117,7 +117,9 @@ def _match_specs_from_explicit(specs: Iterable[str]) -> Iterable[MatchSpec]:
             checksums["md5"] = md5
         if sha256 := m.group("sha256"):
             checksums["sha256"] = sha256
-        yield MatchSpec(url, **checksums)
+        # Explicit URLs identify specific artifacts; do not infer name, version,
+        # or build from the URL filename.
+        yield MatchSpec({"url": url}, **checksums)
 
 
 def explicit(
