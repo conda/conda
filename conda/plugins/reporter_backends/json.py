@@ -9,6 +9,7 @@ essentially just a wrapper around ``conda.common.serialize.json.dumps``.
 
 from __future__ import annotations
 
+import logging
 import sys
 from threading import RLock
 from typing import TYPE_CHECKING
@@ -23,9 +24,25 @@ from ..types import (
     ReporterRendererBase,
     SpinnerBase,
 )
+from .events import (
+    DetailViewEvent,
+    EnvsListEvent,
+    FetchSectionEndEvent,
+    FetchSectionStartEvent,
+    FetchTaskEndEvent,
+    FetchTaskProgressEvent,
+    FetchTaskStartEvent,
+    RenderDataEvent,
+    SpinnerEndEvent,
+    SpinnerStartEvent,
+)
 
 if TYPE_CHECKING:
     from typing import Any
+
+    from .events import Event
+
+logger = logging.getLogger(__name__)
 
 
 class JSONProgressBar(ProgressBarBase):
@@ -75,6 +92,38 @@ class JSONReporterRenderer(ReporterRendererBase):
     """
     Default implementation for JSON reporting in conda
     """
+
+    def __init__(self) -> None:
+        self._fetch_bars: dict[int, JSONProgressBar] = {}
+
+    def handle(self, event: Event) -> None:
+        match event:
+            case RenderDataEvent() | DetailViewEvent():
+                sys.stdout.write(json.dumps(event.data))
+            case EnvsListEvent():
+                sys.stdout.write(json.dumps({"envs": list(event.prefixes)}))
+            case SpinnerStartEvent() | SpinnerEndEvent():
+                # Spinners are intentionally silent in JSON output.
+                pass
+            case FetchSectionStartEvent():
+                self._fetch_bars.clear()
+            case FetchTaskStartEvent():
+                description = f"{event.name}-{event.version}" if event.name else ""
+                self._fetch_bars[event.task_id] = JSONProgressBar(description)
+            case FetchTaskProgressEvent():
+                if (bar := self._fetch_bars.get(event.task_id)) is not None:
+                    bar.update_to(event.fraction)
+            case FetchTaskEndEvent():
+                if (bar := self._fetch_bars.get(event.task_id)) is not None:
+                    if event.success:
+                        bar.finish()
+                    bar.refresh()
+            case FetchSectionEndEvent():
+                for bar in self._fetch_bars.values():
+                    bar.close()
+                self._fetch_bars.clear()
+            case _:
+                logger.debug("No handler for %s; ignoring", type(event).__name__)
 
     def render(self, data: Any, **kwargs) -> str:
         return json.dumps(data)

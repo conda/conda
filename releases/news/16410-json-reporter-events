@@ -1,0 +1,3 @@
+### Enhancements
+
+* Implement `handle` on `conda.plugins.reporter_backends.json.JSONReporterRenderer` so it renders reporter events. (#16410)
