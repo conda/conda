@@ -963,14 +963,31 @@ class PackagesNotFoundInChannelsError(PackagesNotFoundError):
         channel_urls: Iterable[str],
     ):
         super().__init__(packages, channel_urls=channel_urls)
-        if self.guidance is not None and self.channel_urls and len(self.packages) < 5:
-            # Name what was searched for; 5+ keeps the bulk summary.
-            names = ", ".join(str(package) for package in self.packages)
-            verb = "is" if len(self.packages) == 1 else "are"
-            self._guidance = replace(
-                self.guidance,
-                summary=f"{names} {verb} not available from the configured channels.",
-            )
+        if self.guidance is not None and self.channel_urls:
+            # The summary replaces the message on the terminal, so carry the
+            # searched channels (and the tar_bz2 note) in the cause instead.
+            searched = ", ".join(str(url) for url in self.channel_urls)
+            cause = f"{self.guidance.cause} Searched: {searched}"
+            from .base.context import context
+
+            if context.use_only_tar_bz2:
+                cause += (
+                    " Note: 'use_only_tar_bz2' is enabled, which may omit "
+                    "some packages from the index."
+                )
+            if len(self.packages) < 5:
+                # Name what was searched for; 5+ keeps the bulk summary.
+                names = ", ".join(str(package) for package in self.packages)
+                verb = "is" if len(self.packages) == 1 else "are"
+                self._guidance = replace(
+                    self.guidance,
+                    summary=(
+                        f"{names} {verb} not available from the configured channels."
+                    ),
+                    cause=cause,
+                )
+            else:
+                self._guidance = replace(self.guidance, cause=cause)
 
 
 class PackageNotInstalledError(PackagesNotFoundError):

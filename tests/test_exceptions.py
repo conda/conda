@@ -1688,6 +1688,61 @@ def test_PackagesNotFoundInChannelsError_guidance_summary(
     assert exc.dump_map()["guidance"]["summary"] == exc.guidance.summary
 
 
+@pytest.mark.parametrize("count", [1, 5])
+def test_PackagesNotFoundInChannelsError_cause_lists_searched_channels(
+    count: int,
+) -> None:
+    exc = PackagesNotFoundInChannelsError(
+        [f"pkg{i}" for i in range(count)],
+        ["https://repo.anaconda.org/pkgs/main"],
+    )
+    assert exc.guidance is not None
+    assert exc.guidance.cause is not None
+    assert exc.guidance.cause.endswith("Searched: https://repo.anaconda.org/pkgs/main")
+
+
+def test_PackagesNotFoundInChannelsError_printed_output_lists_searched_channels(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
+    reset_context()
+
+    exc = PackagesNotFoundInChannelsError(
+        ["single-pkg"],
+        [
+            "https://repo.anaconda.org/pkgs/main/osx-arm64",
+            "https://repo.anaconda.org/pkgs/main/noarch",
+        ],
+    )
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert (
+        "Searched: https://repo.anaconda.org/pkgs/main/osx-arm64, "
+        "https://repo.anaconda.org/pkgs/main/noarch" in stderr
+    )
+    assert "Traceback" not in stderr
+
+
+@pytest.mark.parametrize("use_only_tar_bz2", [True, False])
+def test_PackagesNotFoundInChannelsError_use_only_tar_bz2_note_in_cause(
+    monkeypatch: MonkeyPatch,
+    use_only_tar_bz2: bool,
+) -> None:
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", str(use_only_tar_bz2))
+    reset_context()
+    assert context.use_only_tar_bz2 is use_only_tar_bz2
+
+    exc = PackagesNotFoundInChannelsError(
+        ["single-pkg"],
+        ["https://repo.anaconda.org/pkgs/main"],
+    )
+    assert exc.guidance is not None
+    assert exc.guidance.cause is not None
+    assert ("'use_only_tar_bz2' is enabled" in exc.guidance.cause) is use_only_tar_bz2
+
+
 def test_PackagesNotFoundInChannelsError_no_channels_uses_parent_guidance() -> None:
     # With no channels searched, the channel-specific summary must not appear
     exc = PackagesNotFoundInChannelsError(["single-pkg"], [])
