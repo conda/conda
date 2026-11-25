@@ -57,7 +57,7 @@ from ..models.channel import all_channel_urls
 from ..models.environment import Environment
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
-from ..reporters import confirm_yn, get_spinner
+from ..reporters import confirm_yn, spinner
 from . import common
 from .common import check_non_admin
 from .main_config import set_keys
@@ -504,7 +504,7 @@ def install_revision(args, parser):
 
     for repodata_fn in Repodatas(repodata_fns, index_args):
         with repodata_fn as repodata:
-            with get_spinner(f"Collecting package metadata ({repodata})"):
+            with spinner(f"Collecting package metadata ({repodata})"):
                 index = Index(
                     channels=index_args["channel_urls"],
                     prepend=index_args["prepend"],  # --override-channels
@@ -518,7 +518,7 @@ def install_revision(args, parser):
                     prefix=prefix,
                     repodata_fn=repodata,
                 )
-            with get_spinner(f"Reverting to revision {args.revision}"):
+            with spinner(f"Reverting to revision {args.revision}"):
                 unlink_link_transaction = revert_actions(prefix, args.revision, index)
 
     handle_txn(unlink_link_transaction, prefix, args, newenv=False)

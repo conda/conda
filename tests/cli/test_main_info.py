@@ -101,7 +101,9 @@ def test_info_envs(conda_cli: CondaCLIFixture):
     prefixes = list_all_known_prefixes()
 
     stdout, stderr, err = conda_cli("info", "--envs")
-    assert stdout == ConsoleReporterRenderer.envs_list(prefixes)
+    with pytest.deprecated_call():
+        expected = ConsoleReporterRenderer.envs_list(prefixes)
+    assert stdout == expected
     assert not stderr
     assert not err
 

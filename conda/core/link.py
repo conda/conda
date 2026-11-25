@@ -60,7 +60,7 @@ from ..gateways.disk.test import (
 from ..gateways.subprocess import subprocess_call
 from ..models.enums import LinkType
 from ..models.version import VersionOrder
-from ..reporters import confirm_yn, get_spinner
+from ..reporters import confirm_yn, spinner
 from ..models.match_spec import MatchSpec
 from ..utils import get_comspec, human_bytes, wrap_subprocess_call
 from .package_cache_data import PackageCacheData
@@ -283,7 +283,7 @@ class UnlinkLinkTransaction:
 
         self.transaction_context = {}
 
-        with get_spinner("Preparing transaction"):
+        with spinner("Preparing transaction"):
             for stp in self.prefix_setups.values():
                 self.prefix_action_groups[stp.target_prefix] = self._prepare(
                     self.transaction_context,
@@ -309,7 +309,7 @@ class UnlinkLinkTransaction:
             self._verified = True
             return
 
-        with get_spinner("Verifying transaction"):
+        with spinner("Verifying transaction"):
             exceptions = self._verify(self.prefix_setups, self.prefix_action_groups)
             if exceptions:
                 try:
@@ -954,7 +954,7 @@ class UnlinkLinkTransaction:
 
         with signal_handler(conda_signal_handler), time_recorder("unlink_link_execute"):
             exceptions = []
-            with get_spinner("Executing transaction"):
+            with spinner("Executing transaction"):
                 # Execute any user-defined pre-transaction actions
                 for exc in self.execute_executor.map(
                     UnlinkLinkTransaction._execute_actions,
@@ -1080,7 +1080,7 @@ class UnlinkLinkTransaction:
                 # reverse all executed packages except the one that failed
                 rollback_excs = []
                 if context.rollback_enabled:
-                    with get_spinner("Rolling back transaction"):
+                    with spinner("Rolling back transaction"):
                         reverse_actions = reversed(tuple(all_action_groups))
                         for axngroup in reverse_actions:
                             excs = UnlinkLinkTransaction._reverse_actions(axngroup)

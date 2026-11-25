@@ -516,7 +516,7 @@ class InfoRenderer:
         Iterates through the registered components, obtains the data to render via a
         ``_<component>_component`` method and then renders it.
         """
-        from ..reporters import render
+        from ..reporters import render_data
 
         for component in components:
             style = self._component_style_map.get(component)
@@ -531,7 +531,7 @@ class InfoRenderer:
                 kwargs = {}
                 if component == "envs" and self._show_size:
                     kwargs["show_size"] = True
-                render(data, style=style, **kwargs)
+                render_data(data, style=style, **kwargs)
 
     def _base_component(self) -> str | dict:
         if self._context.json:

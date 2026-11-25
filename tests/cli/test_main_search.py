@@ -284,7 +284,7 @@ def test_flexible_search_spinner_covers_query_and_deferred_results(
 
         return deferred_results()
 
-    mocker.patch("conda.reporters.get_spinner", side_effect=spinner)
+    mocker.patch("conda.reporters.spinner", side_effect=spinner)
     mocker.patch("conda.core.subdir_data.query_all", side_effect=query_all)
 
     args = ("search", "missing", "--override-channels", "--channel=defaults")

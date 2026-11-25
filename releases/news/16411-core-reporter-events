@@ -1,0 +1,9 @@
+### Enhancements
+
+* Add `conda.reporters.spinner` and `conda.reporters.render_data`, which send reporter events instead of building renderer objects. (#16411)
+* Send reporter events from `conda.core.package_cache_data.ProgressiveFetchExtract`, `conda.core.solve`, `conda.core.link`, and the CLI, instead of calling the legacy renderer API. (#16411)
+
+### Deprecations
+
+* Mark `conda.reporters.render`, `conda.reporters.get_progress_bar`, `conda.reporters.get_progress_bar_context_manager`, and `conda.reporters.get_spinner` as pending deprecation, to be removed in 27.9. Use `conda.reporters.render_data`, `conda.reporters.spinner`, or `conda.reporters.get_reporter().send()` instead. (#16409 via #16411)
+* Mark `render`, `detail_view`, `envs_list`, `progress_bar`, `progress_bar_context_manager`, and `spinner` on `conda.plugins.types.ReporterRendererBase` as pending deprecation, to be removed in 27.9. Implement `handle` and dispatch on the matching event types instead. (#16409 via #16411)

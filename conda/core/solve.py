@@ -36,7 +36,7 @@ from ..models.enums import NoarchType
 from ..models.match_spec import MatchSpec
 from ..models.prefix_graph import PrefixGraph
 from ..models.version import VersionOrder
-from ..reporters import get_spinner
+from ..reporters import spinner
 from .index import Index, ReducedIndex
 from .link import PrefixSetup, UnlinkLinkTransaction
 from .prefix_data import PrefixData
@@ -535,7 +535,7 @@ class Solver(BaseSolver):
                 return tuple(PrefixGraph(ssc.solution_precs).graph)
 
         if not ssc.r:
-            with get_spinner(f"Collecting package metadata ({self._repodata_fn})"):
+            with spinner(f"Collecting package metadata ({self._repodata_fn})"):
                 ssc = self._collect_all_metadata(ssc)
 
         if should_retry_solve and update_modifier == UpdateModifier.FREEZE_INSTALLED:
@@ -548,7 +548,7 @@ class Solver(BaseSolver):
         else:
             fail_message = "failed\n"
 
-        with get_spinner("Solving environment", fail_message=fail_message):
+        with spinner("Solving environment", fail_message=fail_message):
             ssc = self._remove_specs(ssc)
             ssc = self._add_specs(ssc)
             solution_precs = copy.copy(ssc.solution_precs)

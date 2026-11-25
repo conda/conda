@@ -22,6 +22,7 @@ from .._private.exception_guidance import GuidanceHint as _GuidanceHint
 from ..auxlib import NULL
 from ..auxlib.type_coercion import maybecall
 from ..base.constants import APP_NAME
+from ..deprecations import deprecated
 from ..exceptions import PluginError
 from ..models.records import PackageRecord
 
@@ -519,15 +520,30 @@ class ReporterRendererBase(ABC):
             event: The event to handle.
         """
 
+    @deprecated(
+        "27.3",
+        "27.9",
+        addendum="Implement `handle` and handle `RenderDataEvent` instead.",
+    )
     def render(self, data: Any, **kwargs) -> str:
         return str(data)
 
+    @deprecated(
+        "27.3",
+        "27.9",
+        addendum="Implement `handle` and handle `DetailViewEvent` instead.",
+    )
     @abstractmethod
     def detail_view(self, data: dict[str, str | int | bool], **kwargs) -> str:
         """
         Render the output in a "tabular" format.
         """
 
+    @deprecated(
+        "27.3",
+        "27.9",
+        addendum="Implement `handle` and handle `EnvsListEvent` instead.",
+    )
     @abstractmethod
     def envs_list(
         self, data: Iterable[str] | dict[str, dict[str, str | bool | None]], **kwargs
@@ -536,6 +552,11 @@ class ReporterRendererBase(ABC):
         Render a list of environments
         """
 
+    @deprecated(
+        "27.3",
+        "27.9",
+        addendum="Implement `handle` and handle the `FetchTask*Event` events instead.",
+    )
     @abstractmethod
     def progress_bar(
         self,
@@ -547,12 +568,22 @@ class ReporterRendererBase(ABC):
         """
 
     @classmethod
+    @deprecated(
+        "27.3",
+        "27.9",
+        addendum="Implement `handle` and handle `FetchSectionStartEvent` and `FetchSectionEndEvent` instead.",
+    )
     def progress_bar_context_manager(cls) -> AbstractContextManager:
         """
         Returns a null context by default but allows plugins to define their own if necessary
         """
         return nullcontext()
 
+    @deprecated(
+        "27.3",
+        "27.9",
+        addendum="Implement `handle` and handle `SpinnerStartEvent` and `SpinnerEndEvent` instead.",
+    )
     @abstractmethod
     def spinner(self, message, failed_message) -> SpinnerBase:
         """
