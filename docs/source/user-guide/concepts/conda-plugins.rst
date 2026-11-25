@@ -114,6 +114,25 @@ The environment must also contain conda, as in the example above:
    conda run --name conda-forge-plugins python -m conda plugins info conda-tree
 
 
+Installing into a frozen environment
+------------------------------------
+
+When you run ``conda plugins install -n base PACKAGE`` in a terminal and base
+is :ref:`frozen <frozen-env>`, conda shows the freeze reason and asks whether
+to override it for this installation. Press Enter to leave base untouched.
+Answering yes applies only to the freeze. If there is a package transaction to
+confirm, conda asks separately. With ``--yes`` or ``always_yes: true``, you must
+still answer the freeze prompt, but conda skips the later transaction confirmation.
+The ``conda-meta/frozen`` file stays in place.
+
+Use ``--dry-run`` to preview the transaction or ``--dry-run --json`` to read the
+plan in a script. Use ``--download-only`` to populate the package cache. These
+operations leave the installed packages in place and need no freeze override.
+
+For a script that installs packages, use ``--override-frozen`` to authorize the
+override explicitly. ``--yes`` alone does not override a freeze.
+
+
 Inspecting plugins
 ------------------
 

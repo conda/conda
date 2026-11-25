@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from argparse import Namespace
+from contextlib import nullcontext
 from typing import TYPE_CHECKING
 
 import pytest
@@ -11,7 +12,12 @@ from conda.base.context import context, reset_context
 from conda.cli.install import install as install_command
 from conda.cli.install import reinstall_packages
 from conda.core.prefix_data import PrefixData
-from conda.exceptions import DryRunExit, EnvironmentIsFrozenError, UnsatisfiableError
+from conda.exceptions import (
+    CondaExitZero,
+    DryRunExit,
+    EnvironmentIsFrozenError,
+    UnsatisfiableError,
+)
 from conda.models.environment import Environment
 from conda.testing.integration import package_is_installed
 
@@ -107,6 +113,53 @@ def test_emscripten_forge(
         "pyjs",
     ) as prefix:
         assert package_is_installed(prefix, "pyjs")
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("command", ("install", "create"))
+@pytest.mark.parametrize(
+    "explicit_file", (False, True), ids=("archive", "explicit-file")
+)
+def test_download_only_explicit_packages(
+    command: str,
+    explicit_file: bool,
+    test_recipes_channel: Path,
+    tmp_pkgs_dir: Path,
+    tmp_env: TmpEnvFixture,
+    tmp_path: Path,
+    conda_cli: CondaCLIFixture,
+):
+    archive = test_recipes_channel / "noarch" / "small-executable-1.0-0.conda"
+    if explicit_file:
+        spec_file = tmp_path / "explicit.txt"
+        spec_file.write_text(f"@EXPLICIT\n{archive.as_uri()}\n")
+        package_args = ("--file", spec_file)
+    else:
+        package_args = (archive,)
+
+    with (
+        tmp_env() if command == "install" else nullcontext(tmp_path / "prefix")
+    ) as prefix:
+        history = prefix / "conda-meta" / "history"
+        original_history = history.read_bytes() if command == "install" else None
+
+        conda_cli(
+            command,
+            "--prefix",
+            prefix,
+            "--download-only",
+            "--yes",
+            *package_args,
+            raises=CondaExitZero,
+        )
+
+        assert (tmp_pkgs_dir / archive.name).is_file()
+        assert (tmp_pkgs_dir / archive.stem / "info" / "index.json").is_file()
+        assert PrefixData(prefix).get("small-executable", None) is None
+        if command == "install":
+            assert history.read_bytes() == original_history
+        else:
+            assert not prefix.exists()
 
 
 def test_frozen_env_cep22(tmp_env, conda_cli, monkeypatch):
