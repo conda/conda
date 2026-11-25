@@ -164,7 +164,7 @@ Beginning a sentence:
 
 Conda in the middle of a sentence:
 
-- If a newer version of conda is available, you can use `conda update conda` to update to that version.
+- If a newer version of conda is available, you can use `conda self update` to update to that version.
 - You can find conda packages within conda channels. The `conda` command can search these channels.
 
 #### In titles and headers

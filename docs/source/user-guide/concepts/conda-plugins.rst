@@ -22,6 +22,16 @@ These commands manage conda packages that provide plugins. Use
 the running conda installation. See :doc:`the command reference
 <../../commands/plugins>` for all subcommands and options.
 
+.. tip::
+
+   For managing installation wide plugins, be sure to target the ``base``
+   environment by specifying the ``base`` environment as the target. For
+   example, ``conda plugins install -n base PACKAGE``. If the ``base`` environment
+   is protected, you may additionally provide the ``--override-frozen``
+   argument  (see :ref:`frozen-env`). See the
+   `conda-self documentation <https://conda.github.io/conda-self/>`_
+   for details.
+
 Installing plugins
 ------------------
 

@@ -48,9 +48,26 @@ Updating conda to the current version
 
 To update conda, in your terminal window, run:
 
-.. code::
+.. code-block:: bash
 
-   conda update --name base conda
+   conda self update
+
+This updates conda and its dependencies in the ``base`` environment.
+To preview the changes without applying them, add ``--dry-run``.
+To update every package in ``base`` (not just conda), run:
+
+.. code-block:: bash
+
+   conda self update --all
+
+.. note::
+
+   If ``conda self`` is not available (for example, on an older conda
+   installation), update conda with:
+
+   .. code-block:: bash
+
+      conda update --name base conda
 
 Conda compares versions and reports what is available to install.
 It also tells you about other packages that will be automatically
@@ -60,6 +77,31 @@ version is available, type ``y`` to update:
 .. code::
 
    Proceed ([y]/n)? y
+
+
+When to use ``conda self``
+--------------------------
+
+``conda self`` manages the conda installation in your ``base`` environment:
+conda itself and (with ``--all``) the other packages in ``base``.
+It always operates on ``base``, no matter which environment is active, and it
+also works when ``base`` is protected (see :ref:`frozen-env`).
+
+Use ``conda update`` and ``conda install`` for packages in all your other
+environments.
+
+.. note::
+
+   ``conda self`` runs ``conda install --override-frozen`` on ``base`` for you.
+   On an unprotected ``base``, ``conda update`` and ``conda self update`` both
+   operate on the same environment. Once ``base`` is protected, ``conda update``
+   is blocked and ``conda self`` is the way to make changes.
+
+For details on all ``conda self`` subcommands (``install``, ``remove``,
+``update``, and ``reset``), see the
+`conda-self documentation <https://conda.github.io/conda-self/>`_,
+in particular the `quickstart <https://conda.github.io/conda-self/quickstart/>`_
+and the `CLI reference <https://conda.github.io/conda-self/reference/cli/>`_.
 
 
 Suppressing warning message about updating conda
@@ -74,7 +116,8 @@ to update conda to the latest version:
     current version: 4.6.13
     latest version: 4.8.0
 
-Update conda by running: ``conda update --name base conda``
+Update conda by running: ``conda self update`` (or, if ``conda self`` is
+not available, ``conda update --name base conda``)
 
 Run the following command from your terminal:
 ``conda config --set notify_outdated_conda false``
