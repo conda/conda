@@ -1689,28 +1689,17 @@ def test_PackagesNotFoundInChannelsError_guidance_summary(
 
 
 @pytest.mark.parametrize("count", [1, 5])
-def test_PackagesNotFoundInChannelsError_cause_lists_searched_channels(
-    count: int,
-) -> None:
-    exc = PackagesNotFoundInChannelsError(
-        [f"pkg{i}" for i in range(count)],
-        ["https://repo.anaconda.org/pkgs/main"],
-    )
-    assert exc.guidance is not None
-    assert exc.guidance.cause is not None
-    assert exc.guidance.cause.endswith("Searched: https://repo.anaconda.org/pkgs/main")
-
-
 def test_PackagesNotFoundInChannelsError_printed_output_lists_searched_channels(
     monkeypatch: MonkeyPatch,
     capsys: CaptureFixture,
+    count: int,
 ) -> None:
     monkeypatch.setenv("CONDA_JSON", "no")
     monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
     reset_context()
 
     exc = PackagesNotFoundInChannelsError(
-        ["single-pkg"],
+        [f"pkg{i}" for i in range(count)],
         [
             "https://repo.anaconda.org/pkgs/main/osx-arm64",
             "https://repo.anaconda.org/pkgs/main/noarch",
