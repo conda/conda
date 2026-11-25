@@ -15,14 +15,27 @@ The user must approve overriding the freeze separately from the package transact
 ### Prerequisites
 
 Use a disposable conda installation with a writable base and a plugin available from its channels.
+Replace `PACKAGE` below with a plugin that is not installed in base.
+Leave `always_yes` unset or false.
 In base, write `{"message": "Frozen for maintenance"}` to `conda-meta/frozen`.
+Set `CONDA_PKGS_DIRS` to a new, empty directory for this terminal session.
+Keep this package cache for all steps below.
 
 ### Steps
 
-1. Run `conda plugins install -n base PACKAGE` from a terminal and press Enter at the freeze prompt.
-2. Repeat the command, answer yes to the freeze prompt, and decline the package transaction.
-3. Repeat and approve both prompts. Then run the original command again.
+1. Run `conda plugins install -n base PACKAGE --dry-run`. Check that it lists the planned installation without a freeze prompt and leaves the plugin uninstalled.
+2. Run `conda plugins install -n base PACKAGE --dry-run --json > plan.json`. Check the output with `python -m json.tool plan.json`. It should contain `"dry_run": true` and the plugin in `actions.LINK`, without a prompt. Neither dry run should download a package archive into the isolated cache.
+3. Run `conda plugins install -n base PACKAGE --json > result.json`. It should exit with an error and no prompt. Check with `python -m json.tool result.json` that the output is valid JSON describing `EnvironmentIsFrozenError`.
+4. Run `conda plugins install -n base PACKAGE --download-only --yes`. It should download and extract the plugin into the isolated cache without a prompt. Inspect that cache for the plugin archive and extracted files. Check `conda list -n base "^PACKAGE$" --json` to confirm the plugin is still absent from base.
+5. Run `conda plugins install -n base PACKAGE` and press Enter at the freeze prompt. The command should raise `EnvironmentIsFrozenError` and leave the plugin uninstalled.
+6. Run `conda plugins install -n base PACKAGE --yes` and answer no to the freeze prompt. Repeat and press Enter. Both attempts should raise `EnvironmentIsFrozenError` and leave the plugin uninstalled.
+7. Run `conda plugins install -n base PACKAGE`, answer yes to the freeze prompt, and decline the package transaction. Check that the plugin remains uninstalled.
+8. Run `conda plugins install -n base PACKAGE --yes` and answer yes to the freeze prompt. The plugin should install without a transaction confirmation prompt.
+9. Run the original command again. Check that conda asks about the freeze again, then press Enter.
 
 ### Pass criteria
 
-Conda shows the maintenance message before asking for an override. Steps 1 and 2 leave the plugin uninstalled. Step 3 installs it, preserves the freeze file, and asks about the freeze on the next invocation.
+Conda shows the maintenance message before each freeze prompt and declines on Enter.
+The preview and download commands need no freeze override, and JSON output contains no prompt.
+Steps 1 through 7 leave the plugin uninstalled. Step 8 installs it after an explicit answer to the freeze prompt, even with `--yes`.
+The freeze file and its contents remain unchanged throughout. Step 9 asks about the freeze again.

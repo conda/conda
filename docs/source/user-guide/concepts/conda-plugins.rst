@@ -110,9 +110,10 @@ Installing into a frozen environment
 When you run ``conda plugins install -n base PACKAGE`` in a terminal and base
 is :ref:`frozen <frozen-env>`, conda shows the freeze reason and asks whether
 to override it for this installation. Press Enter to leave base untouched.
-Answering yes applies only to the freeze. If conda prompts you to confirm
-the package transaction, it does so separately. The ``conda-meta/frozen`` file
-stays in place.
+Answering yes applies only to the freeze. If there is a package transaction to
+confirm, conda asks separately. With ``--yes`` or ``always_yes: true``, you must
+still answer the freeze prompt, but conda skips the later transaction confirmation.
+The ``conda-meta/frozen`` file stays in place.
 
 Use ``--dry-run`` to preview the transaction or ``--dry-run --json`` to read the
 plan in a script. Use ``--download-only`` to populate the package cache. These

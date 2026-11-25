@@ -277,15 +277,24 @@ def test_plugins_install_delegates_to_conda_install(
     assert not err
 
 
+@pytest.mark.parametrize(
+    ("flags", "always_yes"),
+    (((), False), (("--yes",), False), ((), True)),
+    ids=("normal", "yes", "always-yes"),
+)
 def test_plugins_install_confirms_frozen_base_once(
     conda_cli: CondaCLIFixture,
     frozen_base: Path,
     plugin_channel: tuple[str, Path],
     tmp_pkgs_dir: Path,
     monkeypatch: MonkeyPatch,
+    flags: tuple[str, ...],
+    always_yes: bool,
 ):
     from conda.core.prefix_data import PrefixData
 
+    monkeypatch.setenv("CONDA_ALWAYS_YES", str(always_yes))
+    skip_transaction_confirmation = bool(flags) or always_yes
     name = "example-plugin"
     url, _ = plugin_channel
     marker = frozen_base / "conda-meta" / "frozen"
@@ -295,22 +304,29 @@ def test_plugins_install_confirms_frozen_base_once(
         "install",
         "-n",
         "base",
+        *flags,
         "--solver=classic",
         "--override-channels",
         "-c",
         url,
         name,
     )
-    monkeypatch.setattr("sys.stdin", StringIO("y\nn\n"))
-    conda_cli(*args, raises=CondaSystemExit)
-    assert PrefixData(frozen_base).get(name, None) is None
+    if not skip_transaction_confirmation:
+        monkeypatch.setattr("sys.stdin", StringIO("y\nn\n"))
+        conda_cli(*args, raises=CondaSystemExit)
+        assert PrefixData(frozen_base).get(name, None) is None
 
-    monkeypatch.setattr("sys.stdin", StringIO("y\ny\n"))
+    answers = "y\n" if skip_transaction_confirmation else "y\ny\n"
+    monkeypatch.setattr("sys.stdin", StringIO(answers))
     stdout, stderr, code = conda_cli(*args)
 
     assert code == 0, stderr
     assert "Frozen by admin" in stdout + stderr
-    assert stdout.index("(y/[n])?") < stdout.index("Proceed ([y]/n)?")
+    assert "(y/[n])?" in stdout
+    if skip_transaction_confirmation:
+        assert "Proceed ([y]/n)?" not in stdout
+    else:
+        assert stdout.index("(y/[n])?") < stdout.index("Proceed ([y]/n)?")
     assert PrefixData(frozen_base).get(name).name == name
     assert marker.read_bytes() == contents
 
@@ -416,13 +432,21 @@ def test_plugins_install_download_only_in_frozen_base(
 @pytest.mark.parametrize(
     "answer", ("n\n", "\n", KeyboardInterrupt), ids=("no", "default", "interrupt")
 )
+@pytest.mark.parametrize(
+    ("flags", "always_yes"),
+    (((), False), (("--yes",), False), ((), True)),
+    ids=("normal", "yes", "always-yes"),
+)
 def test_plugins_install_declines_frozen_base(
     conda_cli: CondaCLIFixture,
     frozen_base: Path,
     monkeypatch: MonkeyPatch,
     mocker: MockerFixture,
     answer: str | type[KeyboardInterrupt],
+    flags: tuple[str, ...],
+    always_yes: bool,
 ):
+    monkeypatch.setenv("CONDA_ALWAYS_YES", str(always_yes))
     if isinstance(answer, str):
         monkeypatch.setattr("sys.stdin", StringIO(answer))
     else:
@@ -434,6 +458,7 @@ def test_plugins_install_declines_frozen_base(
         "install",
         "-n",
         "base",
+        *flags,
         "example-plugin",
         raises=EnvironmentIsFrozenError,
     )
@@ -469,11 +494,20 @@ def test_plugins_install_requires_yes_from_reporter(
     ("interactive", "flags", "always_yes"),
     (
         (False, (), False),
+        (False, ("--yes",), False),
+        (False, (), True),
         (True, ("--json",), False),
-        (True, ("--yes",), False),
-        (True, (), True),
+        (True, ("--json", "--yes"), False),
+        (True, ("--json",), True),
     ),
-    ids=("non-tty", "json", "yes", "always-yes"),
+    ids=(
+        "non-tty",
+        "non-tty-yes",
+        "non-tty-always-yes",
+        "json",
+        "json-yes",
+        "json-always-yes",
+    ),
 )
 def test_plugins_install_rejects_implicit_frozen_override(
     conda_cli: CondaCLIFixture,
@@ -488,6 +522,7 @@ def test_plugins_install_rejects_implicit_frozen_override(
         "conda.cli.install.is_interactive_tty",
         return_value=interactive,
     )
+    prompt = mocker.spy(import_module("conda.cli.install"), "prompt")
     monkeypatch.setenv("CONDA_ALWAYS_YES", str(always_yes))
     stdout, stderr, exc = conda_cli(
         "plugins",
@@ -500,6 +535,8 @@ def test_plugins_install_rejects_implicit_frozen_override(
     )
     assert "Frozen by admin" in str(exc.value)
     assert "(y/[n])?" not in stdout + stderr
+
+    prompt.assert_not_called()
 
 
 @pytest.mark.parametrize(

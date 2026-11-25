@@ -285,7 +285,6 @@ def validate_install_command(
             except EnvironmentIsFrozenError as exc:
                 if (
                     frozen_override_prompt is None
-                    or context.always_yes
                     or context.console == DEFAULT_JSON_REPORTER_BACKEND
                     or not is_interactive_tty()
                 ):
