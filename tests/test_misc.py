@@ -18,6 +18,7 @@ from conda.misc import (
     explicit,
     walk_prefix,
 )
+from conda.models.records import PackageRecord
 from conda.utils import Utf8NamedTemporaryFile
 
 if TYPE_CHECKING:
@@ -25,6 +26,7 @@ if TYPE_CHECKING:
 
     from pytest_mock import MockerFixture
 
+    from conda.plugins.manager import CondaPluginManager
     from conda.testing.fixtures import CondaCLIFixture
 
 
@@ -129,7 +131,7 @@ def test_explicit_missing_cache_entries(
     with pytest.raises(
         SpecNotFoundInPackageCache,
         match=re.escape(
-            f"Missing package cache records for: {channel_url}/noarch::missing==1.0.0=0"
+            f"Missing package cache records for: *[url={channel_url}/noarch/missing-1.0.0-0.tar.bz2]"
         ),
     ):
         schema = "file:///" if on_win else "file://"
@@ -247,3 +249,121 @@ def test_deprecations(function: str, raises: type[Exception] | None) -> None:
     raises_context = pytest.raises(raises) if raises else nullcontext()
     with pytest.deprecated_call(), raises_context:
         getattr(misc, function)()
+
+
+@pytest.fixture
+def wheel_extractor_plugin_manager(
+    plugin_manager: CondaPluginManager,
+) -> CondaPluginManager:
+    """Register built-in extractors and a test-only .whl extractor on a clean plugin manager."""
+    from conda import plugins
+    from conda.plugins.package_extractors import conda as conda_extractors
+    from conda.plugins.types import CondaPackageExtractor
+
+    def _unexpected_extract(source, dest):
+        raise AssertionError("Extractor must not be invoked during MatchSpec parsing")
+
+    class TestWheelExtractor:
+        @plugins.hookimpl
+        def conda_package_extractors(self):
+            yield CondaPackageExtractor(
+                name="test-wheel-package",
+                extensions=[".whl"],
+                extract=_unexpected_extract,
+            )
+
+    plugin_manager.load_plugins(conda_extractors, TestWheelExtractor())
+    return plugin_manager
+
+
+@pytest.mark.parametrize(
+    "url,name,version,build,channel,subdir,digest_kind",
+    [
+        (
+            "file:///tmp/channel/noarch/profiletools-0.2.0-py3-none-any.whl",
+            "profiletools",
+            "0.2.0",
+            "py3_none_any_0",
+            "file:///tmp/channel",
+            "noarch",
+            "sha256",
+        ),
+        (
+            "file:///tmp/channel/profiletools-0.2.0-py3-none-any.whl",
+            "profiletools",
+            "0.2.0",
+            "py3_none_any_0",
+            "file:///tmp/channel",
+            None,
+            "md5",
+        ),
+        (
+            "https://conda.anaconda.org/conda-forge/noarch/doc8-1.1.1-pyhd8ed1ab_0.conda",
+            "doc8",
+            "1.1.1",
+            "pyhd8ed1ab_0",
+            "conda-forge",
+            "noarch",
+            "md5",
+        ),
+        (
+            "https://conda.anaconda.org/conda-forge/linux-64/numpy-1.24.0-py310h000000_0.tar.bz2",
+            "numpy",
+            "1.24.0",
+            "py310h000000_0",
+            "conda-forge",
+            "linux-64",
+            "sha256",
+        ),
+    ],
+    ids=["wheel-noarch", "wheel-flat", "conda-noarch", "tar-linux64"],
+)
+def test_explicit_match_specs_record_matching(
+    wheel_extractor_plugin_manager: CondaPluginManager,
+    url: str,
+    name: str,
+    version: str,
+    build: str,
+    channel: str,
+    subdir: str | None,
+    digest_kind: str,
+) -> None:
+    digest_len = 64 if digest_kind == "sha256" else 32
+    digest_val = "a" * digest_len
+    diff_digest = "b" * digest_len
+    prefix = "sha256:" if digest_kind == "sha256" else ""
+    line = f"{url}#{prefix}{digest_val}"
+
+    (spec,) = list(_match_specs_from_explicit([line]))
+
+    # Assert expected normalized URL and digest are preserved
+    assert spec.get("url") == url
+    assert spec.get(digest_kind) == digest_val
+
+    # Construct the matching PackageRecord
+    matching_rec = PackageRecord.from_objects(
+        name=name,
+        version=version,
+        build=build,
+        build_number=0,
+        channel=channel,
+        subdir=subdir,
+        fn=url.rsplit("/", 1)[-1],
+        url=url,
+        **{digest_kind: digest_val},
+    )
+    assert spec.match(matching_rec) is True
+
+    # Assert a record with a different URL does not match
+    diff_url_rec = PackageRecord.from_objects(
+        matching_rec,
+        url=f"{url}.different",
+    )
+    assert spec.match(diff_url_rec) is False
+
+    # Assert a record with a different digest does not match
+    diff_digest_rec = PackageRecord.from_objects(
+        matching_rec,
+        **{digest_kind: diff_digest},
+    )
+    assert spec.match(diff_digest_rec) is False
