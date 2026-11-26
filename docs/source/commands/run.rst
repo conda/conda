@@ -27,7 +27,7 @@ Use an explicit form to avoid relying on behavior that will change:
 .. code-block:: console
 
    # Use the invoking installation
-   $ conda run -n target "$CONDA_EXE" --version
+   $ conda run -n target "${CONDA_EXE:-$(command -v conda)}" --version
 
    # Use the target installation
    $ conda run -n target python -m conda --version

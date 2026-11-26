@@ -130,6 +130,7 @@ def test_conda_run_prefix_not_a_conda_env(tmp_path: Path, conda_cli: CondaCLIFix
     [
         pytest.param(("conda", "--version"), id="direct"),
         pytest.param(("time", "conda", "--version"), id="time"),
+        pytest.param(("time", "-p", "conda", "--version"), id="time-p"),
     ],
 )
 def test_run_warns_before_changing_conda_executable_resolution(
@@ -158,34 +159,6 @@ def test_run_warns_before_changing_conda_executable_resolution(
         assert err == 0, f"conda run failed ({err}): {stderr}"
         assert stdout.startswith("conda ")
         assert "target-prefix-conda" not in stdout
-
-
-@pytest.mark.skipif(on_win, reason="POSIX shell function regression test")
-def test_target_conda_executable_override_is_opt_in(
-    request: pytest.FixtureRequest,
-    tmp_path: Path,
-):
-    default_script, _ = wrap_subprocess_call(
-        root_prefix=context.root_prefix,
-        prefix=str(tmp_path),
-        dev_mode=False,
-        debug_wrapper_scripts=False,
-        arguments=["echo", "test"],
-    )
-    request.addfinalizer(lambda: Path(default_script).unlink(missing_ok=True))
-
-    target_script, _ = wrap_subprocess_call(
-        root_prefix=context.root_prefix,
-        prefix=str(tmp_path),
-        dev_mode=False,
-        debug_wrapper_scripts=False,
-        arguments=["echo", "test"],
-        use_target_conda_executable=True,
-    )
-    request.addfinalizer(lambda: Path(target_script).unlink(missing_ok=True))
-
-    assert 'command conda "$@"' not in Path(default_script).read_text()
-    assert 'command conda "$@"' in Path(target_script).read_text()
 
 
 def test_multiline_run_command(

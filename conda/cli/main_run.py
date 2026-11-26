@@ -118,9 +118,11 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
     if not args.executable_call:
         raise ArgumentError("No command specified. Please provide a command to run.")
 
+    # TODO: In 27.9, resolve `conda` from the target PATH and remove this warning.
     if not on_win and (
         args.executable_call[0] == "conda"
         or args.executable_call[:2] == ["time", "conda"]
+        or args.executable_call[:3] == ["time", "-p", "conda"]
     ):
         deprecated.topic(
             "27.3",
@@ -131,7 +133,8 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
             ),
             addendum=(
                 "In 27.9, `conda` will resolve from the target environment's PATH. "
-                "Use `$CONDA_EXE` to continue using the invoking installation, or "
+                "Use `${CONDA_EXE:-$(command -v conda)}` to continue using the "
+                "invoking installation, or "
                 "`python -m conda` to use the target installation."
             ),
             deprecation_type=FutureWarning,
@@ -144,8 +147,6 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         args.dev,
         args.debug_wrapper_scripts,
         args.executable_call,
-        # TODO: Set to True when the deprecated behavior is removed in 27.9.
-        use_target_conda_executable=False,
     )
 
     # run script
