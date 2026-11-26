@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import sys
 from collections import defaultdict
+from dataclasses import replace
 from datetime import timedelta
 from logging import getLogger
 from os.path import join
@@ -867,38 +868,76 @@ class PackagesNotFoundError(CondaError):
             channels_formatted = ""
 
         guidance = None
-        if channel_urls and len(self.packages) >= 5:
-            guidance = {
-                "summary": (
+        if channel_urls:
+            hints = [
+                {
+                    "text": (
+                        "Verify the expected channels are listed:\n"
+                        "      conda config --show channels"
+                    ),
+                    "hint_code": "check_channel_config",
+                },
+                {
+                    "text": (
+                        "Confirm the platform (subdir) matches your system:\n"
+                        "      conda info"
+                    ),
+                    "hint_code": "check_platform_subdir",
+                },
+                {
+                    "text": (
+                        "Clear the index cache, then retry:\n      conda clean -i"
+                    ),
+                    "hint_code": "clear_index_cache",
+                },
+            ]
+            if len(self.packages) == 1:
+                cause = (
+                    "The requested package was not found in the configured channels."
+                )
+            else:
+                cause = (
+                    f"{len(self.packages)} requested packages were not found in "
+                    "the configured channels."
+                )
+            guidance = {"cause": cause, "hints": hints}
+            if len(self.packages) >= 5:
+                guidance["summary"] = (
                     "Many packages are unavailable at once. The cause is often "
                     "channel configuration, an incomplete package index, or a "
                     "platform mismatch."
-                ),
-                "cause": (
-                    "All %(count)d requested packages were not found in the "
-                    "configured channels."
                 )
-                % {"count": len(self.packages)},
+            # No summary below 5: the message lists packages and channels.
+        else:
+            # No channels searched, no prefix known: generic guidance, and
+            # no summary so the message stays the headline.
+            if len(self.packages) == 1:
+                cause = "The requested package is missing from the target environment."
+            else:
+                cause = (
+                    f"{len(self.packages)} requested packages are missing from "
+                    "the target environment."
+                )
+            guidance = {
+                "cause": cause,
                 "hints": [
                     {
                         "text": (
-                            "Verify the expected channels are listed:\n"
-                            "      conda config --show channels"
+                            "List the packages in the target environment:\n"
+                            "      conda list"
                         ),
-                        "hint_code": "check_channel_config",
+                        "hint_code": "check_prefix_contents",
                     },
                     {
                         "text": (
-                            "Confirm the platform (subdir) matches your system:\n"
-                            "      conda info"
+                            "Confirm this is the environment you meant to target:\n"
+                            "      conda info --envs"
                         ),
-                        "hint_code": "check_platform_subdir",
+                        "hint_code": "check_target_prefix",
                     },
                     {
-                        "text": (
-                            "Clear the index cache, then retry:\n      conda clean -i"
-                        ),
-                        "hint_code": "clear_index_cache",
+                        "text": "Check that the package name is spelled correctly.",
+                        "hint_code": "check_package_name",
                     },
                 ],
             }
@@ -924,6 +963,31 @@ class PackagesNotFoundInChannelsError(PackagesNotFoundError):
         channel_urls: Iterable[str],
     ):
         super().__init__(packages, channel_urls=channel_urls)
+        if self.guidance is not None and self.channel_urls:
+            # The summary replaces the message on the terminal, so carry the
+            # searched channels (and the tar_bz2 note) in the cause instead.
+            searched = ", ".join(str(url) for url in self.channel_urls)
+            cause = f"{self.guidance.cause} Searched: {searched}"
+            from .base.context import context
+
+            if context.use_only_tar_bz2:
+                cause += (
+                    " Note: 'use_only_tar_bz2' is enabled, which may omit "
+                    "some packages from the index."
+                )
+            if len(self.packages) < 5:
+                # Name what was searched for; 5+ keeps the bulk summary.
+                names = ", ".join(str(package) for package in self.packages)
+                verb = "is" if len(self.packages) == 1 else "are"
+                self._guidance = replace(
+                    self.guidance,
+                    summary=(
+                        f"{names} {verb} not available from the configured channels."
+                    ),
+                    cause=cause,
+                )
+            else:
+                self._guidance = replace(self.guidance, cause=cause)
 
 
 class PackageNotInstalledError(PackagesNotFoundError):
@@ -939,6 +1003,7 @@ class PackageNotInstalledError(PackagesNotFoundError):
         from .common.io import dashlist
 
         if isinstance(package_name, str):
+            names = (package_name,)
             message = dals(
                 """
                 Package is not installed in prefix.
@@ -948,6 +1013,7 @@ class PackageNotInstalledError(PackagesNotFoundError):
             )
         else:
             package_name = tuple(package_name)
+            names = package_name
             message = dals(
                 """
                 The following packages are missing from the target environment:
@@ -955,6 +1021,19 @@ class PackageNotInstalledError(PackagesNotFoundError):
                 %(packages_formatted)s
                 """
             )
+
+        if len(names) == 1:
+            summary = f"{names[0]} is not installed in {prefix}."
+        elif len(names) < 5:
+            joined = ", ".join(str(name) for name in names)
+            summary = f"{joined} are not installed in {prefix}."
+        else:
+            summary = f"{len(names)} packages are not installed in {prefix}."
+        cause = (
+            "The target environment does not contain this package."
+            if len(names) == 1
+            else "The target environment does not contain these packages."
+        )
 
         # We call CondaError directly here because PackagesNotFoundError decides
         # the behaviour based on channel_urls, but this is a case of the package(s)
@@ -967,6 +1046,30 @@ class PackageNotInstalledError(PackagesNotFoundError):
             packages_formatted=dashlist(package_name)
             if not isinstance(package_name, str)
             else "",
+            guidance={
+                "summary": summary,
+                "cause": cause,
+                "hints": [
+                    {
+                        "text": (
+                            "List the packages installed there:\n"
+                            f"      conda list -p {prefix}"
+                        ),
+                        "hint_code": "check_prefix_contents",
+                    },
+                    {
+                        "text": (
+                            "Confirm this is the environment you meant to target:\n"
+                            "      conda info --envs"
+                        ),
+                        "hint_code": "check_target_prefix",
+                    },
+                    {
+                        "text": "Check that the package name is spelled correctly.",
+                        "hint_code": "check_package_name",
+                    },
+                ],
+            },
         )
 
 
@@ -1014,6 +1117,38 @@ class NoChannelsConfiguredError(CondaError):
             message,
             packages=list(packages),
             packages_str=packages_str,
+            guidance={
+                "summary": f"No channels are configured to search for {packages_str}.",
+                "cause": (
+                    "Conda requires at least one configured channel to search "
+                    "for packages, but none are configured."
+                ),
+                "hints": [
+                    {
+                        "text": (
+                            "Add a channel for this command:\n"
+                            "      conda install -c <channel> "
+                            f"{packages_str if packages else '<package>'}"
+                        ),
+                        "hint_code": "add_channel_for_command",
+                    },
+                    {
+                        "text": (
+                            "Configure a channel for future commands:\n"
+                            "      conda config --append channels <channel>"
+                        ),
+                        "hint_code": "configure_channels_permanently",
+                    },
+                    {
+                        "text": (
+                            "Or add a channels entry to your .condarc file; "
+                            "see https://docs.conda.io/projects/conda/en/stable/"
+                            "user-guide/configuration/use-condarc.html"
+                        ),
+                        "hint_code": "edit_condarc_file",
+                    },
+                ],
+            },
         )
 
 

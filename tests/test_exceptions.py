@@ -30,8 +30,11 @@ from conda.exceptions import (
     LinkError,
     LinkScriptError,
     LinkSourceNotFoundError,
+    NoChannelsConfiguredError,
+    PackageNotInstalledError,
     PackagesNotFoundError,
     PackagesNotFoundInChannelsError,
+    PackagesNotFoundInPrefixError,
     PathNotFoundError,
     PlatformMismatchError,
     ProxyError,
@@ -382,6 +385,13 @@ def test_PackageNotFoundError(monkeypatch: MonkeyPatch, capsys: CaptureFixture) 
             "",
             "  - Potato",
             "",
+            "Cause: The requested package is missing from the target environment.",
+            "Next steps:",
+            "  - (check_prefix_contents) List the packages in the target environment:",
+            "      conda list",
+            "  - (check_target_prefix) Confirm this is the environment you meant to target:",
+            "      conda info --envs",
+            "  - (check_package_name) Check that the package name is spelled correctly.",
             "",
             "",
         )
@@ -1210,13 +1220,17 @@ def test_PackagesNotFoundInChannelsError_plugin_hint(
     if json_output:
         json_obj = json.loads(stdout)
         assert not stderr
-        assert json_obj["guidance"]["hints"] == [
-            {
-                "text": "Try installing from the recommended channel.",
-                "hint_code": "anaconda_channel_suggestion",
-            }
+        # Core guidance comes first, plugin hints are appended after it
+        assert json_obj["guidance"]["hint_codes"] == [
+            "check_channel_config",
+            "check_platform_subdir",
+            "clear_index_cache",
+            "anaconda_channel_suggestion",
         ]
-        assert json_obj["guidance"]["hint_codes"] == ["anaconda_channel_suggestion"]
+        assert json_obj["guidance"]["hints"][-1] == {
+            "text": "Try installing from the recommended channel.",
+            "hint_code": "anaconda_channel_suggestion",
+        }
     else:
         assert not stdout
         assert "PackagesNotFoundInChannelsError:" in stderr
@@ -1585,7 +1599,7 @@ def test_PackagesNotFoundError_guidance_for_bulk_missing(
     assert exc.guidance.hints[0].hint_code == "check_channel_config"
 
 
-def test_PackagesNotFoundError_no_guidance_for_few_packages(
+def test_PackagesNotFoundError_guidance_for_few_packages(
     monkeypatch: MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
@@ -1596,7 +1610,206 @@ def test_PackagesNotFoundError_no_guidance_for_few_packages(
         ["single-pkg"],
         channel_urls=["https://repo.anaconda.org/pkgs/main"],
     )
-    assert exc.guidance is None
+    assert exc.guidance is not None
+    # No summary on purpose: the message stays the headline
+    assert exc.guidance.summary is None
+    assert exc.guidance.cause == (
+        "The requested package was not found in the configured channels."
+    )
+    assert exc.dump_map()["guidance"]["hint_codes"] == (
+        "check_channel_config",
+        "check_platform_subdir",
+        "clear_index_cache",
+    )
+
+
+def test_PackagesNotFoundError_few_packages_printed_output(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
+    reset_context()
+
+    exc = PackagesNotFoundError(
+        ["single-pkg"],
+        channel_urls=["https://repo.anaconda.org/pkgs/main"],
+    )
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    # Headline is the original message, so packages and channels stay visible
+    assert "single-pkg" in stderr
+    assert "https://repo.anaconda.org/pkgs/main" in stderr
+    assert (
+        "Cause: The requested package was not found in the configured channels."
+        in stderr
+    )
+    assert "(check_channel_config)" in stderr
+    assert "Traceback" not in stderr
+
+
+def test_PackagesNotFoundError_guidance_without_channels() -> None:
+    exc = PackagesNotFoundError(["single-pkg"])
+    assert exc.guidance is not None
+    # No summary on purpose: the message stays the headline
+    assert exc.guidance.summary is None
+    assert exc.guidance.cause == (
+        "The requested package is missing from the target environment."
+    )
+    assert exc.dump_map()["guidance"]["hint_codes"] == (
+        "check_prefix_contents",
+        "check_target_prefix",
+        "check_package_name",
+    )
+
+
+@pytest.mark.parametrize(
+    "packages,expected_summary",
+    [
+        (["single-pkg"], "single-pkg is not available from the configured channels."),
+        (
+            ["pkg-a", "pkg-b"],
+            "pkg-a, pkg-b are not available from the configured channels.",
+        ),
+        ([f"pkg{i}" for i in range(5)], "Many packages are unavailable"),
+    ],
+)
+def test_PackagesNotFoundInChannelsError_guidance_summary(
+    packages: list[str],
+    expected_summary: str,
+) -> None:
+    exc = PackagesNotFoundInChannelsError(
+        packages,
+        ["https://repo.anaconda.org/pkgs/main"],
+    )
+    assert exc.guidance is not None
+    assert exc.guidance.summary is not None
+    assert exc.guidance.summary.startswith(expected_summary)
+    assert exc.dump_map()["guidance"]["summary"] == exc.guidance.summary
+
+
+@pytest.mark.parametrize("count", [1, 5])
+def test_PackagesNotFoundInChannelsError_printed_output_lists_searched_channels(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+    count: int,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", "false")
+    reset_context()
+
+    exc = PackagesNotFoundInChannelsError(
+        [f"pkg{i}" for i in range(count)],
+        [
+            "https://repo.anaconda.org/pkgs/main/osx-arm64",
+            "https://repo.anaconda.org/pkgs/main/noarch",
+        ],
+    )
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert (
+        "Searched: https://repo.anaconda.org/pkgs/main/osx-arm64, "
+        "https://repo.anaconda.org/pkgs/main/noarch" in stderr
+    )
+    assert "Traceback" not in stderr
+
+
+@pytest.mark.parametrize("use_only_tar_bz2", [True, False])
+def test_PackagesNotFoundInChannelsError_use_only_tar_bz2_note_in_cause(
+    monkeypatch: MonkeyPatch,
+    use_only_tar_bz2: bool,
+) -> None:
+    monkeypatch.setenv("CONDA_USE_ONLY_TAR_BZ2", str(use_only_tar_bz2))
+    reset_context()
+    assert context.use_only_tar_bz2 is use_only_tar_bz2
+
+    exc = PackagesNotFoundInChannelsError(
+        ["single-pkg"],
+        ["https://repo.anaconda.org/pkgs/main"],
+    )
+    assert exc.guidance is not None
+    assert exc.guidance.cause is not None
+    assert ("'use_only_tar_bz2' is enabled" in exc.guidance.cause) is use_only_tar_bz2
+
+
+def test_PackagesNotFoundInChannelsError_no_channels_uses_parent_guidance() -> None:
+    # With no channels searched, the channel-specific summary must not appear
+    exc = PackagesNotFoundInChannelsError(["single-pkg"], [])
+    assert exc.guidance is not None
+    assert exc.guidance.summary is None
+    assert exc.guidance.cause == (
+        "The requested package is missing from the target environment."
+    )
+
+
+def test_PackageNotInstalledError_guidance() -> None:
+    exc = PackageNotInstalledError("/tmp/env", "numpy")
+    assert exc.guidance is not None
+    assert exc.guidance.summary == "numpy is not installed in /tmp/env."
+    assert exc.dump_map()["guidance"]["hint_codes"] == (
+        "check_prefix_contents",
+        "check_target_prefix",
+        "check_package_name",
+    )
+
+
+def test_PackagesNotFoundInPrefixError_inherits_guidance() -> None:
+    # Alias of PackageNotInstalledError: same guidance, no duplicate copy
+    exc = PackagesNotFoundInPrefixError(["numpy", "scipy"], prefix="/tmp/env")
+    parent = PackageNotInstalledError("/tmp/env", ["numpy", "scipy"])
+    assert exc.guidance is not None and parent.guidance is not None
+    assert exc.guidance.summary == "numpy, scipy are not installed in /tmp/env."
+    assert exc.guidance.hint_codes == parent.guidance.hint_codes
+
+
+def test_NoChannelsConfiguredError_guidance() -> None:
+    exc = NoChannelsConfiguredError(["numpy"])
+    assert exc.guidance is not None
+    assert exc.guidance.summary == ("No channels are configured to search for numpy.")
+    assert exc.dump_map()["guidance"]["hint_codes"] == (
+        "add_channel_for_command",
+        "configure_channels_permanently",
+        "edit_condarc_file",
+    )
+    # The per-command hint carries the requested packages
+    assert "conda install -c <channel> numpy" in exc.guidance.hints[0].text
+
+
+@pytest.mark.parametrize(
+    "exc,expected",
+    [
+        (
+            PackagesNotFoundInChannelsError(["pkg-a"], ["https://example.com"]),
+            "pkg-a is not available from the configured channels.",
+        ),
+        (
+            PackageNotInstalledError("/tmp/env", "numpy"),
+            "numpy is not installed in /tmp/env.",
+        ),
+        (
+            PackagesNotFoundInPrefixError(["numpy"], prefix="/tmp/env"),
+            "numpy is not installed in /tmp/env.",
+        ),
+        (
+            NoChannelsConfiguredError(["numpy"]),
+            "No channels are configured to search for numpy.",
+        ),
+    ],
+)
+def test_packages_not_found_family_printed_output(
+    monkeypatch: MonkeyPatch,
+    capsys: CaptureFixture,
+    exc: Exception,
+    expected: str,
+) -> None:
+    monkeypatch.setenv("CONDA_JSON", "no")
+    reset_context()
+
+    print_conda_exception(exc)
+    stderr = capsys.readouterr().err
+    assert expected in stderr
+    assert "Next steps:" in stderr
+    assert "Traceback" not in stderr
 
 
 def test_UnsatisfiableError_guidance() -> None:
