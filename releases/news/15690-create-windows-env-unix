@@ -4,6 +4,9 @@
   fixes creating python entry points for windows from unixes by using
   the stub executable even on other operating systems if the subdir is
   windows. (#15690)
+* `conda-launchers` is now a dependency on all platforms so that Windows
+  entry point launchers are available when creating `win-*` environments
+  from other operating systems. (#15690)
 
 ### Bug fixes
 

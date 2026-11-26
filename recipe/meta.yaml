@@ -56,7 +56,7 @@ requirements:
     - backports.zstd >=1.3.0       # [py<314]
     - boltons >=23.0.0
     - charset-normalizer
-    - conda-launchers >=24.7.1  # [win]
+    - conda-launchers >=24.7.1  # also used to create win-* envs on any OS
     - conda-package-handling >=2.2.0
     - distro >=1.5.0
     - frozendict >=2.4.2
