@@ -134,6 +134,7 @@ def execute(args: Namespace, parser: ArgumentParser) -> int:
         path=args.cwd,
         raise_on_error=False,
         capture_output=not args.no_capture_output,
+        forward_signals=True,
     )
 
     # display stdout/stderr if it was captured
