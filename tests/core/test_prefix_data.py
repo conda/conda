@@ -20,6 +20,7 @@ from conda.base.constants import (
     PREFIX_PINNED_FILE,
     PREFIX_STATE_FILE,
 )
+from conda.base.context import context
 from conda.common.compat import on_win
 from conda.common.path.python import get_python_site_packages_short_path
 from conda.core.prefix_data import PrefixData, get_conda_anchor_files_and_records
@@ -310,7 +311,7 @@ def test_pypi_loader_removes_clobbered_record_json_by_prefix_record_name(
             build="h123_0",
             build_number=0,
             channel="conda-forge",
-            subdir="osx-arm64",
+            subdir=context.subdir,
             fn="python-3.11.0-h123_0.conda",
             files=(),
         ),

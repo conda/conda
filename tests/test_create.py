@@ -610,6 +610,11 @@ def test_noarch_python_package_with_entry_points(
     Makes sure that entry point files are installed, including when creating
     an environment for a different subdir than the native one.
     """
+    if on_win and not subdir.startswith("win-"):
+        pytest.skip(
+            "Unix packages like ncurses have files differing only by case, "
+            "which can't be extracted on Windows."
+        )
     extra = []
     if subdir.startswith("linux-") and not context.subdir.startswith("linux-"):
         # ncurses package on defaults require a case sensitive file system
