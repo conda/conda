@@ -307,7 +307,7 @@ def wrap_subprocess_call(
             if debug_wrapper_scripts:
                 fh.write(">&2 echo '*** environment after ***'\n>&2 env\n")
             if multiline:
-                # The ' '.join() is pointless since mutliline is only True when there's 1 arg
+                # The ' '.join() is pointless since multiline is only True when there's 1 arg
                 # still, if that were to change this would prevent breakage.
                 fh.write("{}\n".format(" ".join(arguments)))
             else:
