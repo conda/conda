@@ -18,10 +18,13 @@ from __future__ import annotations
 import enum
 import json  # noqa: TID251
 import sys
+from collections.abc import Mapping
 from dataclasses import MISSING, dataclass, field, fields, is_dataclass
 from functools import cache, partial
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, Protocol, runtime_checkable
+
+from frozendict import deepfreeze, frozendict
 
 from ..auxlib.entity import (
     BooleanField,
@@ -33,9 +36,12 @@ from ..auxlib.entity import (
     StringField,
 )
 from ..auxlib.exceptions import ValidationError
+from ..common.serialize import json as conda_json
 from ..deprecations import deprecated
+from .build_string import BuildString
 from .channel import Channel
 from .enums import FileMode, LinkType, NoarchType, PackageType, PathEnum, Platform
+from .version import VersionOrder
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -140,7 +146,9 @@ PKEY_FIELDS = frozenset(
     {"channel", "subdir", "name", "version", "build_number", "build", "fn"}
 )
 
-CACHE_FIELDS = frozenset({"_pkey_cache", "_hash_cache", "_memoized_md5"})
+CACHE_FIELDS = frozenset(
+    {"_pkey_cache", "_hash_cache", "_sort_key_cache", "_memoized_md5"}
+)
 
 FIELDS_EXCLUDED_FROM_DUMP = frozenset({"metadata"})
 
@@ -152,6 +160,7 @@ FIELDS_WITHOUT_DEFAULT_IN_DUMP = frozenset(
         "url",
         "sha256",
         "flags",
+        "extra_depends",
         "track_features",
         "features",
         "noarch",
@@ -174,6 +183,10 @@ NOARCH_TO_PACKAGE_TYPE: dict[NoarchType, PackageType] = {
 }
 
 INTERN_FIELDS = frozenset({"name", "version", "build", "subdir"})
+
+
+def _safe_opt_str(val: Any) -> tuple[int, str]:
+    return (0, "") if val is None else (1, str(val))
 
 
 @runtime_checkable
@@ -307,6 +320,14 @@ def resolve_optional_tuple(val: Any, record: PackageRecord) -> tuple | None:
     return resolve_as_tuple(val, record, "_requested_specs")
 
 
+def resolve_extra_depends(val: Any, record: PackageRecord) -> Mapping:
+    if val is None:
+        return frozendict()
+    if not isinstance(val, Mapping):
+        raise ValidationError("extra_depends", val)
+    return deepfreeze(val)
+
+
 def resolve_noarch(val: Any, record: PackageRecord) -> NoarchType | None:
     if val is None or isinstance(val, NoarchType):
         return val
@@ -414,6 +435,7 @@ class PackageRecord:
         "depends": partial(resolve_as_tuple, field_name="depends"),
         "constrains": partial(resolve_as_tuple, field_name="constrains"),
         "flags": partial(resolve_as_tuple, field_name="flags"),
+        "extra_depends": resolve_extra_depends,
         "files": partial(resolve_as_tuple, field_name="files"),
         "noarch": resolve_noarch,
         "package_type": resolve_package_type,
@@ -453,6 +475,7 @@ class PackageRecord:
     depends: tuple[str, ...] = ()
     constrains: tuple[str, ...] = ()
     flags: tuple[str, ...] = ()
+    extra_depends: Mapping[str, tuple[str, ...]] = frozendict()
     track_features: tuple[str, ...] = ()
     features: tuple[str, ...] = ()
 
@@ -473,6 +496,9 @@ class PackageRecord:
         default=None, repr=False, compare=False, init=False
     )
     _hash_cache: int | None = field(default=None, repr=False, compare=False, init=False)
+    _sort_key_cache: tuple | None = field(
+        default=None, repr=False, compare=False, init=False
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         setattr_ = object.__setattr__
@@ -596,6 +622,7 @@ class PackageRecord:
     def _invalidate_pkey(self) -> None:
         object.__setattr__(self, "_pkey_cache", None)
         object.__setattr__(self, "_hash_cache", None)
+        object.__setattr__(self, "_sort_key_cache", None)
 
     def __hash__(self) -> int:
         cached = self._hash_cache
@@ -609,6 +636,50 @@ class PackageRecord:
         if not hasattr(other, "_pkey"):
             return NotImplemented
         return self._pkey == other._pkey
+
+    @property
+    def _sort_key(self) -> tuple:
+        cached = self._sort_key_cache
+        if cached is not None:
+            return cached
+        from ..base.context import context
+
+        key = [
+            self.name,
+            VersionOrder(self.version),
+            self.build_number,
+            self.build
+            if isinstance(self.build, BuildString)
+            else BuildString(self.build),
+            self.version,
+            _safe_opt_str(self.channel_name),
+            _safe_opt_str(self.subdir),
+        ]
+        if context.separate_format_cache:
+            key.append(_safe_opt_str(self.fn))
+        result = tuple(key)
+        object.__setattr__(self, "_sort_key_cache", result)
+        return result
+
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, PackageRecord):
+            return NotImplemented
+        return self._sort_key < other._sort_key
+
+    def __le__(self, other: Any) -> bool:
+        if not isinstance(other, PackageRecord):
+            return NotImplemented
+        return self._sort_key <= other._sort_key
+
+    def __gt__(self, other: Any) -> bool:
+        if not isinstance(other, PackageRecord):
+            return NotImplemented
+        return self._sort_key > other._sort_key
+
+    def __ge__(self, other: Any) -> bool:
+        if not isinstance(other, PackageRecord):
+            return NotImplemented
+        return self._sort_key >= other._sort_key
 
     def dump(self) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -637,6 +708,12 @@ class PackageRecord:
 
             result[name] = val
         return result
+
+    def json(self, indent=None, separators=None, **kwargs) -> str:
+        return conda_json.dumps(self, indent=indent, separators=separators, **kwargs)
+
+    def pretty_json(self, indent=2, separators=(",", ": "), **kwargs) -> str:
+        return conda_json.dumps(self, indent=indent, separators=separators, **kwargs)
 
     @classmethod
     def from_objects(cls, *objects: Any, **overrides: Any) -> PackageRecord:
