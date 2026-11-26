@@ -16,6 +16,7 @@ import struct
 import sys
 import sysconfig
 import warnings
+from collections.abc import Mapping
 from contextlib import contextmanager, suppress
 from errno import ENOENT
 from functools import cache, cached_property
@@ -39,6 +40,7 @@ from ..common.configuration import (
     Configuration,
     ConfigurationLoadError,
     ConfigurationObject,
+    CustomValidationError,
     MapParameter,
     ObjectLoadedParameter,
     ObjectParameter,
@@ -274,7 +276,17 @@ class PkgsDirParameter(ObjectParameter):
     """A ``pkgs_dirs`` entry, given as a path string or a map of ``PkgsDirConfig`` fields."""
 
     def load(self, name, match):
-        if not isinstance(match.value(self._element_type), str):
+        value = match.value(self._element_type)
+        if isinstance(value, Mapping):
+            for key in value:
+                if key not in vars(self._element_type):
+                    raise CustomValidationError(
+                        name,
+                        key,
+                        match.source,
+                        f"Unknown setting {key!r} in pkgs_dirs entry.",
+                    )
+        if not isinstance(value, str):
             return super().load(name, match)
 
         # a plain path string uses the defaults for every policy
@@ -958,6 +970,8 @@ class Context(Configuration):
                 allow_softlinks = pkg_dir_config.allow_softlinks
             if pkg_dir_config.always_softlink is not None:
                 always_softlink = pkg_dir_config.always_softlink
+                if always_softlink:
+                    always_copy = False
             elif pkg_dir_config.allow_softlinks is False:
                 # a cache that disallows soft links isn't overridden by a global always_softlink
                 always_softlink = False

@@ -1251,6 +1251,7 @@ def test_pkgs_dirs_condarc(monkeypatch: pytest.MonkeyPatch, context_testdata: No
             "are mutually exclusive",
             id="mutually-exclusive",
         ),
+        pytest.param("- path: /a\n  read_ony: true", "read_ony", id="unknown-key"),
     ],
 )
 def test_pkgs_dirs_invalid_entry(context_testdata: None, entry: str, match: str):

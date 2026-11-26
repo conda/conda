@@ -322,6 +322,44 @@ def test_config_remove_item() -> None:
         config.remove_item("changeps1", None)
 
 
+@pytest.mark.parametrize("use_env_var", [False, True], ids=["path", "env-var"])
+def test_config_add_pkgs_dir_preserves_policy(
+    tmp_path: Path, monkeypatch: MonkeyPatch, use_env_var: bool
+) -> None:
+    shared = str(tmp_path / "shared")
+    user = str(tmp_path / "user")
+    monkeypatch.setenv("SHARED_CACHE", shared)
+    configured_path = "$SHARED_CACHE" if use_env_var else shared
+    entry = {"path": configured_path, "read_only": True}
+    config = ConfigurationFile(content={"pkgs_dirs": [user, entry]})
+
+    config.add("pkgs_dirs", shared, prepend=True)
+
+    assert config.content["pkgs_dirs"] == [entry, user]
+
+
+def test_config_add_pkgs_dir_mapping_replaces_plain_path(tmp_path: Path) -> None:
+    shared = str(tmp_path / "shared")
+    entry = {"path": shared, "read_only": True}
+    config = ConfigurationFile(content={"pkgs_dirs": [shared]})
+
+    config.add("pkgs_dirs", entry)
+
+    assert config.content["pkgs_dirs"] == [entry]
+
+
+def test_config_remove_pkgs_dir_mapping(tmp_path: Path) -> None:
+    shared = str(tmp_path / "shared")
+    user = str(tmp_path / "user")
+    config = ConfigurationFile(
+        content={"pkgs_dirs": [{"path": shared, "read_only": True}, user]}
+    )
+
+    config.remove_item("pkgs_dirs", shared)
+
+    assert config.content["pkgs_dirs"] == [user]
+
+
 def test_config_clear_key() -> None:
     config = ConfigurationFile(
         content={

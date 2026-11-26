@@ -547,6 +547,15 @@ def test_determine_link_type(
             id="cache-always-softlink-over-global-always",
         ),
         pytest.param(
+            "true",
+            "true",
+            "none",
+            True,
+            "always_copy: true",
+            LinkType.softlink,
+            id="cache-always-softlink-over-global-copy",
+        ),
+        pytest.param(
             "false",
             "false",
             "true",

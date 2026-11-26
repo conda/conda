@@ -32,6 +32,7 @@ touch "$QA/stamp"   # anything in $SHARED newer than this was written by conda
    - `pkgs_dirs: [{read_only: true}]`: fails with "pkgs_dirs entries must have a 'path'."
    - `pkgs_dirs: [{path: /a, read_only: maybe}]`: fails with "The value 'maybe' cannot be boolified."
    - `pkgs_dirs: [{path: /a, always_copy: true, always_softlink: true}]`: fails with "'always_copy' and 'always_softlink' are mutually exclusive. Only one can be set to 'True' for path '/a'."
+   - `pkgs_dirs: [{path: /a, read_ony: true}]`: fails with "Unknown setting 'read_ony' in pkgs_dirs entry."
    - `pkgs_dirs: [/a, {path: /b, read_only: true, allow_softlinks: true}]`: succeeds silently. Plain paths and maps can be mixed.
 
    Each invalid file also makes other commands, e.g. `conda info`, exit with the same error.
@@ -170,5 +171,4 @@ Each step matches the result written under it. In particular, `find "$SHARED" -n
 ### Out of scope / notes
 - Global `always_copy`, `always_softlink` and `allow_softlinks` behave as before when no cache sets them; that is covered by `tests/core/test_link.py::test_determine_link_type`.
 - The full matrix of per-cache vs. global link settings is covered by `tests/core/test_link.py` and `tests/test_package_cache_policies.py`; the steps above only need to show it works end to end.
-- Unknown keys in a `pkgs_dirs` map (e.g. `allow_softlink`) are currently ignored without an error.
 - Clean up with `rm -rf "$QA"` (after `chmod -R u+w "$QA"` if step 9 was run).
