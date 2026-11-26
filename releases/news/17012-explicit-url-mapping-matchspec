@@ -1,3 +1,3 @@
 ### Bug fixes
 
-* Fix explicit environment recreation failing with `SpecNotFoundInPackageCache` when explicit specification files list wheel packages residing in channel subdirectories (such as `noarch/`), by treating all explicit URLs as direct artifact locators rather than inferring package names and versions from filenames. (#17012)
+* Fix explicit environment recreation failing with `SpecNotFoundInPackageCache` when explicit specification files list wheel packages residing in channel subdirectories (such as `noarch/`), by treating all explicit URLs as direct artifact locators rather than inferring package names and versions from filenames. (#17012, #17037)
