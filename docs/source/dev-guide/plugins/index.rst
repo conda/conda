@@ -106,6 +106,7 @@ For examples of how to use other plugin hooks, please read their respective docu
    package_extractors
    post_commands
    pre_commands
+   pre_channel_fetches
    pre_transaction_actions
    post_transaction_actions
    prefix_data_loaders

@@ -28,7 +28,7 @@ from .prefix_data import PrefixData
 from .subdir_data import SubdirData
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Callable, Iterable
     from typing import Any, Self
 
     from ..common.path import PathType
@@ -47,6 +47,7 @@ def resolve_channels(
     repodata_fn: str = REPODATA_FN,
     max_depth: int | None = None,
     use_shards: bool | None = None,
+    before_fetch: Callable[[Channel], None] | None = None,
 ) -> tuple[Channel, ...]:
     """Return channels in priority order after discovering their CEP 42 relations.
 
@@ -58,6 +59,11 @@ def resolve_channels(
     Related channels are checked against channel policy before metadata is read.
     Explicit ``subdirs`` override any platform in the input channels, matching
     :meth:`Channel.urls`. ``noarch`` is always included during discovery.
+
+    Before reading metadata, run ``before_fetch`` if supplied, then registered
+    ``conda_pre_channel_fetches`` actions. Either may raise to stop discovery.
+    Checks run again for each call, including cached metadata and explicit heads
+    when discovery is disabled.
     """
     from .._private.shards.shards import fetch_shards_index
 
@@ -72,6 +78,10 @@ def resolve_channels(
                 heads.setdefault(channel.base_url, channel)
     validate_channels(tuple(heads.values()))
     if not max_depth or not heads:
+        for channel in heads.values():
+            if before_fetch is not None:
+                before_fetch(channel)
+            context.plugin_manager.invoke_pre_channel_fetch(channel)
         return tuple(heads.values())
 
     if subdirs is None:
@@ -91,6 +101,9 @@ def resolve_channels(
     while pending:
         url, depth = pending.popleft()
         channel = nodes[url]
+        if before_fetch is not None:
+            before_fetch(channel)
+        context.plugin_manager.invoke_pre_channel_fetch(channel)
         for subdir in subdirs:
             source = SubdirData(
                 Channel(**{**channel.dump(), "platform": subdir}),
