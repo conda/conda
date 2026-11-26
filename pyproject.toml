@@ -28,7 +28,7 @@ dependencies = [
   "certifi >=2026.10.19",
   "charset-normalizer",
   # Disabled due to conda-launchers not being available on PyPI
-  # "conda-launchers >=24.7.1; sys_platform == 'win32'",
+  # "conda-launchers >=24.7.1",
   # Disabled due to conda-libmamba-solver not being available on PyPI
   # "conda-libmamba-solver >=26.4.1",
   "conda-package-handling >=2.2.0",

@@ -599,33 +599,67 @@ def test_conda_update_package_is_not_name_only_spec(
             conda_cli("update", f"--prefix={prefix}", "conda-forge::*")
 
 
+@pytest.mark.parametrize("subdir", ["linux-64", "osx-64", "win-64"])
 def test_noarch_python_package_with_entry_points(
-    tmp_env: TmpEnvFixture, conda_cli: CondaCLIFixture
+    tmp_env: TmpEnvFixture,
+    conda_cli: CondaCLIFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    subdir: str,
 ):
+    """
+    Makes sure that entry point files are installed, including when creating
+    an environment for a different subdir than the native one.
+    """
+    if (on_win and not subdir.startswith("win-")) or (
+        on_mac and subdir.startswith("linux-")
+    ):
+        pytest.skip(
+            "ncurses has files differing only by case, which can't be extracted "
+            "on the (default) case-insensitive file system of this OS."
+        )
+    if subdir.startswith("osx-") and not context.subdir.startswith("osx-"):
+        # __osx is not detected when cross-creating, but python requires it
+        monkeypatch.setenv("CONDA_OVERRIDE_OSX", "11.0")
+        reset_context()
+    # Only pin to the running python version when we will run the interpreter;
+    # that version may not be published for other subdirs yet. The upper bound
+    # excludes the fake python=3.99.99 in the test-recipes channel.
+    python_spec = PYTHON_SPEC if subdir == context.subdir else "python<3.99"
+
     with tmp_env(
         f"{TEST_RECIPES_CHANNEL.as_uri()}::small-python-package",
-        PYTHON_SPEC,
+        python_spec,
+        "--subdir",
+        subdir,
     ) as prefix:
         python_record = PrefixData(prefix).get("python")
         py_ver = get_major_minor_version(python_record.version)
         sp_dir = (
             python_record.python_site_packages_path
-            or get_python_site_packages_short_path(py_ver)
+            or get_python_site_packages_short_path(py_ver, subdir)
         )
         py_file = sp_dir + "/small_python_package/__init__.py"
         pyc_file = pyc_path(py_file, py_ver)
         assert (prefix / py_file).is_file()
-        assert (prefix / pyc_file).is_file()
-        exe_path = prefix / BIN_DIRECTORY / ("spp.exe" if on_win else "spp")
+
+        if subdir.startswith("win-"):
+            exe_path = prefix / "Scripts" / "spp.exe"
+        else:
+            exe_path = prefix / "bin" / "spp"
         assert exe_path.is_file()
-        if context.subdir == "win-arm64":
-            assert PrefixData(prefix).get("python").subdir == "win-arm64"
-            launcher = Path(
-                context.conda_prefix, "share", "conda-launchers", "cli-arm64.exe"
-            )
-            assert compute_sum(exe_path, "sha256") == compute_sum(launcher, "sha256")
-        output = check_output([exe_path, "--help"], text=True)
-        assert "usage: spp" in output
+
+        if subdir == context.subdir:
+            assert (prefix / pyc_file).is_file()
+            if context.subdir == "win-arm64":
+                assert python_record.subdir == "win-arm64"
+                launcher = Path(
+                    context.conda_prefix, "share", "conda-launchers", "cli-arm64.exe"
+                )
+                assert compute_sum(exe_path, "sha256") == compute_sum(
+                    launcher, "sha256"
+                )
+            output = check_output([exe_path, "--help"], text=True)
+            assert "usage: spp" in output
 
         conda_cli(
             "remove", f"--prefix={prefix}", "small-python-package", "--force", "--yes"

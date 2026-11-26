@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from conda.common.path import python as python_path
 from conda.common.path.python import (
+    get_python_noarch_target_path,
     get_python_site_packages_short_path,
     is_valid_import_path,
 )
@@ -59,11 +59,8 @@ def test_get_python_site_packages_short_path_none():
         ("4.0", "lib/python4.0/site-packages"),
     ],
 )
-def test_get_python_site_packages_short_path_unix(
-    monkeypatch: pytest.MonkeyPatch, python_version: str, expected: str
-):
-    monkeypatch.setattr(python_path, "on_win", False)
-    assert get_python_site_packages_short_path(python_version) == expected
+def test_get_python_site_packages_short_path_unix(python_version: str, expected: str):
+    assert get_python_site_packages_short_path(python_version, "linux-64") == expected
 
 
 @pytest.mark.parametrize(
@@ -83,7 +80,25 @@ def test_get_python_site_packages_short_path_unix(
     ],
 )
 def test_get_python_site_packages_short_path_windows(
-    monkeypatch: pytest.MonkeyPatch, python_version: str, expected: str
+    python_version: str, expected: str
 ):
-    monkeypatch.setattr(python_path, "on_win", True)
-    assert get_python_site_packages_short_path(python_version) == expected
+    assert get_python_site_packages_short_path(python_version, "win-64") == expected
+
+
+@pytest.mark.parametrize(
+    "subdir,expected",
+    [
+        ("linux-64", "bin/foo"),
+        ("osx-arm64", "bin/foo"),
+        ("win-64", "Scripts/foo"),
+    ],
+)
+def test_get_python_noarch_target_path_python_scripts(subdir: str, expected: str):
+    assert get_python_noarch_target_path("python-scripts/foo", "sp", subdir) == expected
+
+
+def test_get_python_noarch_target_path_site_packages():
+    assert (
+        get_python_noarch_target_path("site-packages/foo/__init__.py", "Lib/sp")
+        == "Lib/sp/foo/__init__.py"
+    )

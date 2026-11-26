@@ -598,7 +598,8 @@ def test_windows_sort_orders_1(tmpdir, monkeypatch):
     # This test makes sure the windows-specific parts of _toposort_prepare_graph
     # are behaving correctly.
 
-    monkeypatch.setattr(conda.models.prefix_graph, "on_win", True)
+    monkeypatch.setenv("CONDA_SUBDIR", "win-64")
+    reset_context()
     records, specs = get_windows_conda_build_record_set(tmpdir, merge_noarch=False)
     graph = PrefixGraph(records, specs)
 
@@ -660,68 +661,64 @@ def test_windows_sort_orders_2(monkeypatch: MonkeyPatch, tmpdir):
     # are behaving correctly.
 
     monkeypatch.setenv("CONDA_ALLOW_CYCLES", "false")
+    monkeypatch.setenv("CONDA_SUBDIR", "linux-64")
     reset_context()
-    old_on_win = conda.models.prefix_graph.on_win
-    conda.models.prefix_graph.on_win = False
-    try:
-        records, specs = get_windows_conda_build_record_set(tmpdir)
-        graph = PrefixGraph(records, specs)
+    records, specs = get_windows_conda_build_record_set(tmpdir)
+    graph = PrefixGraph(records, specs)
 
-        python_node = graph.get_node_by_name("python")
-        pip_node = graph.get_node_by_name("pip")
-        assert pip_node in graph.graph[python_node]
-        assert python_node in graph.graph[pip_node]
+    python_node = graph.get_node_by_name("python")
+    pip_node = graph.get_node_by_name("pip")
+    assert pip_node in graph.graph[python_node]
+    assert python_node in graph.graph[pip_node]
 
-        nodes = tuple(rec.name for rec in graph.records)
-        pprint(nodes)
-        order = (
-            "ca-certificates",
-            "conda-env",
-            "vs2015_runtime",
-            "vc",
-            "openssl",
-            "python",
-            "yaml",
-            "affine",
-            "asn1crypto",
-            "beautifulsoup4",
-            "certifi",
-            "chardet",
-            "colour",
-            "cryptography-vectors",
-            "filelock",
-            "glob2",
-            "idna",
-            "markupsafe",
-            "pkginfo",
-            "psutil",
-            "pycosat",
-            "pycparser",
-            "pywin32",
-            "pyyaml",
-            "ruamel_yaml",
-            "six",
-            "spiffy-test-app",
-            "win_inet_pton",
-            "wincertstore",
-            "cffi",
-            "menuinst",  # not on_win, menuinst isn't changed
-            "pysocks",
-            "setuptools",
-            "uses-spiffy-test-app",
-            "cryptography",
-            "jinja2",
-            "wheel",
-            "pip",  # pip always comes after python
-            "pyopenssl",
-            "urllib3",
-            "requests",
-            "conda",  # not on_win, no special treatment for noarch: python packages (affine, colour, spiffy-test-app, uses-spiffy-test-app)
-            "conda-build",
-        )
-        assert nodes == order
-    finally:
-        conda.models.prefix_graph.on_win = old_on_win
+    nodes = tuple(rec.name for rec in graph.records)
+    pprint(nodes)
+    order = (
+        "ca-certificates",
+        "conda-env",
+        "vs2015_runtime",
+        "vc",
+        "openssl",
+        "python",
+        "yaml",
+        "affine",
+        "asn1crypto",
+        "beautifulsoup4",
+        "certifi",
+        "chardet",
+        "colour",
+        "cryptography-vectors",
+        "filelock",
+        "glob2",
+        "idna",
+        "markupsafe",
+        "pkginfo",
+        "psutil",
+        "pycosat",
+        "pycparser",
+        "pywin32",
+        "pyyaml",
+        "ruamel_yaml",
+        "six",
+        "spiffy-test-app",
+        "win_inet_pton",
+        "wincertstore",
+        "cffi",
+        "menuinst",  # not on_win, menuinst isn't changed
+        "pysocks",
+        "setuptools",
+        "uses-spiffy-test-app",
+        "cryptography",
+        "jinja2",
+        "wheel",
+        "pip",  # pip always comes after python
+        "pyopenssl",
+        "urllib3",
+        "requests",
+        "conda",  # not on_win, no special treatment for noarch: python packages (affine, colour, spiffy-test-app, uses-spiffy-test-app)
+        "conda-build",
+    )
+    assert nodes == order
 
 
 def test_sort_without_prep(tmpdir, mocker, monkeypatch: MonkeyPatch):

@@ -1130,7 +1130,9 @@ def make_entry_point(target_path, conda_prefix, module, func):
         # no shebang needed on windows
         new_ep_content = ""
     else:
-        python_path = join(conda_prefix, get_python_short_path())
+        python_path = join(
+            conda_prefix, get_python_short_path(subdir=context._native_subdir())
+        )
         new_ep_content = generate_shebang_for_entry_point(
             python_path, with_usr_bin_env=True
         )
@@ -2343,7 +2345,7 @@ def make_diff(old, new):
 
 
 def _get_python_info(prefix):
-    python_exe = join(prefix, get_python_short_path())
+    python_exe = join(prefix, get_python_short_path(subdir=context._native_subdir()))
     result = subprocess_call(f"{python_exe} --version")
     stdout, stderr = result.stdout.strip(), result.stderr.strip()
     if stderr:
@@ -2354,7 +2356,12 @@ def _get_python_info(prefix):
         raise ValueError("No python version information available.")
 
     site_packages_dir = join(
-        prefix, win_path_ok(get_python_site_packages_short_path(python_version))
+        prefix,
+        win_path_ok(
+            get_python_site_packages_short_path(
+                python_version, context._native_subdir()
+            )
+        ),
     )
     return python_exe, python_version, site_packages_dir
 

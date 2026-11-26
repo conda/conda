@@ -1,0 +1,30 @@
+### Enhancements
+
+* Support creating windows environments in other operating systems. This
+  fixes creating python entry points for windows from unixes by using
+  the stub executable even on other operating systems if the subdir is
+  windows. (#15690)
+* `conda-launchers` is now a dependency on all platforms so that Windows
+  entry point launchers are available when creating `win-*` environments
+  from other operating systems. (#15690)
+* When creating an environment for another operating system, decide
+  `python-scripts/` placement, prefix replacement for noarch packages and
+  install ordering from the target subdir instead of the host OS. Link
+  scripts that cannot run on the host are skipped with a warning, and pip
+  dependencies raise an error. (#15690)
+
+### Bug fixes
+
+* <news item>
+
+### Deprecations
+
+* <news item>
+
+### Docs
+
+* <news item>
+
+### Other
+
+* <news item>

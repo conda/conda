@@ -79,3 +79,17 @@ def test_get_pip_installed_packages(pip_output, expected):
 def test_get_pip_installed_packages_none(pip_output):
     result = get_pip_installed_packages(pip_output)
     assert result is None
+
+
+def test_pip_subprocess_refuses_other_os(tmp_path, monkeypatch):
+    from conda.base.context import context, reset_context
+    from conda.env.pip_util import pip_subprocess
+    from conda.exceptions import CondaEnvException
+
+    other_subdir = (
+        "linux-64" if context._native_subdir().startswith("win-") else "win-64"
+    )
+    monkeypatch.setenv("CONDA_SUBDIR", other_subdir)
+    reset_context()
+    with pytest.raises(CondaEnvException, match="Cannot run pip"):
+        pip_subprocess(["install", "foo"], str(tmp_path), cwd=None)

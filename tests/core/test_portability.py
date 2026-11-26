@@ -303,3 +303,20 @@ def test_update_prefix_batches_osx_arm64_codesign(tmp_path, mocker):
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+
+
+@pytest.mark.parametrize(
+    "target_subdir,expected",
+    [("win-64", True), ("linux-64", False), ("osx-arm64", False)],
+)
+def test_subdir_is_win_noarch_follows_target_subdir(
+    monkeypatch: pytest.MonkeyPatch, target_subdir: str, expected: bool
+):
+    from conda.base.context import reset_context
+    from conda.core.portability import _subdir_is_win
+
+    monkeypatch.setenv("CONDA_SUBDIR", target_subdir)
+    reset_context()
+    assert _subdir_is_win("noarch") is expected
+    assert _subdir_is_win("win-arm64") is True
+    assert _subdir_is_win("linux-aarch64") is False

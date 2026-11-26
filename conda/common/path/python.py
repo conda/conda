@@ -9,8 +9,6 @@ import re
 from logging import getLogger
 from os.path import join, split, splitext
 
-from ..compat import on_win
-
 log = getLogger(__name__)
 
 
@@ -83,15 +81,19 @@ def parse_entry_point_def(ep_definition):
     return command, module, func
 
 
-def get_python_short_path(python_version=None):
-    if on_win:
+def get_python_short_path(python_version=None, subdir=None):
+    from conda.base.context import context
+
+    if subdir is None:
+        subdir = context.subdir
+    if subdir.startswith("win-"):
         return "python.exe"
     if python_version and "." not in python_version:
         python_version = ".".join(python_version)
     return join("bin", "python%s" % (python_version or ""))
 
 
-def get_python_site_packages_short_path(python_version):
+def get_python_site_packages_short_path(python_version, subdir=None):
     """Get the default site-packages path for a given Python version.
 
     For unix systems, this is usually ``lib/pythonX.Y/site-packages``.
@@ -114,9 +116,13 @@ def get_python_site_packages_short_path(python_version):
             )
         ```
     """
+    from conda.base.context import context
+
+    if subdir is None:
+        subdir = context.subdir
     if python_version is None:
         return None
-    elif on_win:
+    elif subdir.startswith("win-"):
         version = get_major_minor_version(python_version)
         if version:
             major, minor = version.split(".")
@@ -171,13 +177,18 @@ def get_major_minor_version(string: str, with_dot=True) -> str:
     return ".".join(maj_min) if with_dot else "".join(maj_min)
 
 
-def get_python_noarch_target_path(source_short_path, target_site_packages_short_path):
+def get_python_noarch_target_path(
+    source_short_path, target_site_packages_short_path, subdir=None
+):
     if source_short_path.startswith("site-packages/"):
         sp_dir = target_site_packages_short_path
         return source_short_path.replace("site-packages", sp_dir, 1)
     elif source_short_path.startswith("python-scripts/"):
-        from . import BIN_DIRECTORY
+        from conda.base.context import context
 
-        return source_short_path.replace("python-scripts", BIN_DIRECTORY, 1)
+        if subdir is None:
+            subdir = context.subdir
+        bin_dir = "Scripts" if subdir.startswith("win-") else "bin"
+        return source_short_path.replace("python-scripts", bin_dir, 1)
     else:
         return source_short_path
