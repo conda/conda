@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from functools import cached_property
 from logging import getLogger
 from pathlib import Path
@@ -22,6 +22,7 @@ from uuid import uuid4
 
 from ..common.compat import on_mac
 from ..common.configuration import DEFAULT_CONDARC_FILENAME
+from ..common.path import expand
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -92,6 +93,11 @@ class _MissingSentinel:
 
 
 MISSING = _MissingSentinel()
+
+
+def _pkgs_dir_path(entry: Any) -> str | None:
+    path = entry.get("path") if isinstance(entry, Mapping) else entry
+    return expand(path) if isinstance(path, str) else None
 
 
 class ParameterTypeGroups:
@@ -626,18 +632,28 @@ class ConfigurationFile:
             bad = self.content[key].__class__.__name__
             raise CouldntParseError(f"key {key!r} should be a list, not {bad}.")
 
-        if item in arglist:
+        path = _pkgs_dir_path(item) if key == "pkgs_dirs" else None
+        matches = [
+            entry
+            for entry in arglist
+            if entry == item or (path is not None and _pkgs_dir_path(entry) == path)
+        ]
+
+        if matches:
             # Right now, all list keys should not contain duplicates
             location = "top" if prepend else "bottom"
             message_key = key + "." + subkey if subkey is not None else key
             message = f"Warning: '{item}' already in '{message_key}' list, moving to the {location}"
 
+            arglist = [entry for entry in arglist if entry not in matches]
             if subkey is None:
-                arglist = self.content[key] = [p for p in arglist if p != item]
+                self.content[key] = arglist
             else:
-                arglist = self.content[key][subkey] = [p for p in arglist if p != item]
+                self.content[key][subkey] = arglist
 
             self.warning_handler(msg=message)
+            if key == "pkgs_dirs" and isinstance(item, str):
+                item = matches[0]
 
         arglist.insert(0 if prepend else len(arglist), item)
 
@@ -764,12 +780,20 @@ class ConfigurationFile:
                     raise CondaKeyError(key, "undefined in config")
                 self.content[parameter_name] = ["defaults"]
 
-            if item not in base_config[parameter_name]:
+            items = base_config[parameter_name]
+            path = _pkgs_dir_path(item) if parameter_name == "pkgs_dirs" else None
+            matches = [
+                entry
+                for entry in items
+                if entry == item or (path is not None and _pkgs_dir_path(entry) == path)
+            ]
+
+            if not matches:
                 raise CondaKeyError(
                     parameter_name, f"value {item!r} not present in config"
                 )
             base_config[parameter_name] = [
-                i for i in base_config[parameter_name] if i != item
+                entry for entry in items if entry not in matches
             ]
         else:
             raise CondaKeyError(key, "invalid parameter")
