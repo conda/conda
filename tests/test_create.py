@@ -610,15 +610,13 @@ def test_noarch_python_package_with_entry_points(
     Makes sure that entry point files are installed, including when creating
     an environment for a different subdir than the native one.
     """
-    if on_win and not subdir.startswith("win-"):
+    if (on_win and not subdir.startswith("win-")) or (
+        on_mac and subdir.startswith("linux-")
+    ):
         pytest.skip(
-            "Unix packages like ncurses have files differing only by case, "
-            "which can't be extracted on Windows."
+            "ncurses has files differing only by case, which can't be extracted "
+            "on the (default) case-insensitive file system of this OS."
         )
-    extra = []
-    if subdir.startswith("linux-") and not context.subdir.startswith("linux-"):
-        # ncurses package on defaults require a case sensitive file system
-        extra.extend(["-c", "conda-forge"])
     if subdir.startswith("osx-") and not context.subdir.startswith("osx-"):
         # __osx is not detected when cross-creating, but python requires it
         monkeypatch.setenv("CONDA_OVERRIDE_OSX", "11.0")
@@ -633,7 +631,6 @@ def test_noarch_python_package_with_entry_points(
         python_spec,
         "--subdir",
         subdir,
-        *extra,
     ) as prefix:
         python_record = PrefixData(prefix).get("python")
         py_ver = get_major_minor_version(python_record.version)
