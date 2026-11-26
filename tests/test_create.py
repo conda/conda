@@ -618,10 +618,14 @@ def test_noarch_python_package_with_entry_points(
         # __osx is not detected when cross-creating, but python requires it
         monkeypatch.setenv("CONDA_OVERRIDE_OSX", "11.0")
         reset_context()
+    # Only pin to the running python version when we will run the interpreter;
+    # that version may not be published for other subdirs yet. The upper bound
+    # excludes the fake python=3.99.99 in the test-recipes channel.
+    python_spec = PYTHON_SPEC if subdir == context.subdir else "python<3.99"
 
     with tmp_env(
         f"{TEST_RECIPES_CHANNEL.as_uri()}::small-python-package",
-        PYTHON_SPEC,
+        python_spec,
         "--subdir",
         subdir,
         *extra,
