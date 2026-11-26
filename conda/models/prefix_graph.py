@@ -16,7 +16,6 @@ from logging import getLogger
 from typing import TYPE_CHECKING
 
 from ..base.context import context
-from ..common.compat import on_win
 from ..deprecations import deprecated
 from ..exceptions import CyclicalDependencyError
 from .enums import NoarchType
@@ -334,7 +333,7 @@ class PrefixGraph:
                 if python_node in parents and node not in menuinst_parents:
                     parents.setdefault(menuinst_node)
 
-        if on_win:
+        if context.subdir.startswith("win-"):
             # 3. On windows, python noarch packages need an implicit dependency on conda added, if
             #    conda is in the list of packages for the environment.  Python noarch packages
             #    that have entry points used to use conda's own conda.exe python entry point binary.

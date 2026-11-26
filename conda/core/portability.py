@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 from ..auxlib.ish import dals
 from ..base.constants import PREFIX_PLACEHOLDER
 from ..base.context import context
-from ..common.compat import on_linux, on_mac, on_win
+from ..common.compat import on_linux, on_mac
 from ..exceptions import BinaryPrefixReplacementError, CondaIOError
 from ..gateways.disk.update import CancelOperation, update_file_in_place_as_binary
 from ..models.enums import FileMode
@@ -69,8 +69,8 @@ def _subdir_is_win(subdir: str) -> bool:
         os, _ = subdir.lower().split("-", 1)
         return os == "win"
     else:
-        # For noarch, check that we are running on windows
-        return on_win
+        # For noarch, check whether the target environment is for windows
+        return context.subdir.startswith("win-")
 
 
 def update_prefix(

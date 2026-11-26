@@ -59,7 +59,7 @@ def load_site_packages(
     site_packages_dir = python_pkg_record.python_site_packages_path
     if site_packages_dir is None:
         site_packages_dir = get_python_site_packages_short_path(
-            python_pkg_record.version
+            python_pkg_record.version, python_pkg_record.subdir or None
         )
     site_packages_path = prefix_path / win_path_ok(site_packages_dir)
 

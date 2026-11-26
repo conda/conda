@@ -7,6 +7,11 @@
 * `conda-launchers` is now a dependency on all platforms so that Windows
   entry point launchers are available when creating `win-*` environments
   from other operating systems. (#15690)
+* When creating an environment for another operating system, decide
+  `python-scripts/` placement, prefix replacement for noarch packages and
+  install ordering from the target subdir instead of the host OS. Link
+  scripts that cannot run on the host are skipped with a warning, and pip
+  dependencies raise an error. (#15690)
 
 ### Bug fixes
 

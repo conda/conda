@@ -177,13 +177,18 @@ def get_major_minor_version(string: str, with_dot=True) -> str:
     return ".".join(maj_min) if with_dot else "".join(maj_min)
 
 
-def get_python_noarch_target_path(source_short_path, target_site_packages_short_path):
+def get_python_noarch_target_path(
+    source_short_path, target_site_packages_short_path, subdir=None
+):
     if source_short_path.startswith("site-packages/"):
         sp_dir = target_site_packages_short_path
         return source_short_path.replace("site-packages", sp_dir, 1)
     elif source_short_path.startswith("python-scripts/"):
-        from . import BIN_DIRECTORY
+        from conda.base.context import context
 
-        return source_short_path.replace("python-scripts", BIN_DIRECTORY, 1)
+        if subdir is None:
+            subdir = context.subdir
+        bin_dir = "Scripts" if subdir.startswith("win-") else "bin"
+        return source_short_path.replace("python-scripts", bin_dir, 1)
     else:
         return source_short_path

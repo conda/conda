@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from conda.common.path.python import (
+    get_python_noarch_target_path,
     get_python_site_packages_short_path,
     is_valid_import_path,
 )
@@ -82,3 +83,22 @@ def test_get_python_site_packages_short_path_windows(
     python_version: str, expected: str
 ):
     assert get_python_site_packages_short_path(python_version, "win-64") == expected
+
+
+@pytest.mark.parametrize(
+    "subdir,expected",
+    [
+        ("linux-64", "bin/foo"),
+        ("osx-arm64", "bin/foo"),
+        ("win-64", "Scripts/foo"),
+    ],
+)
+def test_get_python_noarch_target_path_python_scripts(subdir: str, expected: str):
+    assert get_python_noarch_target_path("python-scripts/foo", "sp", subdir) == expected
+
+
+def test_get_python_noarch_target_path_site_packages():
+    assert (
+        get_python_noarch_target_path("site-packages/foo/__init__.py", "Lib/sp")
+        == "Lib/sp/foo/__init__.py"
+    )

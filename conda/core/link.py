@@ -31,7 +31,6 @@ from ..common.io import (
     time_recorder,
 )
 from ..common.path import (
-    BIN_DIRECTORY,
     explode_directories,
     get_all_directories,
     get_major_minor_version,
@@ -1216,7 +1215,7 @@ class UnlinkLinkTransaction:
             python_site_packages = python_record.python_site_packages_path
             if python_site_packages is None:
                 python_site_packages = get_python_site_packages_short_path(
-                    python_version
+                    python_version, python_record.subdir or None
                 )
             return python_version, python_site_packages
 
@@ -1600,12 +1599,24 @@ def run_script(
     Call the post-link (or pre-unlink) script, returning True on success,
     False on failure.
     """
+    target_is_win = context.subdir.startswith("win-")
     path = join(
         prefix,
-        BIN_DIRECTORY,
-        ".{}-{}.{}".format(prec.name, action, "bat" if on_win else "sh"),
+        "Scripts" if target_is_win else "bin",
+        ".{}-{}.{}".format(prec.name, action, "bat" if target_is_win else "sh"),
     )
     if not isfile(path):
+        return True
+
+    if target_is_win != on_win:
+        # e.g. a .bat script in a win-* environment created from linux or macOS
+        log.warning(
+            "Skipping %s script for %s: it cannot be run on this platform "
+            "when creating an environment for %s.",
+            action,
+            prec.dist_str(),
+            context.subdir,
+        )
         return True
 
     env = os.environ.copy()

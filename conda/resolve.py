@@ -19,7 +19,6 @@ from tqdm import tqdm
 from .auxlib.decorators import memoizemethod
 from .base.constants import MAX_CHANNEL_PRIORITY, ChannelPriority, SatSolverChoice
 from .base.context import context
-from .common.compat import on_win
 from .common.io import dashlist, time_recorder
 from .common.iterators import groupby_to_dict as groupby
 from .common.logic import (
@@ -1247,7 +1246,7 @@ class Resolve:
         #    If conda is going to be updated during an operation, the unlink / link order matters.
         #    See issue #6057.
 
-        if on_win and "conda" in digraph:
+        if context.subdir.startswith("win-") and "conda" in digraph:
             for package_name, dist in must_have.items():
                 record = self.index.get(prec)
                 if hasattr(record, "noarch") and record.noarch == NoarchType.python:

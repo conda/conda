@@ -41,6 +41,13 @@ def get_pip_workdir(file_path: str | None) -> str | None:
 
 def pip_subprocess(args, prefix, cwd):
     """Run pip in a subprocess"""
+    native_os = context._native_subdir().split("-")[0]
+    target_os = context.subdir.split("-")[0]
+    if native_os != target_os:
+        raise CondaEnvException(
+            f"Cannot run pip to install packages into an environment for "
+            f"{context.subdir!r} from {context._native_subdir()!r}."
+        )
     if on_win:
         python_path = os.path.join(prefix, "python.exe")
     else:

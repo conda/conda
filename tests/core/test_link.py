@@ -419,3 +419,31 @@ def test_unlinking_conda_dependency_is_still_blocked(tmp_path, monkeypatch):
 
     assert len(errors) == 1
     assert "missing-dep" in str(errors[0])
+
+
+def test_run_script_skips_scripts_for_other_os(tmp_path, monkeypatch, mocker):
+    """Scripts in an environment for another OS can't run here and are skipped."""
+    other_subdir = "linux-64" if on_win else "win-64"
+    monkeypatch.setenv("CONDA_SUBDIR", other_subdir)
+    reset_context()
+    prec = PackageRecord(
+        name="mypkg",
+        version="1.0",
+        build="0",
+        build_number=0,
+        channel=f"pkgs/main/{other_subdir}",
+        subdir=other_subdir,
+    )
+    prefix = tmp_path / "prefix"
+    script = (
+        prefix / "bin" / ".mypkg-post-link.sh"
+        if on_win
+        else prefix / "Scripts" / ".mypkg-post-link.bat"
+    )
+    script.parent.mkdir(parents=True)
+    script.write_text("exit 1")
+
+    warning = mocker.patch.object(link.log, "warning")
+    assert link.run_script(str(prefix), prec, "post-link")
+    warning.assert_called_once()
+    assert "Skipping" in warning.call_args.args[0]
