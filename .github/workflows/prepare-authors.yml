@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-slim
     steps:
       - name: Prepare Authors
-        uses: conda/actions/prepare-authors@8153f7f73472ac36d654d5111be19abaecc48cc6 # v26.10.0
+        uses: conda/actions/prepare-authors@08d912c833fae64489ad7a438b3c7b68e177a643 # v26.11.0
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
           since: tag
